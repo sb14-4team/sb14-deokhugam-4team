@@ -1,0 +1,12 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/deokhugam_test
+    username: ${POSTGRES_USER:deokhugam}
+    password: ${POSTGRES_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop

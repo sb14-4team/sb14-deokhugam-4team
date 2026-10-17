@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ ! -x "./node_modules/.bin/commitlint" ]; then
+  echo "commitlint가 없습니다. 프로젝트 루트에서 npm ci를 실행하세요."
+  exit 1
+fi
+
+./node_modules/.bin/commitlint --edit "$1"

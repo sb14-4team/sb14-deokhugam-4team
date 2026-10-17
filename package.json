@@ -1,0 +1,12 @@
+{
+  "name": "deokhugam",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "setup:hooks": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "19.8.1",
+    "@commitlint/config-conventional": "19.8.1"
+  }
+}

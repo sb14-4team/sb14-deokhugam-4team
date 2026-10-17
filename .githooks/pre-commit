@@ -1,0 +1,11 @@
+#!/bin/sh
+
+echo " 포맷 검사 중..."
+
+if ! bash ./gradlew spotlessCheck; then
+  echo ""
+  echo "검사에 실패했습니다. 위 오류를 확인하세요."
+  echo "포맷 위반이면 ./gradlew spotlessApply 를 실행하세요."
+  echo "변경 내용을 확인하고 다시 git add 후 커밋하세요."
+  exit 1
+fi
