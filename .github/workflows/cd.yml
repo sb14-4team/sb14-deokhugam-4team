@@ -1,0 +1,48 @@
+name: Build and Push to Public ECR
+
+on:
+  push:
+    branches:
+      - feature/infra-cd    # 테스트용
+
+
+permissions:
+  contents: read
+
+env:
+  ECR_PUBLIC_ALIAS: w8s3x0v7
+  ECR_REPOSITORY: deokhugam-app
+
+jobs:
+  build-and-push:   # 깃헙 머신에서 이미지 빌드 + ecr 푸쉬
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR Public
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Build and push image
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          IMAGE_URI=$REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
+
+          docker build -t $IMAGE_URI .
+          docker push $IMAGE_URI
+
+          docker tag $IMAGE_URI $REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:latest
+          docker push $REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:latest
