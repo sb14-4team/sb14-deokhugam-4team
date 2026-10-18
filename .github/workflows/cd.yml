@@ -1,21 +1,18 @@
-name: Build and Push to Public ECR
-
 on:
   push:
     branches:
       - feature/infra-cd    # 테스트용
+  workflow_dispatch:
 
 
 permissions:
   contents: read
 
-env:
-  ECR_PUBLIC_ALIAS: w8s3x0v7
-  ECR_REPOSITORY: deokhugam-app
-
 jobs:
-  build-and-push:   # 깃헙 머신에서 이미지 빌드 + ecr 푸쉬
+  build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      image_uri: ${{ steps.image.outputs.image_uri }}
 
     steps:
       - name: Checkout
@@ -26,7 +23,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{ vars.ECR_PUBLIC_REGION }}
 
       - name: Login to Amazon ECR Public
         id: login-ecr-public
@@ -35,9 +32,12 @@ jobs:
           registry-type: public
 
       - name: Build and push image
+        id: image
         env:
           REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          ECR_PUBLIC_ALIAS: ${{ vars.ECR_PUBLIC_ALIAS }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
           IMAGE_URI=$REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
 
@@ -46,3 +46,91 @@ jobs:
 
           docker tag $IMAGE_URI $REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:latest
           docker push $REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:latest
+
+          echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.ECS_REGION }}
+
+      - name: Register a new task definition revision
+        env:
+          IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
+          ECS_REGION: ${{ vars.ECS_REGION }}
+          ECS_TASK_DEFINITION: ${{ vars.ECS_TASK_DEFINITION }}
+          ECS_CONTAINER_NAME: ${{ vars.ECS_CONTAINER_NAME }}
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "$ECS_TASK_DEFINITION" \
+            --region "$ECS_REGION" \
+            --query taskDefinition \
+            --output json > current-task-definition.json
+
+          jq --arg image "$IMAGE_URI" --arg container "$ECS_CONTAINER_NAME" '
+            del(
+              .taskDefinitionArn,
+              .revision,
+              .status,
+              .requiresAttributes,
+              .compatibilities,
+              .registeredAt,
+              .registeredBy,
+              .deregisteredAt
+            ) |
+            .containerDefinitions |= map(
+              if .name == $container then
+                .image = $image |
+                .environment = (
+                  ((.environment // []) | map(select(.name != "SPRING_PROFILES_ACTIVE"))) +
+                  [{"name": "SPRING_PROFILES_ACTIVE", "value": "prod"}]
+                )
+              else . end
+            )
+          ' current-task-definition.json > next-task-definition.json
+
+          aws ecs register-task-definition \
+            --cli-input-json file://next-task-definition.json \
+            --region "$ECS_REGION" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text > task-definition-arn.txt
+
+      - name: Deploy to ECS
+        env:
+          ECS_REGION: ${{ vars.ECS_REGION }}
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+        run: |
+          TASK_DEFINITION_ARN=$(cat task-definition-arn.txt)
+
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$TASK_DEFINITION_ARN" \
+            --deployment-configuration "minimumHealthyPercent=0,maximumPercent=100" \
+            --availability-zone-rebalancing DISABLED \
+            --region "$ECS_REGION"
+
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$ECS_REGION"
+
+          DEPLOYED_TASK_DEFINITION_ARN=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$ECS_REGION" \
+            --query 'services[0].taskDefinition' \
+            --output text)
+
+          if [ "$DEPLOYED_TASK_DEFINITION_ARN" != "$TASK_DEFINITION_ARN" ]; then
+            echo "Deployment rolled back. Expected $TASK_DEFINITION_ARN, but service runs $DEPLOYED_TASK_DEFINITION_ARN."
+            exit 1
+          fi
