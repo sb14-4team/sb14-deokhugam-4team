@@ -13,3 +13,14 @@ server:
 logging:
   level:
     org.hibernate.SQL: INFO
+
+# Grafana Cloud로 1분마다 메트릭을 보낸다. 주소와 인증값은 SSM 파라미터가 태스크 정의를 거쳐 환경 변수로 들어온다
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: ${OTLP_METRICS_ENABLED:false}
+        url: ${OTLP_METRICS_URL:}
+        headers:
+          Authorization: ${OTLP_AUTH_HEADER:}
+        base-time-unit: seconds

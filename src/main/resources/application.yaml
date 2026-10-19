@@ -24,6 +24,14 @@ management:
     web:
       exposure:
         include: health,info
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  # Grafana Cloud 전송은 prod에서만 켠다 (application-prod.yaml)
+  otlp:
+    metrics:
+      export:
+        enabled: false
 
 logging:
   level:
