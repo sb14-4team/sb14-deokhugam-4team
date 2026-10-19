@@ -1,0 +1,132 @@
+name: Deploy to ECS
+
+on:
+  push:
+    branches:
+      - main
+      - 'chore/CD_김승호' # 임시: 팀 합의 전 배포 시험용, PR 전에 지운다
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: deokhugam
+  ECS_CLUSTER: deokhugam-cluster
+  ECS_SERVICE: deokhugam-service
+  CONTAINER_NAME: deokhugam-app
+  TASK_DEFINITION: .aws/task-definition.json
+
+jobs:
+  verify:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: deokhugam_test
+          POSTGRES_USER: deokhugam
+          POSTGRES_PASSWORD: deokhugam-ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U deokhugam -d deokhugam_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Build, test and check formatting
+        env:
+          POSTGRES_PASSWORD: deokhugam-ci
+        run: bash ./gradlew --no-daemon build
+
+      # 실행 요약에 테스트 수·실패 목록을 남긴다 (테스트가 실패해도 기록)
+      - name: Publish test report
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: build/test-results/test/*.xml
+          detailed_summary: true
+
+  deploy:
+    name: Push Image and Deploy
+    needs: verify
+    runs-on: ubuntu-latest
+    # 배포 이력은 Environments(production)에 남는다. 액세스 키도 이 환경의 Secret이라 main 배포에서만 꺼낼 수 있다
+    environment: production
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 새 가입 방식 계정은 OIDC 공급자 생성(iam:*Provider*)이 SCP로 막혀 있어 배포 전용 IAM 사용자 키를 쓴다
+      - name: Configure AWS credentials
+        id: aws
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Fill in account ID
+        env:
+          AWS_ACCOUNT_ID: ${{ steps.aws.outputs.aws-account-id }}
+        run: |
+          test -n "$AWS_ACCOUNT_ID" || { echo "AWS 계정 ID를 확인하지 못했습니다"; exit 1; }
+          sed -i "s/<AWS_ACCOUNT_ID>/${AWS_ACCOUNT_ID}/g" "$TASK_DEFINITION"
+          if grep -n '<[A-Z_]*>' "$TASK_DEFINITION"; then
+            echo "태스크 정의에 채워지지 않은 자리표시자가 남아 있습니다"; exit 1
+          fi
+
+      - name: Render task definition
+        id: render
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Deploy to ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render.outputs.task-definition }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          wait-for-service-stability: true

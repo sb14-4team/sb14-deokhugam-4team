@@ -68,4 +68,21 @@
       <appender-ref ref="ERROR_FILE"/>
     </root>
   </springProfile>
+
+  <!-- dev 외 프로필(prod, test): 콘솔만. ECS에서는 awslogs가 콘솔 출력을 CloudWatch Logs로 보낸다 -->
+  <springProfile name="!dev">
+
+    <property name="LOG_PATTERN"
+      value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %kvp %msg%n"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>${LOG_PATTERN}</pattern>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="STDOUT"/>
+    </root>
+  </springProfile>
 </configuration>
