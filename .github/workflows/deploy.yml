@@ -133,23 +133,30 @@ jobs:
           service: ${{ env.ECS_SERVICE }}
           desired-count: 1
           wait-for-service-stability: true
+          wait-for-minutes: 10
 
-      # 회로 차단기가 이전 버전으로 롤백해도 서비스는 '안정'이 되어 위 단계가 성공한다. 새 리비전이 실제로 자리 잡았는지 따로 확인한다
+      # 위 단계는 태스크가 아직 안 떴거나 회로 차단기가 롤백한 경우에도 성공할 수 있다.
+      # 새 리비전의 롤아웃이 COMPLETED가 될 때까지 최대 10분 지켜보고, 롤백이나 실패면 바로 멈춘다
       - name: Verify new revision is running
         env:
           EXPECTED: ${{ steps.deploy.outputs.task-definition-arn }}
         run: |
-          read -r actual rollout running desired < <(aws ecs describe-services \
-            --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" \
-            --query 'services[0].deployments[?status==`PRIMARY`] | [0].[taskDefinition, rolloutState, runningCount, desiredCount]' \
-            --output text)
-          echo "primary=$actual rollout=$rollout running=$running/$desired"
-          if [ "$actual" != "$EXPECTED" ]; then
-            echo "새 리비전이 아니라 $actual 이(가) 돌고 있습니다 (롤백됐을 수 있음)"; exit 1
-          fi
-          if [ "$rollout" != "COMPLETED" ] || [ "$running" -lt 1 ]; then
-            echo "배포가 끝나지 않았습니다"; exit 1
-          fi
+          for attempt in $(seq 1 40); do
+            read -r actual rollout running desired < <(aws ecs describe-services \
+              --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" \
+              --query 'services[0].deployments[?status==`PRIMARY`] | [0].[taskDefinition, rolloutState, runningCount, desiredCount]' \
+              --output text)
+            echo "($attempt/40) primary=${actual##*/} rollout=$rollout running=$running/$desired"
+            if [ "$actual" != "$EXPECTED" ]; then
+              echo "새 리비전이 아니라 ${actual##*/} 이(가) 돌고 있습니다 (롤백됨)"; exit 1
+            fi
+            case "$rollout" in
+              COMPLETED) [ "$running" -ge 1 ] && exit 0 ;;
+              FAILED) echo "롤아웃이 실패했습니다"; exit 1 ;;
+            esac
+            sleep 15
+          done
+          echo "10분 안에 배포가 끝나지 않았습니다"; exit 1
 
       - name: Smoke test through ALB
         env:
