@@ -21,6 +21,7 @@ env:
   ECS_SERVICE: deokhugam-service
   CONTAINER_NAME: deokhugam-app
   TASK_DEFINITION: .aws/task-definition.json
+  LOG_GROUP: /ecs/deokhugam
 
 jobs:
   verify:
@@ -124,9 +125,77 @@ jobs:
           image: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
 
       - name: Deploy to ECS service
+        id: deploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render.outputs.task-definition }}
           cluster: ${{ env.ECS_CLUSTER }}
           service: ${{ env.ECS_SERVICE }}
+          desired-count: 1
           wait-for-service-stability: true
+
+      # 회로 차단기가 이전 버전으로 롤백해도 서비스는 '안정'이 되어 위 단계가 성공한다. 새 리비전이 실제로 자리 잡았는지 따로 확인한다
+      - name: Verify new revision is running
+        env:
+          EXPECTED: ${{ steps.deploy.outputs.task-definition-arn }}
+        run: |
+          read -r actual rollout running desired < <(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" \
+            --query 'services[0].deployments[?status==`PRIMARY`] | [0].[taskDefinition, rolloutState, runningCount, desiredCount]' \
+            --output text)
+          echo "primary=$actual rollout=$rollout running=$running/$desired"
+          if [ "$actual" != "$EXPECTED" ]; then
+            echo "새 리비전이 아니라 $actual 이(가) 돌고 있습니다 (롤백됐을 수 있음)"; exit 1
+          fi
+          if [ "$rollout" != "COMPLETED" ] || [ "$running" -lt 1 ]; then
+            echo "배포가 끝나지 않았습니다"; exit 1
+          fi
+
+      - name: Smoke test through ALB
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+        run: |
+          test -n "$APP_URL" || { echo "production 환경 변수 APP_URL이 없습니다"; exit 1; }
+          bash .github/scripts/smoke-test.sh "$APP_URL"
+
+      # 실패 원인을 AWS 콘솔에 가지 않고 이 실행 로그에서 바로 보도록 서비스 이벤트, 멈춘 태스크 사유, 앱 로그를 남긴다
+      - name: Show ECS events and app logs
+        if: failure() && steps.aws.outcome == 'success'
+        run: |
+          echo "::group::ECS 서비스 이벤트 (최근 10개)"
+          aws ecs describe-services --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" \
+            --query 'services[0].events[:10].[createdAt, message]' --output text || true
+          echo "::endgroup::"
+
+          echo "::group::멈춘 태스크와 사유 (최근 3개)"
+          tasks=$(aws ecs list-tasks --cluster "$ECS_CLUSTER" --service-name "$ECS_SERVICE" \
+            --desired-status STOPPED --query 'taskArns[:3]' --output text || true)
+          if [ -n "$tasks" ] && [ "$tasks" != "None" ]; then
+            aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks $tasks \
+              --query 'tasks[].{stoppedReason: stoppedReason, containers: containers[].[name, exitCode, reason]}' || true
+          fi
+          echo "::endgroup::"
+
+          echo "::group::앱 로그 (최근 20분)"
+          aws logs tail "$LOG_GROUP" --since 20m --format short || true
+          echo "::endgroup::"
+
+      - name: Write deploy summary
+        if: always() && steps.aws.outcome == 'success'
+        env:
+          APP_URL: ${{ vars.APP_URL }}
+          TASK_DEFINITION_ARN: ${{ steps.deploy.outputs.task-definition-arn }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          console="https://${AWS_REGION}.console.aws.amazon.com"
+          {
+            echo "## 배포 결과: ${JOB_STATUS}"
+            echo ""
+            echo "| 항목 | 값 |"
+            echo "|---|---|"
+            echo "| 커밋 | \`${GITHUB_SHA::7}\` |"
+            echo "| 태스크 정의 | \`${TASK_DEFINITION_ARN##*/}\` |"
+            echo "| 앱 주소 | ${APP_URL}/actuator/health |"
+            echo "| 앱 로그 | [CloudWatch Logs](${console}/cloudwatch/home?region=${AWS_REGION}#logsV2:log-groups/log-group/\$252Fecs\$252Fdeokhugam) |"
+            echo "| 서비스 상태 | [ECS 서비스](${console}/ecs/v2/clusters/${ECS_CLUSTER}/services/${ECS_SERVICE}/health?region=${AWS_REGION}) |"
+          } >> "$GITHUB_STEP_SUMMARY"
