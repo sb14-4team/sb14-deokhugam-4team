@@ -15,7 +15,7 @@ public class BaseSoftDeletableEntity extends BaseUpdatableEntity {
 
   public void softDelete() {
     if (isDeleted()) {
-      throw new RuntimeException();
+      throw new IllegalStateException("이미 삭제된 데이터입니다.");
     }
     this.deletedAt = Instant.now();
   }
