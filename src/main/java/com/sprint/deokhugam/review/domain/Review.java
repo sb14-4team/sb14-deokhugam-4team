@@ -14,20 +14,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor
+@Builder(access = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "reviews")
-@Builder
 public class Review extends BaseSoftDeletableEntity {
   Integer rating;
   String content;
   Integer likeCount = 0;
   Integer commentCount = 0;
 
-  // User
   @ManyToOne
   @JoinColumn(name = "user_id")
   User user;
@@ -38,5 +37,9 @@ public class Review extends BaseSoftDeletableEntity {
 
   public static Review init(Integer rate, String content) {
     return builder().rating(rate).content(content).build();
+  }
+
+  public void countLike() {
+    likeCount++;
   }
 }
