@@ -14,7 +14,9 @@ public record Email(String value) {
     if (!FORMAT.matcher(value).matches()) {
       throw new RuntimeException();
     }
+  }
 
-    //    if (value.length() > 100)
+  public static Email to(String value) {
+    return new Email(value);
   }
 }

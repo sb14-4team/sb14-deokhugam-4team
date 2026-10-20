@@ -28,7 +28,7 @@ public class User extends BaseSoftDeletableEntity {
   @Column(name = "password", nullable = false)
   private Password password;
 
-  public User(String nickname, Email email, Password password) {
+  private User(String nickname, Email email, Password password) {
     this.nickname = nickname;
     this.email = email;
     this.password = password;
