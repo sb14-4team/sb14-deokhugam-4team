@@ -2,12 +2,9 @@ package com.sprint.deokhugam.user.domain;
 
 import java.util.regex.Pattern;
 
-public record Email(
-    String value
-) {
+public record Email(String value) {
 
-  private static final Pattern FORMAT =
-      Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
+  private static final Pattern FORMAT = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
   public Email {
     if (value == null || value.isBlank()) {
@@ -18,7 +15,6 @@ public record Email(
       throw new RuntimeException();
     }
 
-//    if (value.length() > 100)
+    //    if (value.length() > 100)
   }
-
 }

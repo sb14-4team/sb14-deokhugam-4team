@@ -38,4 +38,3 @@ public class User extends BaseSoftDeletableEntity {
     return new User(nickname, email, password);
   }
 }
-

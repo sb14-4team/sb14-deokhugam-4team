@@ -1,11 +1,8 @@
 package com.sprint.deokhugam.user.domain;
 
-
 import java.util.regex.Pattern;
 
-public record Password(
-    String password
-) {
+public record Password(String password) {
 
   private static final Pattern FORMAT =
       Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,20}$");

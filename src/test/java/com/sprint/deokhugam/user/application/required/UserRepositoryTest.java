@@ -8,10 +8,10 @@ class UserRepositoryTest {
 
   @Test
   public void 계정생성_테스트() throws Exception {
-    //given
-    
-    //when
+    // given
 
-    //then
+    // when
+
+    // then
   }
 }

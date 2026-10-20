@@ -10,13 +10,6 @@ public class PasswordConfig {
 
   @Bean
   public PasswordEncoder passwordEncoder() {
-    return new Argon2PasswordEncoder(
-        16,
-        32,
-        1,
-        19 * 1024,
-        2
-    );
+    return new Argon2PasswordEncoder(16, 32, 1, 19 * 1024, 2);
   }
-
 }
