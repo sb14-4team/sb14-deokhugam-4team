@@ -12,10 +12,13 @@ public class QuerydslConfig {
   /*
    * Querydsl 설정
    */
-  @PersistenceContext EntityManager em;
+  @PersistenceContext
+  EntityManager em;
+
 
   @Bean
   public JPAQueryFactory jpaQueryFactory() {
     return new JPAQueryFactory(em);
   }
+
 }

@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @MappedSuperclass
 @Getter
-public class BaseSoftDeletableEntity extends BaseUpdatableEntity {
+public abstract class BaseSoftDeletableEntity extends BaseUpdatableEntity {
 
   @Column(name = "deleted")
   private boolean deleted = false;
