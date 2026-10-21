@@ -6,7 +6,7 @@ import com.sprint.deokhugam.book.application.provided.command.BookCommand;
 import com.sprint.deokhugam.book.application.required.BookPersistencePort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.common.exception.domain.BookErrorCode;
+import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -11,7 +11,7 @@ import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.required.BookPersistencePort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.common.exception.domain.BookErrorCode;
+import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;

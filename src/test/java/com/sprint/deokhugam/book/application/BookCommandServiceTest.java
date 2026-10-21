@@ -7,7 +7,7 @@ import com.sprint.deokhugam.book.FakeBookPersistencePort;
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.common.exception.domain.BookErrorCode;
+import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

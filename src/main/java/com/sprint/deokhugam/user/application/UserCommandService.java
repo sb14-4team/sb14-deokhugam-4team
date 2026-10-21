@@ -1,7 +1,7 @@
 package com.sprint.deokhugam.user.application;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.common.exception.domain.UserErrorCode;
+import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;

@@ -6,7 +6,7 @@ import static org.mockito.Mockito.mock;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.common.exception.domain.BookErrorCode;
+import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

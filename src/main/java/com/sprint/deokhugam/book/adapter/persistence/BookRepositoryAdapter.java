@@ -3,7 +3,7 @@ package com.sprint.deokhugam.book.adapter.persistence;
 import com.sprint.deokhugam.book.application.required.BookPersistencePort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.common.exception.domain.BookErrorCode;
+import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
