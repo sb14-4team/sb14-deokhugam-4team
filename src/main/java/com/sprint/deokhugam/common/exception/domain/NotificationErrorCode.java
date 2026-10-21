@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.domain.notification.exception;
+package com.sprint.deokhugam.common.exception.domain;
 
 import com.sprint.deokhugam.common.exception.ErrorCode;
 import lombok.Getter;
