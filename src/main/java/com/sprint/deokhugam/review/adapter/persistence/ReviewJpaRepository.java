@@ -28,4 +28,10 @@ public interface ReviewJpaRepository extends JpaRepository<Review, UUID> {
     return findByIdAndDeletedAtIsNull(reviewId)
         .orElseThrow(() -> new BusinessException(ReviewErrorCode.NOT_FOUND));
   }
+
+  default void requireActiveById(UUID reviewId) {
+    if (!existsByIdAndDeletedAtIsNull(reviewId)) {
+      throw new BusinessException(ReviewErrorCode.NOT_FOUND);
+    }
+  }
 }

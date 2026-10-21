@@ -23,7 +23,7 @@ public class ReviewQueryService implements ReviewFinder {
   }
 
   @Override
-  public boolean existsActiveById(UUID reviewId) {
-    return reviewPersistencePort.existsActiveById(reviewId);
+  public void requireActiveById(UUID reviewId) {
+    reviewPersistencePort.requireActiveById(reviewId);
   }
 }

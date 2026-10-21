@@ -23,12 +23,12 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   }
 
   @Override
-  public boolean existsByUserIdAndBookId(UUID userId, UUID bookId) {
-    return reviewRepository.existsActiveReview(userId, bookId);
+  public void requireActiveById(UUID reviewId) {
+    reviewRepository.requireActiveById(reviewId);
   }
 
   @Override
-  public boolean existsActiveById(UUID reviewId) {
-    return reviewRepository.existsByIdAndDeletedAtIsNull(reviewId);
+  public boolean existsByUserIdAndBookId(UUID userId, UUID bookId) {
+    return reviewRepository.existsActiveReview(userId, bookId);
   }
 }
