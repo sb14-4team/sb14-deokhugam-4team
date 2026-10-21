@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.review.application.dto;
+package com.sprint.deokhugam.review.application.dto.res;
 
 import com.sprint.deokhugam.review.domain.Review;
 import java.time.Instant;
@@ -31,9 +31,7 @@ public record ReviewResponse(
         // entity.getBook().getThumbnailUrl(),
         null,
         entity.getUser().getId(),
-
-        // entity.getUser().getNickname(),
-        null,
+        entity.getUser().getNickname(),
         entity.getContent(),
         entity.getRating(),
         entity.getLikeCount(),

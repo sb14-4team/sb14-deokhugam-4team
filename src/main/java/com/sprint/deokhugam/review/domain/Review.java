@@ -53,7 +53,7 @@ public class Review extends BaseSoftDeletableEntity {
     return builder().rating(rate).content(content).user(user).book(book).build();
   }
 
-  public void countLike() {
+  public void increaseLikeCount() {
     likeCount++;
   }
 }

@@ -3,28 +3,42 @@ package com.sprint.deokhugam.review.domain;
 import com.sprint.deokhugam.common.entity.BaseEntity;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@NoArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder(access = AccessLevel.PRIVATE)
 @Entity
 @Table(name = "review_likes")
 public class ReviewLike extends BaseEntity {
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "review_id")
   Review review;
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   User user;
 
-  boolean likedByMe;
+  @Builder.Default boolean liked = true;
+
+  public static ReviewLike init(Review review, User user) {
+    return builder().review(review).user(user).build();
+  }
+
+  public boolean toggle() {
+    liked = !liked;
+    return liked;
+  }
 }

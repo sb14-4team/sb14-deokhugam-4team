@@ -2,12 +2,15 @@ package com.sprint.deokhugam.review.application;
 
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
-import com.sprint.deokhugam.review.application.dto.ReviewResponse;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
+import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
+import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
+import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ReviewApplicationService {
   private final ReviewCommand reviewCommand;
+  private final ReviewFinder reviewFinder;
+
+  private final ReviewLikePersistencePort reviewLikePersistencePort; // 굳이 쿼리서비스를 두는건 별로같음
 
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
@@ -31,5 +37,13 @@ public class ReviewApplicationService {
 
     return ReviewResponse.from(
         savedReview, false, savedReview.getCreatedAt(), savedReview.getUpdatedAt());
+  }
+
+  @Transactional(readOnly = true)
+  public ReviewResponse getReviewDetail(UUID reviewId, UUID userId) {
+    Review review = reviewFinder.getByIdOrThrow(reviewId);
+    boolean likedByMe = reviewLikePersistencePort.isLikedBy(reviewId, userId);
+
+    return ReviewResponse.from(review, likedByMe, review.getCreatedAt(), review.getUpdatedAt());
   }
 }
