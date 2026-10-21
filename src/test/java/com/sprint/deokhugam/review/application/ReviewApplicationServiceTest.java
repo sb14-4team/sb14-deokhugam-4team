@@ -13,6 +13,7 @@ import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class ReviewApplicationServiceTest {
     user =
         User.create(
             "tester", Email.to(UUID.randomUUID() + "@test.com"), Password.to("test-password"));
-    book = new Book();
+    book = Book.create("제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), null, null);
 
     em.persist(user);
     em.persist(book);
@@ -44,7 +45,7 @@ class ReviewApplicationServiceTest {
 
   @Test
   void 리뷰_디비_정상저장확인() {
-    Review saved = reviewCommand.create(Review.init(3, "성공", user, book));
+    Review saved = reviewCommand.createReview(Review.init(3, "성공", user, book));
     em.flush();
     em.clear();
 
@@ -57,16 +58,34 @@ class ReviewApplicationServiceTest {
   }
 
   @Test
-  void 리뷰_중복저장_실패확인() {
-    Review saved = reviewCommand.create(Review.init(3, "성공", user, book));
+  void 리뷰_디비_중복저장_실패확인() {
+    Review saved = reviewCommand.createReview(Review.init(3, "성공", user, book));
     em.flush();
     em.clear();
 
     assertThat(
             assertThrows(
                     BusinessException.class,
-                    () -> reviewCommand.create(Review.init(4, "중복 리뷰", user, book)))
+                    () -> reviewCommand.createReview(Review.init(4, "중복 리뷰", user, book)))
                 .getErrorCode())
         .isEqualTo(ReviewErrorCode.ALREADY_EXISTS);
+  }
+
+  @Test
+  void 리뷰_디비_정상업데이트확인() {
+    Review saved = reviewCommand.createReview(Review.init(3, "성공", user, book));
+    em.flush();
+    UUID reviewId = saved.getId();
+    em.clear();
+
+    reviewCommand.updateReview(reviewId, user.getId(), "", 1);
+    em.flush();
+    em.clear();
+
+    Review found = reviewFinder.getByIdOrThrow(reviewId);
+
+    assertThat(found.getId()).isEqualTo(reviewId);
+    assertThat(found.getContent()).isEmpty();
+    assertThat(found.getRating()).isEqualTo(1);
   }
 }
