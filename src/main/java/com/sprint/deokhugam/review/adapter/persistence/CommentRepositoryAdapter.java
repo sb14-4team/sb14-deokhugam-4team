@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
 import com.sprint.deokhugam.review.application.required.CommentRepository;
+import com.sprint.deokhugam.review.domain.Comment;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -8,5 +9,10 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class CommentRepositoryAdapter implements CommentRepository {
 
-  private final CommentJpaRepository commentJpaRepository;
+  private final CommentJpaRepository jpaRepository;
+
+  @Override
+  public Comment save(Comment entity) {
+    return jpaRepository.save(entity);
+  }
 }

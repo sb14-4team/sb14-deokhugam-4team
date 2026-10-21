@@ -25,6 +25,8 @@ public class CommentCommandService implements CommentCommand {
     // review랑 user에 임의로 null 대입
     Comment comment = Comment.create(null, null, createRequest.content());
 
+    commentRepository.save(comment);
+
     return CommentDto.to(
         comment.getId(),
         comment.getReview().getId(),
