@@ -10,6 +10,7 @@ import com.sprint.deokhugam.user.application.required.UserRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,10 +41,19 @@ public class UserCommandService implements UserCommand {
   }
 
   @Override
-  public void delete(User user) {}
+  public void delete(UUID userId, UUID headerId) {}
 
   @Override
-  public User update(User user, String nickname) {
-    return null;
+  public UserDto update(UUID userId, UUID headerId, String nickname) {
+    if (!userId.equals(headerId)) {
+      throw new BusinessException(UserErrorCode.FORBIDDEN);
+    }
+    User user =
+        userRepository
+            .findById(userId)
+            .orElseThrow(() -> new BusinessException(UserErrorCode.NOT_FOUND));
+    user.updateNickname(nickname);
+    return UserDto.to(
+        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
   }
 }

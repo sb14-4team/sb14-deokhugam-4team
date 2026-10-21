@@ -1,6 +1,8 @@
 package com.sprint.deokhugam.user.domain;
 
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.user.adapter.persistence.EmailConverter;
 import com.sprint.deokhugam.user.adapter.persistence.PasswordConverter;
 import jakarta.persistence.Column;
@@ -32,6 +34,13 @@ public class User extends BaseSoftDeletableEntity {
     this.nickname = nickname;
     this.email = email;
     this.password = password;
+  }
+
+  public void updateNickname(String nickname) {
+    if (this.nickname.equals(nickname)) {
+      throw new BusinessException(UserErrorCode.DUPLICATE_NICKNAME);
+    }
+    this.nickname = nickname;
   }
 
   public static User create(String nickname, Email email, Password password) {

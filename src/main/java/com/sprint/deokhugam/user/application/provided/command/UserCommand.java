@@ -2,13 +2,13 @@ package com.sprint.deokhugam.user.application.provided.command;
 
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
-import com.sprint.deokhugam.user.domain.User;
+import java.util.UUID;
 
 public interface UserCommand {
 
   UserDto save(UserRegisterRequest request);
 
-  void delete(User user);
+  void delete(UUID userId, UUID headerId);
 
-  User update(User user, String nickname);
+  UserDto update(UUID userId, UUID headerId, String nickname);
 }
