@@ -5,12 +5,12 @@ import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
+import com.sprint.deokhugam.user.application.required.PasswordHasher;
 import com.sprint.deokhugam.user.application.required.UserRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,16 +20,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserCommandService implements UserCommand {
 
   private final UserRepository userRepository;
-  private final PasswordEncoder passwordEncoder;
+  private final PasswordHasher passwordHasher;
 
   @Override
   public UserDto save(UserRegisterRequest request) {
     Email email = Email.to(request.email());
+
     if (userRepository.existsByEmail(email)) {
-      throw new BusinessException(UserErrorCode.NOT_FOUND);
+      throw new BusinessException(UserErrorCode.DUPLICATE_EMAIL);
     }
 
-    String encode = passwordEncoder.encode(request.password());
+    String encode = passwordHasher.hash(request.password());
     Password password = Password.to(encode);
     String nickname = request.nickname();
     User user = User.create(nickname, email, password);
