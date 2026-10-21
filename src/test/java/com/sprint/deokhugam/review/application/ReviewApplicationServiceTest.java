@@ -13,6 +13,7 @@ import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class ReviewApplicationServiceTest {
     user =
         User.create(
             "tester", Email.to(UUID.randomUUID() + "@test.com"), Password.to("test-password"));
-    book = new Book();
+    book = Book.create("제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), null, null);
 
     em.persist(user);
     em.persist(book);

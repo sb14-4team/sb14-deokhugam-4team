@@ -1,7 +1,130 @@
 package com.sprint.deokhugam.book.domain;
 
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.common.exception.CommonErrorCode;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import java.time.LocalDate;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
-public class Book extends BaseSoftDeletableEntity {}
+@Getter
+@Table(name = "books")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class Book extends BaseSoftDeletableEntity {
+
+  public static final int TITLE_MAX_LENGTH = 255;
+  public static final int AUTHOR_MAX_LENGTH = 255;
+  public static final int PUBLISHER_MAX_LENGTH = 255;
+
+  @Column(nullable = false, length = TITLE_MAX_LENGTH)
+  private String title;
+
+  @Column(nullable = false, length = AUTHOR_MAX_LENGTH)
+  private String author;
+
+  @Column(nullable = false, columnDefinition = "text")
+  private String description;
+
+  @Column(nullable = false, length = PUBLISHER_MAX_LENGTH)
+  private String publisher;
+
+  @Column(name = "published_date", nullable = false)
+  private LocalDate publishedDate;
+
+  @Column(unique = true, updatable = false, length = 13)
+  private String isbn;
+
+  @Column(name = "thumbnail_url", length = 2048)
+  private String thumbnailUrl;
+
+  @Column(name = "review_count", nullable = false)
+  private int reviewCount;
+
+  @Column(name = "rating_sum", nullable = false)
+  private long ratingSum;
+
+  @Column(nullable = false)
+  private double rating;
+
+  private Book(
+      String title,
+      String author,
+      String description,
+      String publisher,
+      LocalDate publishedDate,
+      String isbn,
+      String thumbnailUrl) {
+    validateInfo(title, author, publisher);
+    this.title = title;
+    this.author = author;
+    this.description = description;
+    this.publisher = publisher;
+    this.publishedDate = publishedDate;
+    this.isbn = isbn;
+    this.thumbnailUrl = thumbnailUrl;
+  }
+
+  public static Book create(
+      String title,
+      String author,
+      String description,
+      String publisher,
+      LocalDate publishedDate,
+      String isbn,
+      String thumbnailUrl) {
+    return new Book(title, author, description, publisher, publishedDate, isbn, thumbnailUrl);
+  }
+
+  public void update(
+      String title, String author, String description, String publisher, LocalDate publishedDate) {
+    validateInfo(title, author, publisher);
+    this.title = title;
+    this.author = author;
+    this.description = description;
+    this.publisher = publisher;
+    this.publishedDate = publishedDate;
+  }
+
+  public void changeThumbnailUrl(String thumbnailUrl) {
+    this.thumbnailUrl = thumbnailUrl;
+  }
+
+  public void addReview(int score) {
+    reviewCount++;
+    ratingSum += score;
+    recalculateRating();
+  }
+
+  public void removeReview(int score) {
+    reviewCount--;
+    ratingSum -= score;
+    recalculateRating();
+  }
+
+  public void changeReviewScore(int oldScore, int newScore) {
+    ratingSum += newScore - oldScore;
+    recalculateRating();
+  }
+
+  private void recalculateRating() {
+    rating = reviewCount == 0 ? 0 : (double) ratingSum / reviewCount;
+  }
+
+  private static void validateInfo(String title, String author, String publisher) {
+    validateLength(title, TITLE_MAX_LENGTH, "title");
+    validateLength(author, AUTHOR_MAX_LENGTH, "author");
+    validateLength(publisher, PUBLISHER_MAX_LENGTH, "publisher");
+  }
+
+  private static void validateLength(String value, int maxLength, String field) {
+    if (value != null && value.length() > maxLength) {
+      throw new BusinessException(
+          CommonErrorCode.INVALID_INPUT, field + " 길이 초과: " + value.length() + "/" + maxLength);
+    }
+  }
+}
