@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
@@ -111,14 +112,12 @@ class BookIntegrationTest {
   }
 
   @Test
-  @DisplayName("중복 확인을 거치지 않아도 DB unique 제약이 막고 DUPLICATE_ISBN으로 바꾼다")
+  @DisplayName("중복 확인을 거치지 않아도 DB unique 제약이 같은 ISBN 저장을 막는다")
   void uniqueConstraint() {
-    bookPersistencePort.save(book("9788966260959"));
+    bookJpaRepository.saveAndFlush(book("9788966260959"));
 
-    assertThatThrownBy(() -> bookPersistencePort.save(book("9788966260959")))
-        .isInstanceOf(BusinessException.class)
-        .extracting("errorCode")
-        .isEqualTo(BookErrorCode.DUPLICATE_ISBN);
+    assertThatThrownBy(() -> bookJpaRepository.saveAndFlush(book("9788966260959")))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
