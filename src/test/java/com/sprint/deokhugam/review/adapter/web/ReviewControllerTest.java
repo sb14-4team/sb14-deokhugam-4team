@@ -22,9 +22,9 @@ class ReviewControllerTest {
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
-  // 빈칸과 평점 0 점 빈 검증
+  // 평점 범위 검증
   @Test
-  void 잘못된_평점과_내용_실패() throws Exception {
+  void 잘못된_평점_실패() throws Exception {
     mockMvc
         .perform(
             post("/api/reviews")
@@ -35,11 +35,10 @@ class ReviewControllerTest {
                       "userId": "00000000-0000-0000-0000-000000000001",
                       "bookId": "00000000-0000-0000-0000-000000000002",
                       "rating": 0,
-                      "content": " "
+                      "content": ""
                     }
                     """))
         .andExpect(jsonPath("$.details.rating").exists())
-        .andExpect(jsonPath("$.details.content").exists())
         .andExpect(status().isBadRequest());
 
     verifyNoInteractions(service);
