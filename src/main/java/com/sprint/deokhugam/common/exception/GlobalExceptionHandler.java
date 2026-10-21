@@ -56,6 +56,13 @@ public class GlobalExceptionHandler {
     return toResponse(CommonErrorCode.MISSING_HEADER, Map.of("header", e.getHeaderName()));
   }
 
+  @ExceptionHandler(MissingHeaderException.class)
+  public ResponseEntity<ErrorResponse> handleCustomMissingHeader(MissingHeaderException e) {
+    log.info("헤더 없음: {}", e.getHeaderName());
+
+    return toResponse(e.getErrorCode(), Map.of("header", e.getHeaderName()));
+  }
+
   // 파라미터 누락·형식 오류, JSON 깨짐, @Min 같은 파라미터 검증 실패
   @ExceptionHandler({
     MissingServletRequestParameterException.class,
