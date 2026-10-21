@@ -1,7 +1,9 @@
 package com.sprint.deokhugam.user.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserLoginRequest;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
@@ -11,6 +13,7 @@ import com.sprint.deokhugam.user.application.provided.query.UserLogin;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @TestConstructor(autowireMode = TestConstructor.AutowireMode.ALL)
 @Transactional
-class UserQueryServiceTest {
+@Slf4j
+class UserServiceTest {
 
   private final UserFinder userFinder;
   private final UserCommand userCommand;
@@ -38,6 +42,14 @@ class UserQueryServiceTest {
   }
 
   @Test
+  void register() {
+    UserRegisterRequest request = new UserRegisterRequest("tester@test.com", "test1", "password!");
+    UserRegisterRequest request2 =
+        new UserRegisterRequest("tester@test.com", "test12", "password!");
+    assertThatThrownBy(() -> userCommand.save(request)).isInstanceOf(BusinessException.class);
+  }
+
+  @Test
   void findById() {
     // when
     User finderById = userFinder.findById(user.id());
@@ -46,6 +58,11 @@ class UserQueryServiceTest {
     assertThat(finderById).isNotNull();
     assertThat(finderById.getNickname()).isEqualTo("test1");
     assertThat(finderById.getEmail().value()).isEqualTo("tester@test.com");
+    log.info("nickname= {}", finderById.getNickname());
+    log.info("email= {}", finderById.getEmail());
+    log.info("email.value()= {}", finderById.getEmail().value());
+    log.info("pwd= {}", finderById.getPassword());
+    log.info("pwd.password()= {}", finderById.getPassword().password());
   }
 
   @Test
