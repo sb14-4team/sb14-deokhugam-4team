@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @MappedSuperclass
 @Getter
-public class BaseSoftDeletableEntity extends BaseUpdatableEntity {
+public abstract class BaseSoftDeletableEntity extends BaseUpdatableEntity {
 
   // null이면 삭제 안 됨. 물리 삭제(1일 뒤) 기준 시각
   @Column(name = "deleted_at")

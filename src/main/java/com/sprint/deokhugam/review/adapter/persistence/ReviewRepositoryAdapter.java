@@ -1,0 +1,18 @@
+package com.sprint.deokhugam.review.adapter.persistence;
+
+import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
+import com.sprint.deokhugam.review.domain.Review;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+@RequiredArgsConstructor
+@Repository
+public class ReviewRepositoryAdapter implements ReviewPersistencePort {
+  private final ReviewJpaRepository reviewRepository;
+
+  // r2dbc redis
+  @Override
+  public Review save(Review review) {
+    return reviewRepository.save(review);
+  }
+}
