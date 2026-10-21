@@ -18,6 +18,12 @@ spring:
   batch:
     job:
       enabled: false
+  # 스케줄러 스레드 (SchedulingConfig)
+  task:
+    scheduling:
+      pool:
+        size: 1 # 작업을 하나씩 차례로 실행
+      thread-name-prefix: scheduler-
 
 management:
   endpoints:
