@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /*
  유저   = 유저 앱 서비스 -> 유저 + 유저스테이터스 패키지의 커맨드 유스케이스 호출
@@ -20,6 +21,7 @@ public class ReviewCommandService implements ReviewCommand {
   private final ReviewPersistencePort reviewPersistencePort;
 
   @Override
+  @Transactional
   public Review create(Review review) {
     Objects.requireNonNull(review, "review");
     Objects.requireNonNull(review.getUser(), "review.user"); // 외부에서 혹시 사용할때

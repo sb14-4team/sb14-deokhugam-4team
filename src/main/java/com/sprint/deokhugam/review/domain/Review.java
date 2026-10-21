@@ -5,11 +5,10 @@ import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.List;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,13 +38,11 @@ public class Review extends BaseSoftDeletableEntity {
   @Column(name = "comment_count", nullable = false)
   Integer commentCount = 0;
 
-  @OneToMany List<ReviewLike> reviewLike;
-
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   User user;
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "book_id")
   Book book;
 
