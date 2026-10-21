@@ -1,11 +1,11 @@
-package com.sprint.deokhugam.review.application;
+package com.sprint.deokhugam.comment.application;
 
-import com.sprint.deokhugam.review.application.dto.CommentCreateRequest;
-import com.sprint.deokhugam.review.application.dto.CommentDto;
-import com.sprint.deokhugam.review.application.dto.CommentUpdateRequest;
-import com.sprint.deokhugam.review.application.provided.command.CommentCommand;
-import com.sprint.deokhugam.review.application.required.CommentRepository;
-import com.sprint.deokhugam.review.domain.Comment;
+import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
+import com.sprint.deokhugam.comment.application.dto.CommentDto;
+import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
+import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
+import com.sprint.deokhugam.comment.application.required.CommentRepository;
+import com.sprint.deokhugam.comment.domain.Comment;
 import java.time.Instant;
 import java.util.NoSuchElementException;
 import java.util.UUID;

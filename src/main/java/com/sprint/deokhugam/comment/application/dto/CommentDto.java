@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.review.application.dto;
+package com.sprint.deokhugam.comment.application.dto;
 
 import java.time.Instant;
 import java.util.UUID;

@@ -1,6 +1,7 @@
-package com.sprint.deokhugam.review.domain;
+package com.sprint.deokhugam.comment.domain;
 
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
+import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

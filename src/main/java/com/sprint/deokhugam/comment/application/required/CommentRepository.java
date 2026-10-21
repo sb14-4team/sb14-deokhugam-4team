@@ -1,6 +1,6 @@
-package com.sprint.deokhugam.review.application.required;
+package com.sprint.deokhugam.comment.application.required;
 
-import com.sprint.deokhugam.review.domain.Comment;
+import com.sprint.deokhugam.comment.domain.Comment;
 import java.util.Optional;
 import java.util.UUID;
 
