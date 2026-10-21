@@ -26,7 +26,7 @@ public class UserCommandService implements UserCommand {
   public UserDto save(UserRegisterRequest request) {
     Email email = Email.to(request.email());
     if (userRepository.existsByEmail(email)) {
-      throw new BusinessException(UserErrorCode.NOT_FOUND);
+      throw new BusinessException(UserErrorCode.DUPLICATE_EMAIL);
     }
 
     String encode = passwordEncoder.encode(request.password());
