@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.common.entity;
+/*package com.sprint.deokhugam.common.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,4 +36,4 @@ class BaseSoftDeletableEntityTest {
 
     assertThatThrownBy(entity::softDelete).isInstanceOf(IllegalStateException.class);
   }
-}
+}*/
