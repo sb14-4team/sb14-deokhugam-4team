@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @RequiredArgsConstructor
-public class ReviewLikeRepositoryAdapter implements ReviewLikePersistencePort {
+public class ReviewLikeJpaRepositoryAdapter implements ReviewLikePersistencePort {
   private final ReviewLikeJpaRepository reviewLikeJpaRepository;
 
   @Override
