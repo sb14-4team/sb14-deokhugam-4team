@@ -1,12 +1,9 @@
+# 테스트는 H2 메모리 DB를 쓴다. Docker나 PostgreSQL 없이 ./gradlew test 만으로 돈다
 spring:
-  config:
-    import: optional:file:.env[.properties]
-
   datasource:
-    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/deokhugam_test
-    username: ${POSTGRES_USER:deokhugam}
-    password: ${POSTGRES_PASSWORD}
-
+    url: jdbc:h2:mem:deokhugam;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
   jpa:
     hibernate:
       ddl-auto: create-drop
