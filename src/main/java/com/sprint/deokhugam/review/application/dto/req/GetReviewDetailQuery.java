@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.review.application.dto;
+package com.sprint.deokhugam.review.application.dto.req;
 
 import java.util.UUID;
 

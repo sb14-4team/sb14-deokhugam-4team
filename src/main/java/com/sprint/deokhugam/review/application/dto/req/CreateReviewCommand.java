@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.review.application.dto;
+package com.sprint.deokhugam.review.application.dto.req;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

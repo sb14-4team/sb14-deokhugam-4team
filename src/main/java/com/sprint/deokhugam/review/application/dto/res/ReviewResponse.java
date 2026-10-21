@@ -19,7 +19,6 @@ public record ReviewResponse(
     boolean likedByMe,
     Instant createdAt,
     Instant updatedAt) {
-
   public static ReviewResponse from(
       Review entity, boolean likedByMe, Instant createdAt, Instant updatedAt) {
     return new ReviewResponse(
