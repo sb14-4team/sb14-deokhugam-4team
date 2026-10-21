@@ -41,7 +41,18 @@ public class UserCommandService implements UserCommand {
   }
 
   @Override
-  public void delete(UUID userId, UUID headerId) {}
+  public void delete(UUID userId, UUID headerId) {
+    if (!userId.equals(headerId)) {
+      throw new BusinessException(UserErrorCode.FORBIDDEN);
+    }
+    User user =
+        userRepository
+            .findById(userId)
+            .filter(find -> !find.isDeleted())
+            .orElseThrow(() -> new BusinessException(UserErrorCode.NOT_FOUND));
+
+    user.softDelete();
+  }
 
   @Override
   public UserDto update(UUID userId, UUID headerId, String nickname) {
@@ -51,6 +62,7 @@ public class UserCommandService implements UserCommand {
     User user =
         userRepository
             .findById(userId)
+            .filter(find -> !find.isDeleted())
             .orElseThrow(() -> new BusinessException(UserErrorCode.NOT_FOUND));
     user.updateNickname(nickname);
     return UserDto.to(
