@@ -1,14 +1,17 @@
 package com.sprint.deokhugam.comment.adapter.web;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
+import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
+import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -25,13 +28,12 @@ public class CommentControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private JsonMapper jsonMapper;
-  @MockitoBean private CommentCommandService commandService;
+  @MockitoBean private CommentCommand commentCommand;
 
   @Test
-  @DisplayName("댓글 컨트롤러 등록 정상 요청")
+  @DisplayName("댓글 등록 성공 테스트")
   void createComment_success() throws Exception {
     // Given
-
     UUID reviewId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
     CommentCreateRequest createRequest = new CommentCreateRequest(reviewId, userId, "test_content");
@@ -42,11 +44,11 @@ public class CommentControllerTest {
             reviewId,
             userId,
             "test_nickname",
-            "test_content",
+            "test_create_content",
             Instant.now(),
             Instant.now());
 
-    given(commandService.create(any(CommentCreateRequest.class))).willReturn(responseDto);
+    given(commentCommand.create(any(CommentCreateRequest.class))).willReturn(responseDto);
 
     // When & Then
     mockMvc
@@ -55,6 +57,40 @@ public class CommentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(createRequest)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.content").value("test_content"));
+        .andExpect(jsonPath("$.content").value("test_create_content"));
+  }
+
+  @Test
+  @DisplayName("댓글 수정 성공 테스트")
+  void updateComment_Success() throws Exception {
+    // Given
+    UUID commentId = UUID.randomUUID();
+    UUID requestUserId = UUID.randomUUID();
+    UUID reviewId = UUID.randomUUID();
+
+    CommentUpdateRequest updateRequest = new CommentUpdateRequest("new_content");
+
+    CommentDto commentDto =
+        CommentDto.to(
+            commentId,
+            reviewId,
+            requestUserId,
+            "test_nickname",
+            "test_updated_content",
+            Instant.now(),
+            Instant.now());
+
+    given(commentCommand.update(eq(commentId), eq(requestUserId), any(CommentUpdateRequest.class)))
+        .willReturn(commentDto);
+
+    // When & Then
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", commentId)
+                .param("requestUserId", requestUserId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateRequest)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").value("test_updated_content"));
   }
 }
