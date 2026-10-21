@@ -3,7 +3,8 @@ package com.sprint.deokhugam.book.application;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.required.BookPersistencePort;
 import com.sprint.deokhugam.book.domain.Book;
-import java.util.Optional;
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,7 +18,9 @@ public class BookQueryService implements BookFinder {
   private final BookPersistencePort bookPersistencePort;
 
   @Override
-  public Optional<Book> findById(UUID bookId) {
-    return bookPersistencePort.findById(bookId);
+  public Book findById(UUID bookId) {
+    return bookPersistencePort
+        .findById(bookId)
+        .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
   }
 }

@@ -122,11 +122,19 @@ class BookIntegrationTest {
   }
 
   @Test
-  @DisplayName("BookFinder로 저장한 도서를 찾고, 없는 id면 빈 값을 돌려준다")
+  @DisplayName("BookFinder로 저장한 도서를 찾는다")
   void findById() {
     Book saved = bookPersistencePort.save(book(null));
 
-    assertThat(bookFinder.findById(saved.getId())).get().isEqualTo(saved);
-    assertThat(bookFinder.findById(UUID.randomUUID())).isEmpty();
+    assertThat(bookFinder.findById(saved.getId())).isEqualTo(saved);
+  }
+
+  @Test
+  @DisplayName("BookFinder로 없는 id를 찾으면 BOOK_NOT_FOUND 예외가 발생한다")
+  void findByIdNotFound() {
+    assertThatThrownBy(() -> bookFinder.findById(UUID.randomUUID()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
   }
 }
