@@ -28,7 +28,13 @@ public class GlobalExceptionHandler {
   // 도메인 에러 핸들러
   @ExceptionHandler(BusinessException.class)
   public ResponseEntity<ErrorResponse> handleBusiness(BusinessException e) {
-    log.info("요청 실패: {}", e.getErrorCode().getCode());
+    String code = e.getErrorCode().getCode();
+    if (e.getCause() != null) {
+      // 원인 예외가 있으면 스택까지 남겨 원인을 찾을 수 있게 한다
+      log.warn("요청 실패: {} - {}", code, e.getMessage(), e);
+    } else {
+      log.info("요청 실패: {} - {}", code, e.getMessage());
+    }
     return toResponse(e.getErrorCode(), Map.of());
   }
 

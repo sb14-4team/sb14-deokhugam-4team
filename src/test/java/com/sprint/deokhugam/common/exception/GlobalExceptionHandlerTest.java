@@ -48,6 +48,13 @@ class GlobalExceptionHandlerTest {
       throw new BusinessException(TestErrorCode.ITEM_NOT_FOUND);
     }
 
+    // 외부 예외를 감싸 던지는 경우
+    @GetMapping("/business-with-cause")
+    void businessWithCause() {
+      throw new BusinessException(
+          TestErrorCode.ITEM_NOT_FOUND, "itemId=42", new IllegalStateException("외부 API 실패"));
+    }
+
     @PostMapping("/valid")
     void valid(@RequestBody @Valid TestRequest request) {}
 
@@ -75,6 +82,16 @@ class GlobalExceptionHandlerTest {
   void businessException() throws Exception {
     mockMvc
         .perform(get("/business"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("TEST_ITEM_NOT_FOUND"))
+        .andExpect(jsonPath("$.message").value("항목을 찾을 수 없습니다."));
+  }
+
+  @Test
+  @DisplayName("로그 메시지와 원인 예외를 넘겨도 응답에는 에러 코드의 메시지만 나간다")
+  void businessExceptionWithCause() throws Exception {
+    mockMvc
+        .perform(get("/business-with-cause"))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("TEST_ITEM_NOT_FOUND"))
         .andExpect(jsonPath("$.message").value("항목을 찾을 수 없습니다."));
