@@ -21,4 +21,9 @@ public class ReviewQueryService implements ReviewFinder {
   public Review getByIdOrThrow(UUID reviewId) {
     return reviewPersistencePort.getByIdOrThrow(reviewId);
   }
+
+  @Override
+  public boolean existsActiveById(UUID reviewId) {
+    return reviewPersistencePort.existsActiveById(reviewId);
+  }
 }

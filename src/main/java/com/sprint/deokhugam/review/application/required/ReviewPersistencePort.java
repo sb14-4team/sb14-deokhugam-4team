@@ -8,5 +8,7 @@ public interface ReviewPersistencePort {
 
   Review getByIdOrThrow(UUID reviewId);
 
+  boolean existsActiveById(UUID reviewId);
+
   boolean existsByUserIdAndBookId(UUID userId, UUID bookId);
 }

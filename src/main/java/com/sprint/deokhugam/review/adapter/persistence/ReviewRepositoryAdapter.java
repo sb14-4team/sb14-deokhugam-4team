@@ -26,4 +26,9 @@ public class ReviewRepositoryAdapter implements ReviewPersistencePort {
   public boolean existsByUserIdAndBookId(UUID userId, UUID bookId) {
     return reviewRepository.existsActiveReview(userId, bookId);
   }
+
+  @Override
+  public boolean existsActiveById(UUID reviewId) {
+    return reviewRepository.existsByIdAndDeletedAtIsNull(reviewId);
+  }
 }
