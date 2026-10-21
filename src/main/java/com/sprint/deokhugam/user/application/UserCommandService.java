@@ -1,5 +1,7 @@
 package com.sprint.deokhugam.user.application;
 
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
@@ -24,7 +26,7 @@ public class UserCommandService implements UserCommand {
   public UserDto save(UserRegisterRequest request) {
     Email email = Email.to(request.email());
     if (userRepository.existsByEmail(email)) {
-      throw new RuntimeException();
+      throw new BusinessException(UserErrorCode.NOT_FOUND);
     }
 
     String encode = passwordEncoder.encode(request.password());
