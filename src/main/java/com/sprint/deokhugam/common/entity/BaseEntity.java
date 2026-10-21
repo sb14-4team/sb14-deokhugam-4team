@@ -22,6 +22,6 @@ public abstract class BaseEntity {
   protected UUID id;
 
   @CreatedDate
-  @Column(nullable = false, updatable = false)
+  @Column(name = "created_at", nullable = false, updatable = false)
   protected Instant createdAt;
 }
