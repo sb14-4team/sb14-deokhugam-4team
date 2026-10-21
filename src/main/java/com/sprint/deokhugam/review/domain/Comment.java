@@ -3,6 +3,7 @@ package com.sprint.deokhugam.review.domain;
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -20,11 +21,11 @@ import lombok.experimental.FieldDefaults;
 @Table(name = "comments")
 public class Comment extends BaseSoftDeletableEntity {
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "review_id")
   Review review;
 
-  @ManyToOne
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
   User user;
 
@@ -32,5 +33,9 @@ public class Comment extends BaseSoftDeletableEntity {
 
   public static Comment create(Review review, User user, String content) {
     return new Comment(review, user, content);
+  }
+
+  public void update(String newContent) {
+    this.content = newContent;
   }
 }
