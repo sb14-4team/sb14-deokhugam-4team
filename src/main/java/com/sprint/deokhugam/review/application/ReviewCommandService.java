@@ -22,7 +22,7 @@ public class ReviewCommandService implements ReviewCommand {
 
   @Override
   @Transactional
-  public Review create(Review review) {
+  public Review createReview(Review review) {
     Objects.requireNonNull(review, "review");
     Objects.requireNonNull(review.getUser(), "review.user"); // 외부에서 혹시 사용할때
     Objects.requireNonNull(review.getBook(), "review.book");
@@ -33,6 +33,19 @@ public class ReviewCommandService implements ReviewCommand {
     }
 
     return reviewPersistencePort.save(review);
+  }
+
+  @Override
+  @Transactional
+  public Review updateReview(UUID reviewId, UUID userId, String newContent, int newRating) {
+    Review review = reviewPersistencePort.getByIdOrThrow(reviewId);
+
+    if (!review.verifyReviewUpdate(userId)) {
+      throw new BusinessException(ReviewErrorCode.FORBIDDEN);
+    }
+
+    review.updateContentAndRating(newContent, newRating);
+    return review;
   }
 
   @Override

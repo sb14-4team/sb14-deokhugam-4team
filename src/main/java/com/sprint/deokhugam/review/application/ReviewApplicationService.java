@@ -33,10 +33,9 @@ public class ReviewApplicationService {
     Book book = bookFinder.findById(command.bookId());
 
     Review review = Review.init(command.rating(), command.content(), user, book);
-    Review savedReview = reviewCommand.create(review);
+    Review savedReview = reviewCommand.createReview(review);
 
-    return ReviewResponse.from(
-        savedReview, false, savedReview.getCreatedAt(), savedReview.getUpdatedAt());
+    return ReviewResponse.of(savedReview, false);
   }
 
   @Transactional(readOnly = true)
@@ -44,6 +43,16 @@ public class ReviewApplicationService {
     Review review = reviewFinder.getByIdOrThrow(reviewId);
     boolean likedByMe = reviewLikePersistencePort.isLikedBy(reviewId, userId);
 
-    return ReviewResponse.from(review, likedByMe, review.getCreatedAt(), review.getUpdatedAt());
+    return ReviewResponse.of(review, likedByMe);
+  }
+
+  @Transactional
+  public ReviewResponse updateReview(UUID userId, UUID reviewId, String newContent, int newRating) {
+    userFinder.findById(userId);
+
+    Review review = reviewCommand.updateReview(reviewId, userId, newContent, newRating);
+    boolean likedByMe = reviewLikePersistencePort.isLikedBy(reviewId, userId);
+
+    return ReviewResponse.of(review, likedByMe);
   }
 }

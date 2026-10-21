@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 
 @RequiredArgsConstructor
 @Repository
-public class ReviewRepositoryAdapter implements ReviewPersistencePort {
+public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   private final ReviewJpaRepository reviewRepository;
 
   // r2dbc redis
@@ -20,6 +20,11 @@ public class ReviewRepositoryAdapter implements ReviewPersistencePort {
   @Override
   public Review getByIdOrThrow(UUID reviewId) {
     return reviewRepository.getByIdOrThrow(reviewId);
+  }
+
+  @Override
+  public void requireActiveById(UUID reviewId) {
+    reviewRepository.requireActiveById(reviewId);
   }
 
   @Override
