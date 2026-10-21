@@ -36,7 +36,6 @@ public record ReviewResponse(
         // entity.getUser().getNickname(),
         null,
         entity.getContent(),
-        // int <-> Integer
         entity.getRating(),
         entity.getLikeCount(),
         entity.getCommentCount(),

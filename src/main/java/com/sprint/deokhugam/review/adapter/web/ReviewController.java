@@ -27,6 +27,7 @@ public class ReviewController {
   public ResponseEntity<ReviewResponse> create(@RequestBody @Valid CreateReviewCommand command) {
     log.info("사용자 생성 요청: {}", command);
     Review review = reviewCommand.create(command);
+    log.debug("리뷰 생성 응답: {}", review);
     // dto 변환 이후, service 쪽에 옮길 예정
     // likeByMe 임의로 false 입력
     // service에서 도서 중복 여부 검증 필요
