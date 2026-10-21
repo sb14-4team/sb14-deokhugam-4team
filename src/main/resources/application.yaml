@@ -6,6 +6,7 @@ spring:
 
     #JPA
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: validate
     open-in-view: false
@@ -14,7 +15,6 @@ spring:
       hibernate:
         format_sql: true
         globally_quoted_identifiers: true
-        globally_quoted_identifiers_skip_column_definitions: true
   batch:
     job:
       enabled: false
