@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.review.application.provided;
+package com.sprint.deokhugam.review.application;
 
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;

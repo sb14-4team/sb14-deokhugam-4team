@@ -1,8 +1,7 @@
-package com.sprint.deokhugam.review.application;
+package com.sprint.deokhugam.review.application.provided.command;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import java.util.Objects;

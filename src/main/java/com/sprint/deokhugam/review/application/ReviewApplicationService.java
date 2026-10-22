@@ -4,7 +4,6 @@ import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
-import com.sprint.deokhugam.review.application.provided.ReviewUseCase;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;

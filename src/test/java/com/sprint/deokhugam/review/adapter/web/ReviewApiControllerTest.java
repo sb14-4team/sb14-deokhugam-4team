@@ -7,7 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
-import com.sprint.deokhugam.review.application.provided.ReviewUseCase;
+import com.sprint.deokhugam.review.application.ReviewUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;

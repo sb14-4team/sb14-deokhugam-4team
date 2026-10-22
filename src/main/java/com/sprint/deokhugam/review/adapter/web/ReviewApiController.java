@@ -1,15 +1,16 @@
 package com.sprint.deokhugam.review.adapter.web;
 
+import com.sprint.deokhugam.review.application.ReviewUseCase;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.UpdateReviewRequest;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
-import com.sprint.deokhugam.review.application.provided.ReviewUseCase;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,8 +21,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
-@RestController
 @RequiredArgsConstructor
+@ControllerAdvice
+@RestController
 @RequestMapping("/api/reviews")
 public class ReviewApiController {
 
@@ -29,8 +31,6 @@ public class ReviewApiController {
 
   @PostMapping
   public ResponseEntity<ReviewResponse> create(@RequestBody @Valid CreateReviewCommand command) {
-    log.info("리뷰 생성 요청: {}", command);
-
     ReviewResponse response = reviewUseCase.createReview(command);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
