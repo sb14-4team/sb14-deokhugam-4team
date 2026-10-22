@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class FakeBookPersistencePort implements BookPersistencePort {
 
@@ -14,13 +15,20 @@ public class FakeBookPersistencePort implements BookPersistencePort {
 
   @Override
   public Book save(Book book) {
+    if (book.getId() == null) {
+      // 실제 DB가 없으니 JPA 대신 여기서 id를 채운다
+      ReflectionTestUtils.setField(book, "id", UUID.randomUUID());
+    }
     books.add(book);
     return book;
   }
 
   @Override
-  public Optional<Book> findById(UUID bookId) {
-    return books.stream().filter(book -> Objects.equals(book.getId(), bookId)).findFirst();
+  public Optional<Book> findActiveById(UUID bookId) {
+    return books.stream()
+        .filter(book -> Objects.equals(book.getId(), bookId))
+        .filter(book -> !book.isDeleted())
+        .findFirst();
   }
 
   @Override

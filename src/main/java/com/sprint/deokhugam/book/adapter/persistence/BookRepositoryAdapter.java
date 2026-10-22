@@ -19,8 +19,8 @@ public class BookRepositoryAdapter implements BookPersistencePort {
   }
 
   @Override
-  public Optional<Book> findById(UUID bookId) {
-    return bookJpaRepository.findById(bookId);
+  public Optional<Book> findActiveById(UUID bookId) {
+    return bookJpaRepository.findByIdAndDeletedAtIsNull(bookId);
   }
 
   @Override
