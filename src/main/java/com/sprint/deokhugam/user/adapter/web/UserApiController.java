@@ -1,8 +1,10 @@
 package com.sprint.deokhugam.user.adapter.web;
 
+import com.sprint.deokhugam.common.web.annotation.RequestHeader;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserLoginRequest;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
+import com.sprint.deokhugam.user.application.dto.UserUpdateRequest;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.application.provided.query.UserLogin;
@@ -11,7 +13,9 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,5 +47,23 @@ public class UserApiController {
   public ResponseEntity<UserDto> getUser(@PathVariable UUID userId) {
     UserDto userDto = userFinder.getById(userId);
     return ResponseEntity.ok(userDto);
+  }
+
+  @PatchMapping("/{userId}")
+  public ResponseEntity<UserDto> update(
+      @RequestHeader("Deokhugam-Request-User-ID") UUID headerId,
+      @PathVariable UUID userId,
+      @RequestBody @Valid UserUpdateRequest request) {
+    UserDto update = userCommand.update(userId, headerId, request.nickname());
+    return ResponseEntity.ok(update);
+  }
+
+  @DeleteMapping("/{userId}")
+  public ResponseEntity<Void> delete(
+      @RequestHeader("Deokhugam-Request-User-ID") UUID headerId, @PathVariable UUID userId) {
+
+    userCommand.delete(userId, headerId);
+
+    return ResponseEntity.noContent().build();
   }
 }

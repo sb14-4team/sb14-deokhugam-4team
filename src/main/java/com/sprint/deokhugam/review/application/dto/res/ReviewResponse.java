@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.review.application.dto;
+package com.sprint.deokhugam.review.application.dto.res;
 
 import com.sprint.deokhugam.review.domain.Review;
 import java.time.Instant;
@@ -19,28 +19,20 @@ public record ReviewResponse(
     boolean likedByMe,
     Instant createdAt,
     Instant updatedAt) {
-
-  public static ReviewResponse from(
-      Review entity, boolean likedByMe, Instant createdAt, Instant updatedAt) {
+  public static ReviewResponse of(Review review, boolean likedByMe) {
     return new ReviewResponse(
-        entity.getId(),
-        entity.getBook().getId(),
-
-        // entity.getBook().getTitle(),
+        review.getId(),
+        review.getBook().getId(),
         null,
-
-        // entity.getBook().getThumbnailUrl(),
         null,
-        entity.getUser().getId(),
-
-        // entity.getUser().getNickname(),
-        null,
-        entity.getContent(),
-        entity.getRating(),
-        entity.getLikeCount(),
-        entity.getCommentCount(),
+        review.getUser().getId(),
+        review.getUser().getNickname(),
+        review.getContent(),
+        review.getRating(),
+        review.getLikeCount(),
+        review.getCommentCount(),
         likedByMe,
-        createdAt,
-        updatedAt);
+        review.getCreatedAt(),
+        review.getUpdatedAt());
   }
 }

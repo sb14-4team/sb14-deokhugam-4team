@@ -1,17 +1,21 @@
 package com.sprint.deokhugam.review.adapter.web;
 
-import com.sprint.deokhugam.review.application.dto.CreateReviewCommand;
-import com.sprint.deokhugam.review.application.dto.ReviewResponse;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
-import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.application.ReviewApplicationService;
+import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
+import com.sprint.deokhugam.review.application.dto.req.UpdateReviewRequest;
+import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import jakarta.validation.Valid;
-import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,17 +25,32 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/reviews")
 public class ReviewController {
 
-  private final ReviewCommand reviewCommand;
+  private final ReviewApplicationService reviewApplicationService;
 
   @PostMapping
   public ResponseEntity<ReviewResponse> create(@RequestBody @Valid CreateReviewCommand command) {
-    log.info("사용자 생성 요청: {}", command);
-    Review review = reviewCommand.create(command);
-    log.debug("리뷰 생성 응답: {}", review);
-    // dto 변환 이후, service 쪽에 옮길 예정
-    // likeByMe 임의로 false 입력
-    // service에서 도서 중복 여부 검증 필요
-    ReviewResponse response = ReviewResponse.from(review, false, Instant.now(), Instant.now());
+    log.info("리뷰 생성 요청: {}", command);
+
+    ReviewResponse response = reviewApplicationService.createReview(command);
+
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
+  }
+
+  @GetMapping("/{reviewId}")
+  public ResponseEntity<ReviewResponse> getReviewDetail(
+      @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(reviewApplicationService.getReviewDetail(reviewId, requestUserId));
+  }
+
+  @PatchMapping("/{reviewId}")
+  public ResponseEntity<ReviewResponse> updateReview(
+      @PathVariable UUID reviewId,
+      @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId,
+      @RequestBody @Valid UpdateReviewRequest request) {
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(
+            reviewApplicationService.updateReview(
+                requestUserId, reviewId, request.content(), request.rating()));
   }
 }
