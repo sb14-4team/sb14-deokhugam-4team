@@ -1,9 +1,9 @@
 package com.sprint.deokhugam.review.adapter.web;
 
-import com.sprint.deokhugam.review.application.ReviewApplicationService;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.UpdateReviewRequest;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
+import com.sprint.deokhugam.review.application.provided.ReviewUseCase;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -23,15 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/reviews")
-public class ReviewController {
+public class ReviewApiController {
 
-  private final ReviewApplicationService reviewApplicationService;
+  private final ReviewUseCase reviewUseCase;
 
   @PostMapping
   public ResponseEntity<ReviewResponse> create(@RequestBody @Valid CreateReviewCommand command) {
     log.info("리뷰 생성 요청: {}", command);
 
-    ReviewResponse response = reviewApplicationService.createReview(command);
+    ReviewResponse response = reviewUseCase.createReview(command);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
@@ -40,7 +40,7 @@ public class ReviewController {
   public ResponseEntity<ReviewResponse> getReviewDetail(
       @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
     return ResponseEntity.status(HttpStatus.OK)
-        .body(reviewApplicationService.getReviewDetail(reviewId, requestUserId));
+        .body(reviewUseCase.getReviewDetail(reviewId, requestUserId));
   }
 
   @PatchMapping("/{reviewId}")
@@ -50,7 +50,7 @@ public class ReviewController {
       @RequestBody @Valid UpdateReviewRequest request) {
     return ResponseEntity.status(HttpStatus.OK)
         .body(
-            reviewApplicationService.updateReview(
+            reviewUseCase.updateReview(
                 requestUserId, reviewId, request.content(), request.rating()));
   }
 }

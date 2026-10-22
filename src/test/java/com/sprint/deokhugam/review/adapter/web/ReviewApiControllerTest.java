@@ -7,18 +7,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
-import com.sprint.deokhugam.review.application.ReviewApplicationService;
+import com.sprint.deokhugam.review.application.provided.ReviewUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 // 단위테스트용
-class ReviewControllerTest {
-  private final ReviewApplicationService service = mock(ReviewApplicationService.class);
+class ReviewApiControllerTest {
+  private final ReviewUseCase service = mock(ReviewUseCase.class);
 
   private final MockMvc mockMvc =
-      MockMvcBuilders.standaloneSetup(new ReviewController(service))
+      MockMvcBuilders.standaloneSetup(new ReviewApiController(service))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
