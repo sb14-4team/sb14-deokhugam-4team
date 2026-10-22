@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
@@ -48,6 +49,17 @@ class BookIntegrationTest {
         "publisher": "인사이트",
         "publishedDate": "2013-12-24",
         "isbn": "9788966260959"
+      }
+      """;
+
+  private static final String UPDATE_JSON =
+      """
+      {
+        "title": "새 제목",
+        "author": "새 저자",
+        "description": "새 소개",
+        "publisher": "새 출판사",
+        "publishedDate": "2021-02-02"
       }
       """;
 
@@ -213,5 +225,108 @@ class BookIntegrationTest {
         .perform(get("/api/books/{bookId}", "not-a-uuid"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
+  }
+
+  // ===== (5) PATCH /api/books/{bookId} : BookController.update() =====
+  // (5-1)
+  @Test
+  @DisplayName("도서를 수정하면 DB에 반영되고 다시 조회해도 바뀐 값이 나온다")
+  void update() throws Exception {
+    Book saved = bookPersistencePort.save(book("9788966260959"));
+
+    mockMvc
+        .perform(
+            multipart(HttpMethod.PATCH, "/api/books/{bookId}", saved.getId())
+                .file(bookData(UPDATE_JSON)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+        .andExpect(jsonPath("$.title").value("새 제목"))
+        .andExpect(jsonPath("$.publishedDate").value("2021-02-02"))
+        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+
+    // 변경 감지로 UPDATE가 나갔는지 DB에서 다시 읽어 확인한다
+    bookJpaRepository.flush();
+    Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
+    assertThat(found.getTitle()).isEqualTo("새 제목");
+    assertThat(found.getAuthor()).isEqualTo("새 저자");
+    assertThat(found.getDescription()).isEqualTo("새 소개");
+    assertThat(found.getPublisher()).isEqualTo("새 출판사");
+    assertThat(found.getPublishedDate()).isEqualTo(LocalDate.of(2021, 2, 2));
+    assertThat(found.getIsbn()).isEqualTo("9788966260959");
+
+    mockMvc
+        .perform(get("/api/books/{bookId}", saved.getId()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("새 제목"))
+        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+  }
+
+  // (5-2)
+  @Test
+  @DisplayName("수정 요청에 isbn을 넣어도 ISBN은 바뀌지 않는다")
+  void updateIgnoresIsbn() throws Exception {
+    Book saved = bookPersistencePort.save(book("9788966260959"));
+    String json =
+        UPDATE_JSON.replace(
+            "\"publishedDate\"", "\"isbn\": \"9780000000000\",\n  \"publishedDate\"");
+
+    mockMvc
+        .perform(
+            multipart(HttpMethod.PATCH, "/api/books/{bookId}", saved.getId()).file(bookData(json)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+
+    bookJpaRepository.flush();
+    assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
+    assertThat(bookJpaRepository.existsByIsbn("9780000000000")).isFalse();
+  }
+
+  // (5-3)
+  @Test
+  @DisplayName("필수 값이 없으면 400을 돌려주고 DB 값은 그대로다")
+  void updateWithoutRequiredField() throws Exception {
+    Book saved = bookPersistencePort.save(book(null));
+    String json = UPDATE_JSON.replace("\"author\": \"새 저자\",", "");
+
+    mockMvc
+        .perform(
+            multipart(HttpMethod.PATCH, "/api/books/{bookId}", saved.getId()).file(bookData(json)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.details.author").value("저자는 필수입니다."));
+
+    Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
+    assertThat(found.getTitle()).isEqualTo("제목");
+    assertThat(found.getAuthor()).isEqualTo("저자");
+  }
+
+  // (5-4)
+  @Test
+  @DisplayName("없는 도서를 수정하면 404를 돌려준다")
+  void updateNotFound() throws Exception {
+    mockMvc
+        .perform(
+            multipart(HttpMethod.PATCH, "/api/books/{bookId}", UUID.randomUUID())
+                .file(bookData(UPDATE_JSON)))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
+  // (5-5)
+  @Test
+  @DisplayName("논리 삭제된 도서를 수정하면 404를 돌려주고 값은 그대로다")
+  void updateDeletedBook() throws Exception {
+    Book saved = bookPersistencePort.save(book(null));
+    saved.softDelete();
+    bookJpaRepository.flush();
+
+    mockMvc
+        .perform(
+            multipart(HttpMethod.PATCH, "/api/books/{bookId}", saved.getId())
+                .file(bookData(UPDATE_JSON)))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+
+    Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
+    assertThat(found.getTitle()).isEqualTo("제목");
   }
 }
