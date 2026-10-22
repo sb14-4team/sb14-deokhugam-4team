@@ -24,6 +24,8 @@ class BookQueryServiceTest {
             "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
   }
 
+  // ===== (1) findById() : Book 엔티티 반환 =====
+  // (1-1)
   @Test
   @DisplayName("id로 도서를 찾으면 저장된 도서를 돌려준다")
   void findById() {
@@ -32,6 +34,8 @@ class BookQueryServiceTest {
     assertThat(bookQueryService.findById(saved.getId())).isEqualTo(saved);
   }
 
+  // ===== (2) getById() : BookDto 반환 =====
+  // (2-1)
   @Test
   @DisplayName("id로 도서 상세를 조회하면 도서 정보 응답을 돌려준다")
   void getById() {
@@ -46,6 +50,7 @@ class BookQueryServiceTest {
     assertThat(bookDto.rating()).isZero();
   }
 
+  // (2-2)
   @Test
   @DisplayName("없는 id로 조회하면 NOT_FOUND 예외가 발생한다")
   void getByIdNotFound() {
@@ -55,6 +60,7 @@ class BookQueryServiceTest {
         .isEqualTo(BookErrorCode.NOT_FOUND);
   }
 
+  // (2-3)
   @Test
   @DisplayName("논리 삭제된 도서는 없는 것으로 보고 NOT_FOUND 예외가 발생한다")
   void getByIdDeleted() {

@@ -60,6 +60,8 @@ class BookIntegrationTest {
     return Book.create("제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), isbn, null);
   }
 
+  // ===== (1) POST /api/books : BookController.create() =====
+  // (1-1)
   @Test
   @DisplayName("도서를 등록하면 DB에 저장되고 id와 생성 시각이 채워진 응답을 돌려준다")
   void create() throws Exception {
@@ -75,6 +77,7 @@ class BookIntegrationTest {
     assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
   }
 
+  // (1-2)
   @Test
   @DisplayName("이미 등록된 ISBN으로 등록하면 409를 돌려주고 저장하지 않는다")
   void createWithDuplicateIsbn() throws Exception {
@@ -88,6 +91,7 @@ class BookIntegrationTest {
     assertThat(bookJpaRepository.count()).isEqualTo(1);
   }
 
+  // (1-3)
   @Test
   @DisplayName("필수 값이 없으면 400을 돌려주고 저장하지 않는다")
   void createWithoutRequiredField() throws Exception {
@@ -101,6 +105,7 @@ class BookIntegrationTest {
     assertThat(bookJpaRepository.count()).isZero();
   }
 
+  // (1-4)
   @Test
   @DisplayName("ISBN 없이 여러 권 등록할 수 있다")
   void createWithoutIsbn() throws Exception {
@@ -112,6 +117,8 @@ class BookIntegrationTest {
     assertThat(bookJpaRepository.count()).isEqualTo(2);
   }
 
+  // ===== (2) books 테이블 제약 (isbn unique) =====
+  // (2-1)
   @Test
   @DisplayName("중복 확인을 거치지 않아도 DB unique 제약이 같은 ISBN 저장을 막는다")
   void uniqueConstraint() {
@@ -121,6 +128,8 @@ class BookIntegrationTest {
         .isInstanceOf(DataIntegrityViolationException.class);
   }
 
+  // ===== (3) BookFinder.findById() : 다른 도메인이 쓰는 조회 =====
+  // (3-1)
   @Test
   @DisplayName("BookFinder로 저장한 도서를 찾는다")
   void findById() {
@@ -129,6 +138,7 @@ class BookIntegrationTest {
     assertThat(bookFinder.findById(saved.getId())).isEqualTo(saved);
   }
 
+  // (3-2)
   @Test
   @DisplayName("BookFinder로 없는 id를 찾으면 BOOK_NOT_FOUND 예외가 발생한다")
   void findByIdNotFound() {
@@ -138,6 +148,7 @@ class BookIntegrationTest {
         .isEqualTo(BookErrorCode.NOT_FOUND);
   }
 
+  // (3-3)
   @Test
   @DisplayName("BookFinder로 논리 삭제된 도서를 찾으면 BOOK_NOT_FOUND 예외가 발생한다")
   void findByIdDeleted() {
@@ -151,6 +162,8 @@ class BookIntegrationTest {
         .isEqualTo(BookErrorCode.NOT_FOUND);
   }
 
+  // ===== (4) GET /api/books/{bookId} : BookController.get() =====
+  // (4-1)
   @Test
   @DisplayName("등록한 도서를 id로 조회하면 200과 저장된 정보를 돌려준다")
   void getBook() throws Exception {
@@ -168,6 +181,7 @@ class BookIntegrationTest {
         .andExpect(jsonPath("$.createdAt").isNotEmpty());
   }
 
+  // (4-2)
   @Test
   @DisplayName("없는 도서 id로 조회하면 404를 돌려준다")
   void getBookNotFound() throws Exception {
@@ -177,6 +191,7 @@ class BookIntegrationTest {
         .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
   }
 
+  // (4-3)
   @Test
   @DisplayName("논리 삭제된 도서를 조회하면 404를 돌려준다")
   void getDeletedBook() throws Exception {
@@ -190,6 +205,7 @@ class BookIntegrationTest {
         .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
   }
 
+  // (4-4)
   @Test
   @DisplayName("도서 id가 UUID 형식이 아니면 400을 돌려준다")
   void getBookWithInvalidId() throws Exception {
