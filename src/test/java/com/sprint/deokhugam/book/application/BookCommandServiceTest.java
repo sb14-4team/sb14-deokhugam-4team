@@ -6,9 +6,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.sprint.deokhugam.book.FakeBookPersistencePort;
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
+import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +23,16 @@ class BookCommandServiceTest {
   private BookCreateRequest request(String isbn) {
     return new BookCreateRequest(
         "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), isbn);
+  }
+
+  private BookUpdateRequest updateRequest() {
+    return new BookUpdateRequest("새 제목", "새 저자", "새 소개", "새 출판사", LocalDate.of(2021, 2, 2));
+  }
+
+  private Book savedBook() {
+    return bookPersistencePort.save(
+        Book.create(
+            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
   }
 
   // ===== (1) create() =====
@@ -58,5 +71,48 @@ class BookCommandServiceTest {
     bookCommandService.create(request(null));
 
     assertThat(bookPersistencePort.count()).isEqualTo(2);
+  }
+
+  // ===== (2) update() =====
+  // (2-1)
+  @Test
+  @DisplayName("도서를 수정하면 기본 정보만 바뀌고 ISBN은 그대로다")
+  void update() {
+    Book saved = savedBook();
+
+    BookDto bookDto = bookCommandService.update(saved.getId(), updateRequest());
+
+    assertThat(bookDto.id()).isEqualTo(saved.getId());
+    assertThat(bookDto.title()).isEqualTo("새 제목");
+    assertThat(bookDto.author()).isEqualTo("새 저자");
+    assertThat(bookDto.description()).isEqualTo("새 소개");
+    assertThat(bookDto.publisher()).isEqualTo("새 출판사");
+    assertThat(bookDto.publishedDate()).isEqualTo(LocalDate.of(2021, 2, 2));
+    assertThat(bookDto.isbn()).isEqualTo("9788966260959");
+    assertThat(bookPersistencePort.count()).isEqualTo(1);
+  }
+
+  // (2-2)
+  @Test
+  @DisplayName("없는 도서를 수정하면 NOT_FOUND 예외가 발생한다")
+  void updateNotFound() {
+    assertThatThrownBy(() -> bookCommandService.update(UUID.randomUUID(), updateRequest()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
+
+  // (2-3)
+  @Test
+  @DisplayName("논리 삭제된 도서를 수정하면 NOT_FOUND 예외가 발생하고 값은 그대로다")
+  void updateDeleted() {
+    Book saved = savedBook();
+    saved.softDelete();
+
+    assertThatThrownBy(() -> bookCommandService.update(saved.getId(), updateRequest()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+    assertThat(saved.getTitle()).isEqualTo("클린 코드");
   }
 }
