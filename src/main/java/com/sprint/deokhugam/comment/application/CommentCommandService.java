@@ -9,6 +9,8 @@ import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
+import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
+import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.required.UserRepository;
 import com.sprint.deokhugam.user.domain.User;
 import java.time.Instant;
@@ -22,20 +24,19 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommentCommandService implements CommentCommand {
 
   private final CommentRepository commentRepository;
-  // private final ReviewRepository reviewRepository;
+  private final ReviewPersistencePort reviewPersistencePort;
   private final UserRepository userRepository;
 
   @Transactional
   @Override
   public CommentDto create(CommentCreateRequest createRequest) {
-    // Review review = reviewRepository.findByReviewId(createRequest.reviewId());
+    Review review = reviewPersistencePort.getByIdOrThrow(createRequest.reviewId());
     User user =
         userRepository
             .findById(createRequest.userId())
             .orElseThrow(() -> new BusinessException(UserErrorCode.NOT_FOUND));
 
-    // review에 임의로 null 대입
-    Comment comment = Comment.create(null, user, createRequest.content());
+    Comment comment = Comment.create(review, user, createRequest.content());
     commentRepository.save(comment);
 
     return CommentDto.to(
