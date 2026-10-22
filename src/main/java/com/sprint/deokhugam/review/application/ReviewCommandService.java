@@ -24,9 +24,6 @@ public class ReviewCommandService implements ReviewCommand {
   @Transactional
   public Review createReview(Review review) {
     Objects.requireNonNull(review, "review");
-    Objects.requireNonNull(review.getUser(), "review.user"); // 외부에서 혹시 사용할때
-    Objects.requireNonNull(review.getBook(), "review.book");
-
     if (reviewPersistencePort.existsByUserIdAndBookId(
         review.getUser().getId(), review.getBook().getId())) {
       throw new BusinessException(ReviewErrorCode.ALREADY_EXISTS);

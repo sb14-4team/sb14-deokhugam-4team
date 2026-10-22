@@ -55,12 +55,17 @@ class ReviewCommandServiceTest {
   }
 
   @Test
-  void 객체의_연관관계가_널이면_실패() {
-    Review 유저가없는리뷰 = Review.init(5, "재미있어요", null, review.getBook());
-    Review 도서가없는리뷰 = Review.init(5, "재미있어요", review.getUser(), null);
-
-    assertThatThrownBy(() -> reviewCommandService.createReview(유저가없는리뷰)).hasMessage("review.user");
-    assertThatThrownBy(() -> reviewCommandService.createReview(도서가없는리뷰)).hasMessage("review.book");
+  void 리뷰_생성시_연관관계가_널이면_실패() {
+    assertThatThrownBy(() -> Review.init(5, "재미있어요", null, review.getBook()))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.INVALID_USER));
+    assertThatThrownBy(() -> Review.init(5, "재미있어요", review.getUser(), null))
+        .isInstanceOfSatisfying(
+            BusinessException.class,
+            exception ->
+                assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.INVALID_BOOK));
   }
 
   @Test
