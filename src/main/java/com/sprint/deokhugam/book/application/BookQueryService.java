@@ -1,5 +1,6 @@
 package com.sprint.deokhugam.book.application;
 
+import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.required.BookPersistencePort;
 import com.sprint.deokhugam.book.domain.Book;
@@ -20,7 +21,12 @@ public class BookQueryService implements BookFinder {
   @Override
   public Book findById(UUID bookId) {
     return bookPersistencePort
-        .findById(bookId)
+        .findActiveById(bookId)
         .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
+  }
+
+  @Override
+  public BookDto getById(UUID bookId) {
+    return BookDto.from(findById(bookId));
   }
 }

@@ -8,7 +8,8 @@ public interface BookPersistencePort {
 
   Book save(Book book);
 
-  Optional<Book> findById(UUID bookId);
+  // 논리 삭제된 도서는 빼고 찾는다
+  Optional<Book> findActiveById(UUID bookId);
 
   boolean existsByIsbn(String isbn);
 }
