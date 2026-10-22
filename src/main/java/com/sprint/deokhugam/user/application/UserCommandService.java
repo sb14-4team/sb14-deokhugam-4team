@@ -1,7 +1,6 @@
 package com.sprint.deokhugam.user.application;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
@@ -10,8 +9,10 @@ import com.sprint.deokhugam.user.application.required.UserRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,17 +42,18 @@ public class UserCommandService implements UserCommand {
   }
 
   @Override
-  public void delete(UUID userId, UUID headerId) {
+  public void withdraw(UUID userId, UUID headerId) {
     if (!userId.equals(headerId)) {
       throw new BusinessException(UserErrorCode.FORBIDDEN);
     }
-    User user =
-        userRepository
-            .findById(userId)
-            .filter(find -> !find.isDeleted())
-            .orElseThrow(() -> new BusinessException(UserErrorCode.NOT_FOUND));
+    User user = getUser(userId);
 
     user.softDelete();
+  }
+
+  @Override
+  public void delete(UUID userId) {
+    userRepository.remove(userId);
   }
 
   @Override
@@ -59,13 +61,19 @@ public class UserCommandService implements UserCommand {
     if (!userId.equals(headerId)) {
       throw new BusinessException(UserErrorCode.FORBIDDEN);
     }
+    User user = getUser(userId);
+    user.updateNickname(nickname);
+
+    return UserDto.to(
+        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+  }
+
+  private @NonNull User getUser(UUID userId) {
     User user =
         userRepository
             .findById(userId)
             .filter(find -> !find.isDeleted())
             .orElseThrow(() -> new BusinessException(UserErrorCode.NOT_FOUND));
-    user.updateNickname(nickname);
-    return UserDto.to(
-        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+    return user;
   }
 }

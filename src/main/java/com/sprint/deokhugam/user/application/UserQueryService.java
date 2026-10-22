@@ -1,7 +1,6 @@
 package com.sprint.deokhugam.user.application;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserLoginRequest;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -10,6 +9,9 @@ import com.sprint.deokhugam.user.application.required.PasswordHasher;
 import com.sprint.deokhugam.user.application.required.UserRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,6 +50,11 @@ public class UserQueryService implements UserFinder, UserLogin {
     }
     return UserDto.to(
         user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+  }
+
+  @Override
+  public List<UUID> findCleanupIds(Instant cutoff, int limit) {
+    return userRepository.findCleanupIds(cutoff, limit);
   }
 
   private User findByEmail(Email email) {
