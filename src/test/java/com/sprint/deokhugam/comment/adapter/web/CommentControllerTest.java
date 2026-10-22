@@ -12,6 +12,8 @@ import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
 import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -110,5 +112,27 @@ public class CommentControllerTest {
                 .content(jsonMapper.writeValueAsString(updateRequest)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value("test_updated_content"));
+  }
+
+  @Test
+  @DisplayName("댓글 수정 실패 - 작성자가 아닌 타인이 요청할 경우 예외 발생")
+  void updateComment_forbidden() throws Exception {
+    // Given
+    UUID commentId = UUID.randomUUID();
+    UUID requestUserId = UUID.randomUUID();
+
+    CommentUpdateRequest updateRequest = new CommentUpdateRequest("test_updated_content");
+
+    given(commentCommand.update(eq(commentId), eq(requestUserId), any(CommentUpdateRequest.class)))
+        .willThrow(new BusinessException(CommentErrorCode.FORBIDDEN));
+
+    // When & Then
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", commentId)
+                .param("requestUserId", requestUserId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateRequest)))
+        .andExpect(status().isForbidden());
   }
 }
