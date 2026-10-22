@@ -1,6 +1,5 @@
-package com.sprint.deokhugam.review.application;
+package com.sprint.deokhugam.review.application.provided.query;
 
-import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import java.util.UUID;

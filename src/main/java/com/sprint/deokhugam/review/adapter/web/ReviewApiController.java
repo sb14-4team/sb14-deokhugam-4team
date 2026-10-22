@@ -1,6 +1,6 @@
 package com.sprint.deokhugam.review.adapter.web;
 
-import com.sprint.deokhugam.review.application.ReviewApplicationService;
+import com.sprint.deokhugam.review.application.ReviewUseCase;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.UpdateReviewRequest;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,18 +21,17 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
-@RestController
 @RequiredArgsConstructor
+@ControllerAdvice
+@RestController
 @RequestMapping("/api/reviews")
-public class ReviewController {
+public class ReviewApiController {
 
-  private final ReviewApplicationService reviewApplicationService;
+  private final ReviewUseCase reviewUseCase;
 
   @PostMapping
   public ResponseEntity<ReviewResponse> create(@RequestBody @Valid CreateReviewCommand command) {
-    log.info("리뷰 생성 요청: {}", command);
-
-    ReviewResponse response = reviewApplicationService.createReview(command);
+    ReviewResponse response = reviewUseCase.createReview(command);
 
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }
@@ -40,7 +40,7 @@ public class ReviewController {
   public ResponseEntity<ReviewResponse> getReviewDetail(
       @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
     return ResponseEntity.status(HttpStatus.OK)
-        .body(reviewApplicationService.getReviewDetail(reviewId, requestUserId));
+        .body(reviewUseCase.getReviewDetail(reviewId, requestUserId));
   }
 
   @PatchMapping("/{reviewId}")
@@ -50,7 +50,7 @@ public class ReviewController {
       @RequestBody @Valid UpdateReviewRequest request) {
     return ResponseEntity.status(HttpStatus.OK)
         .body(
-            reviewApplicationService.updateReview(
+            reviewUseCase.updateReview(
                 requestUserId, reviewId, request.content(), request.rating()));
   }
 }

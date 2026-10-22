@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 // 객체를 받아와서 앱서비스에서 넣어주는 레지스터 인터페이스 ? -> 무시해도됨
 @Service
 @RequiredArgsConstructor
-public class ReviewApplicationService {
+public class ReviewApplicationService implements ReviewUseCase {
   private final ReviewCommand reviewCommand;
   private final ReviewFinder reviewFinder;
 
@@ -27,6 +27,7 @@ public class ReviewApplicationService {
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
 
+  @Override
   @Transactional
   public ReviewResponse createReview(CreateReviewCommand command) {
     User user = userFinder.findById(command.userId());
@@ -38,6 +39,7 @@ public class ReviewApplicationService {
     return ReviewResponse.of(savedReview, false);
   }
 
+  @Override
   @Transactional(readOnly = true)
   public ReviewResponse getReviewDetail(UUID reviewId, UUID userId) {
     Review review = reviewFinder.getByIdOrThrow(reviewId);
@@ -46,6 +48,7 @@ public class ReviewApplicationService {
     return ReviewResponse.of(review, likedByMe);
   }
 
+  @Override
   @Transactional
   public ReviewResponse updateReview(UUID userId, UUID reviewId, String newContent, int newRating) {
     userFinder.findById(userId);

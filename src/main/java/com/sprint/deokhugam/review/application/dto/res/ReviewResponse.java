@@ -23,8 +23,8 @@ public record ReviewResponse(
     return new ReviewResponse(
         review.getId(),
         review.getBook().getId(),
-        null,
-        null,
+        review.getBook().getTitle(),
+        review.getBook().getThumbnailUrl(),
         review.getUser().getId(),
         review.getUser().getNickname(),
         review.getContent(),
