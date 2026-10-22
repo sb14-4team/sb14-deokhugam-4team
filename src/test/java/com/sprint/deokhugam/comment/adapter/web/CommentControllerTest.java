@@ -36,7 +36,8 @@ public class CommentControllerTest {
     // Given
     UUID reviewId = UUID.randomUUID();
     UUID userId = UUID.randomUUID();
-    CommentCreateRequest createRequest = new CommentCreateRequest(reviewId, userId, "test_content");
+    CommentCreateRequest createRequest =
+        new CommentCreateRequest(reviewId, userId, "test_create_content");
 
     CommentDto responseDto =
         CommentDto.to(
@@ -44,7 +45,7 @@ public class CommentControllerTest {
             reviewId,
             userId,
             "test_nickname",
-            "test_create_content",
+            createRequest.content(),
             Instant.now(),
             Instant.now());
 
@@ -61,6 +62,23 @@ public class CommentControllerTest {
   }
 
   @Test
+  @DisplayName("댓글 등록 실패 - 빈 내용 입력 시 400 에러")
+  void createComment_fail_blankContent() throws Exception {
+    // Given
+    UUID reviewId = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+    CommentCreateRequest invalidRequest = new CommentCreateRequest(reviewId, userId, "");
+
+    // When & Then
+    mockMvc
+        .perform(
+            post("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   @DisplayName("댓글 수정 성공 테스트")
   void updateComment_Success() throws Exception {
     // Given
@@ -68,7 +86,7 @@ public class CommentControllerTest {
     UUID requestUserId = UUID.randomUUID();
     UUID reviewId = UUID.randomUUID();
 
-    CommentUpdateRequest updateRequest = new CommentUpdateRequest("new_content");
+    CommentUpdateRequest updateRequest = new CommentUpdateRequest("test_updated_content");
 
     CommentDto commentDto =
         CommentDto.to(
@@ -76,7 +94,7 @@ public class CommentControllerTest {
             reviewId,
             requestUserId,
             "test_nickname",
-            "test_updated_content",
+            updateRequest.Content(),
             Instant.now(),
             Instant.now());
 
