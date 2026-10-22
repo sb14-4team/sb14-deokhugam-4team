@@ -3,10 +3,7 @@ package com.sprint.deokhugam.user.domain;
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
-import com.sprint.deokhugam.user.adapter.persistence.EmailConverter;
-import com.sprint.deokhugam.user.adapter.persistence.PasswordConverter;
 import jakarta.persistence.Column;
-import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
@@ -22,11 +19,9 @@ public class User extends BaseSoftDeletableEntity {
   @Column(name = "name", nullable = false, length = 20)
   private String nickname;
 
-  @Convert(converter = EmailConverter.class)
   @Column(name = "email", nullable = false, unique = true)
   private Email email;
 
-  @Convert(converter = PasswordConverter.class)
   @Column(name = "password", nullable = false)
   private Password password;
 
