@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -135,5 +136,66 @@ class BookIntegrationTest {
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("BookFinder로 논리 삭제된 도서를 찾으면 BOOK_NOT_FOUND 예외가 발생한다")
+  void findByIdDeleted() {
+    Book saved = bookPersistencePort.save(book(null));
+    saved.softDelete();
+    bookJpaRepository.flush();
+
+    assertThatThrownBy(() -> bookFinder.findById(saved.getId()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
+
+  @Test
+  @DisplayName("등록한 도서를 id로 조회하면 200과 저장된 정보를 돌려준다")
+  void getBook() throws Exception {
+    Book saved = bookPersistencePort.save(book("9788966260959"));
+
+    mockMvc
+        .perform(get("/api/books/{bookId}", saved.getId()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(saved.getId().toString()))
+        .andExpect(jsonPath("$.title").value("제목"))
+        .andExpect(jsonPath("$.publishedDate").value("2020-01-01"))
+        .andExpect(jsonPath("$.isbn").value("9788966260959"))
+        .andExpect(jsonPath("$.reviewCount").value(0))
+        .andExpect(jsonPath("$.rating").value(0.0))
+        .andExpect(jsonPath("$.createdAt").isNotEmpty());
+  }
+
+  @Test
+  @DisplayName("없는 도서 id로 조회하면 404를 돌려준다")
+  void getBookNotFound() throws Exception {
+    mockMvc
+        .perform(get("/api/books/{bookId}", UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("논리 삭제된 도서를 조회하면 404를 돌려준다")
+  void getDeletedBook() throws Exception {
+    Book saved = bookPersistencePort.save(book(null));
+    saved.softDelete();
+    bookJpaRepository.flush();
+
+    mockMvc
+        .perform(get("/api/books/{bookId}", saved.getId()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
+  @Test
+  @DisplayName("도서 id가 UUID 형식이 아니면 400을 돌려준다")
+  void getBookWithInvalidId() throws Exception {
+    mockMvc
+        .perform(get("/api/books/{bookId}", "not-a-uuid"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
   }
 }
