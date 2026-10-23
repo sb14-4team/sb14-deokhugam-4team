@@ -7,6 +7,8 @@ import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
 import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
 import com.sprint.deokhugam.comment.application.provided.query.CommentFinder;
 import com.sprint.deokhugam.comment.domain.Comment;
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -41,7 +43,7 @@ public class CommentApplicationService implements CommentUsecase {
   @Override
   @Transactional
   public CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
-    commentFinder.findById(commentId);
+    getVerifiedComment(commentId, requestUserId);
     Comment updatedComment = commentCommand.updateComment(commentId, requestUserId, updateRequest);
 
     return CommentDto.from(updatedComment);
@@ -49,5 +51,16 @@ public class CommentApplicationService implements CommentUsecase {
 
   @Override
   @Transactional
-  public void delete(UUID commentId, UUID userId) {}
+  public void delete(UUID commentId, UUID userId) {
+    getVerifiedComment(commentId, userId);
+    Comment foundComment = commentFinder.findById(commentId);
+    foundComment.softDelete();
+  }
+
+  private void getVerifiedComment(UUID commentId, UUID userId) {
+    Comment comment = commentFinder.findById(commentId);
+    if (!comment.verifyCommentId(userId)) {
+      throw new BusinessException(CommentErrorCode.FORBIDDEN);
+    }
+  }
 }

@@ -46,7 +46,7 @@ public class Comment extends BaseSoftDeletableEntity {
     this.content = newContent;
   }
 
-  public boolean verifyCommentUpdate(UUID userId) {
+  public boolean verifyCommentId(UUID userId) {
     return this.getUser().getId().equals(userId);
   }
 }
