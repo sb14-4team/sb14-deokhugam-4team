@@ -5,15 +5,18 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
+import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.ReviewLike;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -84,6 +87,38 @@ public class ReviewApplicationService implements ReviewUseCase {
             .toList();
 
     return toCursorPage(responses, condition, totalElements);
+  }
+
+  // 자기 리뷰에도 좋아요 표시 가능
+  @Override
+  @Transactional
+  public ReviewLikeResponse toggleLike(UUID reviewId, UUID requestUserId) {
+    User user = userFinder.findById(requestUserId);
+    Review review = reviewFinder.getByIdOrThrow(reviewId);
+
+    Optional<ReviewLike> foundReviewLike =
+        reviewLikePersistencePort.getByUserIdAndReviewId(requestUserId, reviewId);
+
+    ReviewLike reviewLike = toggleOrCreateReviewLike(foundReviewLike, review, user);
+
+    return ReviewLikeResponse.from(reviewLike);
+  }
+
+  private ReviewLike toggleOrCreateReviewLike(
+      Optional<ReviewLike> foundReviewLike, Review review, User user) {
+    ReviewLike reviewLike;
+    if (foundReviewLike.isPresent()) {
+      reviewLike = foundReviewLike.get();
+      boolean liked = reviewLike.toggle();
+
+      if (liked) review.increaseLikeCount();
+      else review.decreaseLikeCount();
+    } else {
+      reviewLike = ReviewLike.init(review, user);
+      reviewLikePersistencePort.save(reviewLike);
+      review.increaseLikeCount();
+    }
+    return reviewLike;
   }
 
   private CursorPageResponse<ReviewResponse> toCursorPage(

@@ -52,7 +52,7 @@ public class Review extends BaseSoftDeletableEntity {
   Book book;
 
   public static Review init(Integer rate, String content, User user, Book book) {
-    validateInitArgument(rate, content, user, book);
+    validateRatingAndContent(rate, content);
     return builder().rating(rate).content(content).user(user).book(book).build();
   }
 
@@ -70,14 +70,17 @@ public class Review extends BaseSoftDeletableEntity {
     likeCount++;
   }
 
-  private static void validateInitArgument(Integer rating, String content, User user, Book book) {
-    validateRatingAndContent(rating, content);
-    if (Objects.isNull(user)) {
-      throw new BusinessException(ReviewErrorCode.INVALID_USER);
-    }
-    if (Objects.isNull(book)) {
-      throw new BusinessException(ReviewErrorCode.INVALID_BOOK);
-    }
+  public void decreaseLikeCount() {
+    validateLikeCountCanDecrease();
+    likeCount--;
+  }
+
+  public void increaseCommentCount() {
+    commentCount++;
+  }
+
+  public void decreaseCommentCount() {
+    commentCount--;
   }
 
   private static void validateRatingAndContent(Integer rating, String content) {
@@ -87,5 +90,9 @@ public class Review extends BaseSoftDeletableEntity {
     if (Objects.isNull(content) || content.length() > 200) {
       throw new BusinessException(ReviewErrorCode.INVALID_CONTENT);
     }
+  }
+
+  private void validateLikeCountCanDecrease() {
+    if (likeCount <= 0) throw new BusinessException(ReviewErrorCode.LIKE_COUNT_UNDERFLOW);
   }
 }
