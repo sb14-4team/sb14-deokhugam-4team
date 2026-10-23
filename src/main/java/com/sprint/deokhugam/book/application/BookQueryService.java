@@ -3,7 +3,8 @@ package com.sprint.deokhugam.book.application;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
-import com.sprint.deokhugam.book.application.required.BookPersistencePort;
+import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
+import com.sprint.deokhugam.book.application.required.BookSearchPort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
@@ -19,11 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class BookQueryService implements BookFinder {
 
-  private final BookPersistencePort bookPersistencePort;
+  private final BookRepositoryPort bookRepositoryPort;
+  private final BookSearchPort bookSearchPort;
 
   @Override
   public Book findById(UUID bookId) {
-    return bookPersistencePort
+    return bookRepositoryPort
         .findActiveById(bookId)
         .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
   }
@@ -37,8 +39,8 @@ public class BookQueryService implements BookFinder {
   public CursorPageResponse<BookDto> search(BookSearchCondition condition, int limit) {
     // 다음 페이지가 있는지 알기 위해 limit보다 1개 더 가져온다. 넘치는 1개는 응답에서 잘린다
     List<BookDto> rows =
-        bookPersistencePort.search(condition, limit + 1).stream().map(BookDto::from).toList();
-    long totalElements = bookPersistencePort.countByKeyword(condition.keyword());
+        bookSearchPort.search(condition, limit + 1).stream().map(BookDto::from).toList();
+    long totalElements = bookSearchPort.countByKeyword(condition.keyword());
 
     // nextCursor = 마지막 도서의 정렬 기준 값, nextAfter = 마지막 도서의 createdAt
     return CursorPageResponse.of(

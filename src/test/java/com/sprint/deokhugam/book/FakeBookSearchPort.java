@@ -2,49 +2,21 @@ package com.sprint.deokhugam.book;
 
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
-import com.sprint.deokhugam.book.application.required.BookPersistencePort;
+import com.sprint.deokhugam.book.application.required.BookSearchPort;
 import com.sprint.deokhugam.book.domain.Book;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
-import org.springframework.test.util.ReflectionTestUtils;
 
-public class FakeBookPersistencePort implements BookPersistencePort {
+// BookSearchAdapter(Querydsl)가 DB에서 하는 일을 자바 스트림으로 흉내 낸다
+// 도서 목록은 FakeBookRepositoryPort가 들고 있으므로 같은 가짜 저장소를 넘겨받아 읽는다
+public class FakeBookSearchPort implements BookSearchPort {
 
-  // 저장 순서대로 1초씩 늦게 등록된 것으로 본다 → createdAt 정렬을 예측할 수 있다
-  private static final Instant BASE_TIME = Instant.parse("2026-01-01T00:00:00Z");
+  private final FakeBookRepositoryPort bookRepositoryPort;
 
-  private final List<Book> books = new ArrayList<>();
-
-  @Override
-  public Book save(Book book) {
-    if (book.getId() == null) {
-      // 실제 DB가 없으니 JPA 대신 여기서 id와 createdAt을 채운다
-      ReflectionTestUtils.setField(book, "id", UUID.randomUUID());
-      ReflectionTestUtils.setField(book, "createdAt", BASE_TIME.plusSeconds(books.size()));
-    }
-    books.add(book);
-    return book;
+  public FakeBookSearchPort(FakeBookRepositoryPort bookRepositoryPort) {
+    this.bookRepositoryPort = bookRepositoryPort;
   }
 
-  @Override
-  public Optional<Book> findActiveById(UUID bookId) {
-    return books.stream()
-        .filter(book -> Objects.equals(book.getId(), bookId))
-        .filter(book -> !book.isDeleted())
-        .findFirst();
-  }
-
-  @Override
-  public boolean existsByIsbn(String isbn) {
-    return books.stream().anyMatch(book -> Objects.equals(book.getIsbn(), isbn));
-  }
-
-  // BookSearchRepository(Querydsl)가 DB에서 하는 일을 자바 스트림으로 흉내 낸다
   @Override
   @SuppressWarnings("unchecked")
   public List<Book> search(BookSearchCondition condition, int size) {
@@ -57,7 +29,7 @@ public class FakeBookPersistencePort implements BookPersistencePort {
     if (condition.isDescending()) {
       order = order.reversed();
     }
-    return books.stream()
+    return bookRepositoryPort.all().stream()
         .filter(book -> !book.isDeleted())
         .filter(book -> matchesKeyword(book, condition.keyword()))
         .filter(book -> isAfterCursor(book, condition))
@@ -68,14 +40,10 @@ public class FakeBookPersistencePort implements BookPersistencePort {
 
   @Override
   public long countByKeyword(String keyword) {
-    return books.stream()
+    return bookRepositoryPort.all().stream()
         .filter(book -> !book.isDeleted())
         .filter(book -> matchesKeyword(book, keyword))
         .count();
-  }
-
-  public int count() {
-    return books.size();
   }
 
   private boolean matchesKeyword(Book book, String keyword) {

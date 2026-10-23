@@ -3,7 +3,7 @@ package com.sprint.deokhugam.book.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.sprint.deokhugam.book.FakeBookPersistencePort;
+import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 
 class BookCommandServiceTest {
 
-  private final FakeBookPersistencePort bookPersistencePort = new FakeBookPersistencePort();
-  private final BookCommandService bookCommandService = new BookCommandService(bookPersistencePort);
+  private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
+  private final BookCommandService bookCommandService = new BookCommandService(bookRepositoryPort);
 
   private BookCreateRequest request(String isbn) {
     return new BookCreateRequest(
@@ -30,7 +30,7 @@ class BookCommandServiceTest {
   }
 
   private Book savedBook() {
-    return bookPersistencePort.save(
+    return bookRepositoryPort.save(
         Book.create(
             "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
   }
@@ -42,7 +42,7 @@ class BookCommandServiceTest {
   void create() {
     BookDto bookDto = bookCommandService.create(request("9788966260959"));
 
-    assertThat(bookPersistencePort.count()).isEqualTo(1);
+    assertThat(bookRepositoryPort.count()).isEqualTo(1);
     assertThat(bookDto.title()).isEqualTo("클린 코드");
     assertThat(bookDto.isbn()).isEqualTo("9788966260959");
     assertThat(bookDto.thumbnailUrl()).isNull();
@@ -60,7 +60,7 @@ class BookCommandServiceTest {
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(BookErrorCode.DUPLICATE_ISBN);
-    assertThat(bookPersistencePort.count()).isEqualTo(1);
+    assertThat(bookRepositoryPort.count()).isEqualTo(1);
   }
 
   // (1-3)
@@ -70,7 +70,7 @@ class BookCommandServiceTest {
     bookCommandService.create(request(null));
     bookCommandService.create(request(null));
 
-    assertThat(bookPersistencePort.count()).isEqualTo(2);
+    assertThat(bookRepositoryPort.count()).isEqualTo(2);
   }
 
   // ===== (2) update() =====
@@ -89,7 +89,7 @@ class BookCommandServiceTest {
     assertThat(bookDto.publisher()).isEqualTo("새 출판사");
     assertThat(bookDto.publishedDate()).isEqualTo(LocalDate.of(2021, 2, 2));
     assertThat(bookDto.isbn()).isEqualTo("9788966260959");
-    assertThat(bookPersistencePort.count()).isEqualTo(1);
+    assertThat(bookRepositoryPort.count()).isEqualTo(1);
   }
 
   // (2-2)

@@ -4,7 +4,7 @@ import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.application.provided.command.BookCommand;
-import com.sprint.deokhugam.book.application.required.BookPersistencePort;
+import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
@@ -18,12 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class BookCommandService implements BookCommand {
 
-  private final BookPersistencePort bookPersistencePort;
+  private final BookRepositoryPort bookRepositoryPort;
 
   @Override
   public BookDto create(BookCreateRequest request) {
     String isbn = request.isbn();
-    if (isbn != null && bookPersistencePort.existsByIsbn(isbn)) {
+    if (isbn != null && bookRepositoryPort.existsByIsbn(isbn)) {
       throw new BusinessException(BookErrorCode.DUPLICATE_ISBN, "isbn=" + isbn);
     }
 
@@ -36,13 +36,13 @@ public class BookCommandService implements BookCommand {
             request.publishedDate(),
             isbn,
             null);
-    return BookDto.from(bookPersistencePort.save(book));
+    return BookDto.from(bookRepositoryPort.save(book));
   }
 
   @Override
   public BookDto update(UUID bookId, BookUpdateRequest request) {
     Book book =
-        bookPersistencePort
+        bookRepositoryPort
             .findActiveById(bookId)
             .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
 
