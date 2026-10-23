@@ -28,6 +28,7 @@ import lombok.experimental.FieldDefaults;
 @Entity
 @Table(name = "reviews")
 public class Review extends BaseSoftDeletableEntity {
+
   @Column(name = "rating", nullable = false)
   Integer rating;
 
