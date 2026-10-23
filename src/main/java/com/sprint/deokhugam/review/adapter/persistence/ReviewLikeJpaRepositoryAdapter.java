@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -13,5 +14,10 @@ public class ReviewLikeJpaRepositoryAdapter implements ReviewLikePersistencePort
   @Override
   public boolean isLikedBy(UUID reviewId, UUID userId) {
     return reviewLikeJpaRepository.existsByReview_IdAndUser_IdAndLikedTrue(reviewId, userId);
+  }
+
+  @Override
+  public List<UUID> findReviewLikeIdsByRequestId(List<UUID> reviewIds, UUID requestUserId) {
+    return reviewLikeJpaRepository.findReviewLikeIds(requestUserId, reviewIds);
   }
 }
