@@ -36,8 +36,6 @@ public class CommentJpaRepositoryTest {
   private Review review;
   private Book book;
   private User user;
-  private Email email;
-  private Password password;
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
@@ -47,9 +45,7 @@ public class CommentJpaRepositoryTest {
 
   @BeforeEach
   void setUp() {
-    email = Email.to("test@example.com");
-    password = Password.to("abcd1234!");
-    user = User.create("testNickname", email, password);
+    user = User.create("testNickname", Email.to("test@example.com"), Password.to("abcd1234!"));
     entityManager.persist(user);
 
     book =
