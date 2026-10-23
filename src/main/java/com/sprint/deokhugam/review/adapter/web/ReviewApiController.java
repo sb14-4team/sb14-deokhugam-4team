@@ -5,6 +5,7 @@ import com.sprint.deokhugam.review.application.ReviewUseCase;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.req.UpdateReviewRequest;
+import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import jakarta.validation.Valid;
 import java.time.Instant;
@@ -78,5 +79,12 @@ public class ReviewApiController {
 
     return ResponseEntity.status(HttpStatus.OK)
         .body(reviewUseCase.searchReviewsByPagination(condition, requestUserId));
+  }
+
+  @PostMapping("/{reviewId}/like")
+  public ResponseEntity<ReviewLikeResponse> toggleLike(
+      @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(reviewUseCase.toggleLike(reviewId, requestUserId));
   }
 }

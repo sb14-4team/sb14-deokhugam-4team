@@ -8,13 +8,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sprint.deokhugam.book.adapter.persistence.BookJpaRepository;
+import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
+import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.required.BookPersistencePort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
+import jakarta.persistence.EntityManager;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -22,12 +30,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,6 +47,8 @@ import org.springframework.transaction.annotation.Transactional;
 class BookIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
+  @Autowired private ObjectMapper objectMapper;
+  @Autowired private EntityManager entityManager;
   @Autowired private BookJpaRepository bookJpaRepository;
   @Autowired private BookPersistencePort bookPersistencePort;
   @Autowired private BookFinder bookFinder;
@@ -328,5 +341,155 @@ class BookIntegrationTest {
 
     Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
     assertThat(found.getTitle()).isEqualTo("제목");
+  }
+
+  // ===== (6) GET /api/books : BookController.search() — 실제 SQL 검증 =====
+
+  private Book savedBook(String title, String author, LocalDate publishedDate, int... scores) {
+    Book book = Book.create(title, author, "소개", "출판사", publishedDate, null, null);
+    for (int score : scores) {
+      book.addReview(score);
+    }
+    return bookPersistencePort.save(book);
+  }
+
+  // 저장한 엔티티를 버리고 DB에서 다시 읽게 한다 → createdAt이 DB에 저장된 정밀도(마이크로초)로 맞춰진다
+  private void flushAndClear() {
+    entityManager.flush();
+    entityManager.clear();
+  }
+
+  private BookSearchCondition condition(
+      String keyword, BookSortField field, Sort.Direction dir, String cursor, Instant after) {
+    return new BookSearchCondition(keyword, field, dir, cursor, after);
+  }
+
+  // 커서로 끝까지 넘기면서 제목을 순서대로 모은다 (중복·누락 검증용)
+  private List<String> collectAllPages(
+      String keyword, BookSortField field, Sort.Direction dir, int limit) {
+    List<String> collected = new ArrayList<>();
+    String cursor = null;
+    Instant after = null;
+    while (true) {
+      CursorPageResponse<BookDto> page =
+          bookFinder.search(condition(keyword, field, dir, cursor, after), limit);
+      collected.addAll(page.content().stream().map(BookDto::title).toList());
+      if (!page.hasNext()) {
+        return collected;
+      }
+      cursor = page.nextCursor();
+      after = page.nextAfter();
+    }
+  }
+
+  // (6-1)
+  @Test
+  @DisplayName("키워드는 제목·저자·ISBN에 대소문자 없이 부분 일치하고 논리 삭제는 제외한다")
+  void searchByKeyword() throws Exception {
+    savedBook("Clean Code", "Robert C. Martin", LocalDate.of(2008, 8, 1));
+    savedBook("리팩터링", "마틴 파울러", LocalDate.of(2020, 4, 1));
+    bookPersistencePort.save(book("9791162242742")); // 제목 "제목", ISBN으로만 걸린다
+    savedBook("clean architecture", "저자", LocalDate.of(2017, 9, 1)).softDelete();
+    flushAndClear();
+
+    mockMvc
+        .perform(get("/api/books").param("keyword", "CLEAN"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].title").value("Clean Code"))
+        .andExpect(jsonPath("$.totalElements").value(1));
+
+    mockMvc
+        .perform(get("/api/books").param("keyword", "마틴"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].title").value("리팩터링"));
+
+    mockMvc
+        .perform(get("/api/books").param("keyword", "2742"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].isbn").value("9791162242742"));
+  }
+
+  // (6-2)
+  @Test
+  @DisplayName("평점 동률이 있어도 커서로 끝까지 넘기면 중복·누락 없이 모두 나온다")
+  void searchRatingPagesWithTies() {
+    savedBook("5점 먼저", "저자", LocalDate.of(2020, 1, 1), 5);
+    savedBook("5점 나중", "저자", LocalDate.of(2020, 1, 1), 5);
+    savedBook("3점", "저자", LocalDate.of(2020, 1, 1), 3);
+    savedBook("1점 먼저", "저자", LocalDate.of(2020, 1, 1), 1);
+    savedBook("1점 나중", "저자", LocalDate.of(2020, 1, 1), 1);
+    flushAndClear();
+
+    assertThat(collectAllPages(null, BookSortField.RATING, Sort.Direction.DESC, 2))
+        .containsExactly("5점 나중", "5점 먼저", "3점", "1점 나중", "1점 먼저");
+    assertThat(collectAllPages(null, BookSortField.RATING, Sort.Direction.ASC, 2))
+        .containsExactly("1점 먼저", "1점 나중", "3점", "5점 먼저", "5점 나중");
+  }
+
+  // (6-3)
+  @Test
+  @DisplayName("제목·출간일·리뷰 수 정렬도 커서로 끝까지 넘기면 중복·누락이 없다")
+  void searchOtherSortsWithPages() {
+    savedBook("B", "저자", LocalDate.of(2013, 1, 1), 5, 4);
+    savedBook("A", "저자", LocalDate.of(2020, 1, 1), 5);
+    savedBook("C", "저자", LocalDate.of(2008, 1, 1));
+    savedBook("B", "저자", LocalDate.of(2013, 1, 1), 5, 4); // 제목·출간일·리뷰 수 모두 동률
+    flushAndClear();
+
+    assertThat(collectAllPages(null, BookSortField.TITLE, Sort.Direction.ASC, 1))
+        .containsExactly("A", "B", "B", "C");
+    assertThat(collectAllPages(null, BookSortField.PUBLISHED_DATE, Sort.Direction.DESC, 1))
+        .containsExactly("A", "B", "B", "C");
+    assertThat(collectAllPages(null, BookSortField.REVIEW_COUNT, Sort.Direction.DESC, 3))
+        .containsExactly("B", "B", "A", "C");
+  }
+
+  // (6-4)
+  @Test
+  @DisplayName("HTTP 응답의 nextCursor·nextAfter를 그대로 다음 요청에 넣으면 이어진다")
+  void searchNextPageOverHttp() throws Exception {
+    savedBook("A", "저자", LocalDate.of(2020, 1, 1));
+    savedBook("B", "저자", LocalDate.of(2020, 1, 1));
+    savedBook("C", "저자", LocalDate.of(2020, 1, 1));
+    flushAndClear();
+
+    String firstPage =
+        mockMvc
+            .perform(get("/api/books").param("limit", "2"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].title").value("C"))
+            .andExpect(jsonPath("$.content[1].title").value("B"))
+            .andExpect(jsonPath("$.hasNext").value(true))
+            .andReturn()
+            .getResponse()
+            .getContentAsString(StandardCharsets.UTF_8);
+    JsonNode json = objectMapper.readTree(firstPage);
+
+    mockMvc
+        .perform(
+            get("/api/books")
+                .param("limit", "2")
+                .param("cursor", json.get("nextCursor").asText())
+                .param("after", json.get("nextAfter").asText()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content.length()").value(1))
+        .andExpect(jsonPath("$.content[0].title").value("A"))
+        .andExpect(jsonPath("$.hasNext").value(false))
+        .andExpect(jsonPath("$.totalElements").value(3));
+  }
+
+  // (6-5)
+  @Test
+  @DisplayName("도서가 하나도 없으면 빈 목록과 totalElements 0을 돌려준다")
+  void searchEmpty() throws Exception {
+    mockMvc
+        .perform(get("/api/books"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isEmpty())
+        .andExpect(jsonPath("$.totalElements").value(0))
+        .andExpect(jsonPath("$.hasNext").value(false));
   }
 }
