@@ -91,7 +91,7 @@ public class Review extends BaseSoftDeletableEntity {
     }
   }
 
-  private void validateLikeCountCanDecrease(){
+  private void validateLikeCountCanDecrease() {
     if (likeCount <= 0) throw new BusinessException(ReviewErrorCode.LIKE_COUNT_UNDERFLOW);
   }
 }

@@ -3,6 +3,7 @@ package com.sprint.deokhugam.review.application;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
+import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import java.util.UUID;
 
@@ -15,4 +16,6 @@ public interface ReviewUseCase {
 
   CursorPageResponse<ReviewResponse> searchReviewsByPagination(
       ReviewSearchCondition condition, UUID requestUserId);
+
+  ReviewLikeResponse toggleLike(UUID reviewId, UUID requestUserId);
 }
