@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ReviewApplicationService implements ReviewUseCase {
+
   private final ReviewCommand reviewCommand;
   private final ReviewFinder reviewFinder;
 

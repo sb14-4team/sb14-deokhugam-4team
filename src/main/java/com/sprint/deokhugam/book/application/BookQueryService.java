@@ -20,6 +20,7 @@ public class BookQueryService implements BookFinder {
 
   @Override
   public Book findById(UUID bookId) {
+
     return bookPersistencePort
         .findActiveById(bookId)
         .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
