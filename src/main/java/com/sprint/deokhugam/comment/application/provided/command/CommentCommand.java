@@ -1,13 +1,13 @@
 package com.sprint.deokhugam.comment.application.provided.command;
 
-import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
-import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
+import com.sprint.deokhugam.comment.domain.Comment;
 import java.util.UUID;
 
+// CUD 기능
 public interface CommentCommand {
 
-  CommentDto create(CommentCreateRequest createRequest);
+  Comment createComment(Comment comment);
 
-  CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest);
+  Comment updateComment(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest);
 }

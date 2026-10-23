@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
-import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
+import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import java.time.Instant;
@@ -31,7 +31,7 @@ public class CommentControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private JsonMapper jsonMapper;
-  @MockitoBean private CommentCommand commentCommand;
+  @MockitoBean private CommentUsecase commentUsecase;
 
   private UUID reviewId;
   private UUID userId;
@@ -45,15 +45,15 @@ public class CommentControllerTest {
   }
 
   @Test
-  @DisplayName("댓글 등록 성공 테스트")
+  @DisplayName("댓글 등록 성공")
   void createComment_success() throws Exception {
     // Given
     CommentCreateRequest createRequest =
         new CommentCreateRequest(reviewId, userId, "testCreateContent");
 
-    CommentDto responseDto =
-        CommentDto.to(
-            UUID.randomUUID(),
+    CommentDto commentDto =
+        new CommentDto(
+            commentId,
             reviewId,
             userId,
             "testNickname",
@@ -61,7 +61,7 @@ public class CommentControllerTest {
             Instant.now(),
             Instant.now());
 
-    given(commentCommand.create(any(CommentCreateRequest.class))).willReturn(responseDto);
+    given(commentUsecase.create(any(CommentCreateRequest.class))).willReturn(commentDto);
 
     // When & Then
     mockMvc
@@ -95,7 +95,7 @@ public class CommentControllerTest {
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
 
     CommentDto commentDto =
-        CommentDto.to(
+        new CommentDto(
             commentId,
             reviewId,
             userId,
@@ -104,14 +104,14 @@ public class CommentControllerTest {
             Instant.now(),
             Instant.now());
 
-    given(commentCommand.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
+    given(commentUsecase.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
         .willReturn(commentDto);
 
     // When & Then
     mockMvc
         .perform(
             patch("/api/comments/{commentId}", commentId)
-                .param("requestUserId", userId.toString())
+                .header("Deokhugam-Request-User-ID", userId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(updateRequest)))
         .andExpect(status().isOk())
@@ -124,14 +124,14 @@ public class CommentControllerTest {
     // Given
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
 
-    given(commentCommand.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
+    given(commentUsecase.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
         .willThrow(new BusinessException(CommentErrorCode.FORBIDDEN));
 
     // When & Then
     mockMvc
         .perform(
             patch("/api/comments/{commentId}", commentId)
-                .param("requestUserId", userId.toString())
+                .header("Deokhugam-Request-User-ID", userId.toString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(updateRequest)))
         .andExpect(status().isForbidden());
