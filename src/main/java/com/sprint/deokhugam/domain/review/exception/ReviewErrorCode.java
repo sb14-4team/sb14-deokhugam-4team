@@ -14,7 +14,9 @@ public enum ReviewErrorCode implements ErrorCode {
   INVALID_RATING(HttpStatus.BAD_REQUEST, "REVIEW_INVALID_RATING", "리뷰 평점은 1~5점만 가능합니다."),
   INVALID_CONTENT(HttpStatus.BAD_REQUEST, "REVIEW_INVALID_CONTENT", "리뷰 내용은 200자 이하여야 합니다."),
   INVALID_USER(HttpStatus.BAD_REQUEST, "REVIEW_INVALID_USER", "리뷰 작성자가 필요합니다."),
-  INVALID_BOOK(HttpStatus.BAD_REQUEST, "REVIEW_INVALID_BOOK", "리뷰 도서가 필요합니다.");
+  INVALID_BOOK(HttpStatus.BAD_REQUEST, "REVIEW_INVALID_BOOK", "리뷰 도서가 필요합니다."),
+  LIKE_COUNT_UNDERFLOW(
+      HttpStatus.CONFLICT, "REVIEW_LIKE_COUNT_UNDERFLOW", "좋아요 수는 0 미만이 될 수 없습니다.");
 
   private final HttpStatus status;
   private final String code;
