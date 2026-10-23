@@ -11,4 +11,6 @@ public interface CommentUsecase {
   CommentDto create(CommentCreateRequest createRequest);
 
   CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest);
+
+  void delete(UUID commentId, UUID userId);
 }

@@ -7,8 +7,8 @@ import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
 import jakarta.validation.Valid;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,8 +26,8 @@ public class CommentController {
 
   @PostMapping
   public ResponseEntity<CommentDto> create(@RequestBody @Valid CommentCreateRequest createRequest) {
-    CommentDto commentDto = commentApplicationService.create(createRequest);
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentDto);
+    CommentDto createComment = commentApplicationService.create(createRequest);
+    return ResponseEntity.ok(createComment);
   }
 
   @PatchMapping("{commentId}")
@@ -35,7 +35,15 @@ public class CommentController {
       @PathVariable UUID commentId,
       @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId,
       @RequestBody @Valid CommentUpdateRequest updateRequest) {
-    return ResponseEntity.status(HttpStatus.OK)
-        .body(commentApplicationService.update(commentId, requestUserId, updateRequest));
+    CommentDto updatedComment =
+        commentApplicationService.update(commentId, requestUserId, updateRequest);
+    return ResponseEntity.ok(updatedComment);
+  }
+
+  @DeleteMapping("{commentId}")
+  public ResponseEntity<Void> delete(
+      @PathVariable UUID commentId, @RequestHeader("Deokhugam-Request-User-ID") UUID userId) {
+    commentApplicationService.delete(commentId, userId);
+    return ResponseEntity.noContent().build();
   }
 }

@@ -46,4 +46,8 @@ public class CommentApplicationService implements CommentUsecase {
 
     return CommentDto.from(updatedComment);
   }
+
+  @Override
+  @Transactional
+  public void delete(UUID commentId, UUID userId) {}
 }
