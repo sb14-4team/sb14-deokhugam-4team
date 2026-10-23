@@ -4,6 +4,7 @@ import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
+import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.application.provided.command.BookCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
@@ -18,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -60,5 +62,14 @@ public class BookController {
   @GetMapping("/{bookId}")
   public ResponseEntity<BookDto> get(@PathVariable UUID bookId) {
     return ResponseEntity.ok(bookFinder.getById(bookId));
+  }
+
+  // 등록과 같은 multipart 형식. 썸네일 교체는 A06에서 연결
+  @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<BookDto> update(
+      @PathVariable UUID bookId,
+      @RequestPart("bookData") @Valid BookUpdateRequest bookData,
+      @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage) {
+    return ResponseEntity.ok(bookCommand.update(bookId, bookData));
   }
 }
