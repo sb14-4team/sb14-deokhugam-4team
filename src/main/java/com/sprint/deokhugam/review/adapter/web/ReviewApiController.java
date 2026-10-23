@@ -1,13 +1,17 @@
 package com.sprint.deokhugam.review.adapter.web;
 
+import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.review.application.ReviewUseCase;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
+import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.req.UpdateReviewRequest;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -18,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
@@ -52,5 +57,26 @@ public class ReviewApiController {
         .body(
             reviewUseCase.updateReview(
                 requestUserId, reviewId, request.content(), request.rating()));
+  }
+
+  @GetMapping
+  public ResponseEntity<CursorPageResponse<ReviewResponse>> searchReviews(
+      @RequestParam(required = false) UUID userId,
+      @RequestParam(required = false) UUID bookId,
+      @RequestParam(required = false) String keyword,
+      @RequestParam(defaultValue = "createdAt") String orderBy,
+      @RequestParam(defaultValue = "DESC") String direction,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+          Instant after,
+      @RequestParam(defaultValue = "50") int limit,
+      @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
+
+    ReviewSearchCondition condition =
+        ReviewSearchCondition.toCondition(
+            userId, bookId, keyword, orderBy, direction, cursor, after, limit);
+
+    return ResponseEntity.status(HttpStatus.OK)
+        .body(reviewUseCase.searchReviewsByPagination(condition, requestUserId));
   }
 }

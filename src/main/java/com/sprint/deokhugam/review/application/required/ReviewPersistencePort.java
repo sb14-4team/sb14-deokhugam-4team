@@ -15,4 +15,6 @@ public interface ReviewPersistencePort {
   boolean existsByUserIdAndBookId(UUID userId, UUID bookId);
 
   List<Review> search(ReviewSearchCondition condition);
+
+  long count(ReviewSearchCondition condition);
 }

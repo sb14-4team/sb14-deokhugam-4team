@@ -13,7 +13,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   private final ReviewJpaRepository reviewJpaRepository;
-  private final ReviewQuerydslRepository reviewQuerydslRepository; // 구현체주입
+  private final ReviewQuerydslRepository reviewQuerydslRepository;
 
   @Override
   public Review save(Review review) {
@@ -38,5 +38,10 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   @Override
   public List<Review> search(ReviewSearchCondition condition) {
     return reviewQuerydslRepository.search(condition);
+  }
+
+  @Override
+  public long count(ReviewSearchCondition condition) {
+    return reviewQuerydslRepository.count(condition);
   }
 }
