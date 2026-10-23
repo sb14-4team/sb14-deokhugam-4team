@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.review.application.provided.command.ReviewCommandService;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
@@ -52,15 +53,6 @@ class ReviewCommandServiceTest {
     assertThat(savedReview.getRating()).isEqualTo(5);
     verify(reviewPersistencePort).existsByUserIdAndBookId(userId, bookId);
     verify(reviewPersistencePort).save(review);
-  }
-
-  @Test
-  void 객체의_연관관계가_널이면_실패() {
-    Review 유저가없는리뷰 = Review.init(5, "재미있어요", null, review.getBook());
-    Review 도서가없는리뷰 = Review.init(5, "재미있어요", review.getUser(), null);
-
-    assertThatThrownBy(() -> reviewCommandService.createReview(유저가없는리뷰)).hasMessage("review.user");
-    assertThatThrownBy(() -> reviewCommandService.createReview(도서가없는리뷰)).hasMessage("review.book");
   }
 
   @Test

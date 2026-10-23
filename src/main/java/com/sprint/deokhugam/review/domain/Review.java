@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -42,22 +43,21 @@ public class Review extends BaseSoftDeletableEntity {
   @Column(name = "comment_count", nullable = false)
   Integer commentCount = 0;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
   User user;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "book_id")
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "book_id", nullable = false)
   Book book;
 
   public static Review init(Integer rate, String content, User user, Book book) {
+    validateInitArgument(rate, content, user, book);
     return builder().rating(rate).content(content).user(user).book(book).build();
   }
 
   public void updateContentAndRating(String content, int rating) {
-    if (rating < 1 || rating > 5) {
-      throw new BusinessException(ReviewErrorCode.INVALID_RATING);
-    }
+    validateRatingAndContent(rating, content);
     this.content = content;
     this.rating = rating;
   }
@@ -68,5 +68,24 @@ public class Review extends BaseSoftDeletableEntity {
 
   public void increaseLikeCount() {
     likeCount++;
+  }
+
+  private static void validateInitArgument(Integer rating, String content, User user, Book book) {
+    validateRatingAndContent(rating, content);
+    if (Objects.isNull(user)) {
+      throw new BusinessException(ReviewErrorCode.INVALID_USER);
+    }
+    if (Objects.isNull(book)) {
+      throw new BusinessException(ReviewErrorCode.INVALID_BOOK);
+    }
+  }
+
+  private static void validateRatingAndContent(Integer rating, String content) {
+    if (Objects.isNull(rating) || rating < 1 || rating > 5) {
+      throw new BusinessException(ReviewErrorCode.INVALID_RATING);
+    }
+    if (Objects.isNull(content) || content.length() > 200) {
+      throw new BusinessException(ReviewErrorCode.INVALID_CONTENT);
+    }
   }
 }
