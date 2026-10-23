@@ -1,7 +1,9 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
+import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -11,7 +13,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   private final ReviewJpaRepository reviewJpaRepository;
-  private final ReviewQuerydslRepository reviewQuerydslRepository; // 구현체주입
+  private final ReviewQuerydslRepository reviewQuerydslRepository;
 
   @Override
   public Review save(Review review) {
@@ -31,5 +33,15 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   @Override
   public boolean existsByUserIdAndBookId(UUID userId, UUID bookId) {
     return reviewJpaRepository.existsActiveReview(userId, bookId);
+  }
+
+  @Override
+  public List<Review> search(ReviewSearchCondition condition) {
+    return reviewQuerydslRepository.search(condition);
+  }
+
+  @Override
+  public long count(ReviewSearchCondition condition) {
+    return reviewQuerydslRepository.count(condition);
   }
 }

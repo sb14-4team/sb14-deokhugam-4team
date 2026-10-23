@@ -43,12 +43,12 @@ public class Review extends BaseSoftDeletableEntity {
   @Column(name = "comment_count", nullable = false)
   Integer commentCount = 0;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
   User user;
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "book_id")
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "book_id", nullable = false)
   Book book;
 
   public static Review init(Integer rate, String content, User user, Book book) {
