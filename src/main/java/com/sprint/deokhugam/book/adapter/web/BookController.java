@@ -2,11 +2,18 @@ package com.sprint.deokhugam.book.adapter.web;
 
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
+import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.provided.command.BookCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
+import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +21,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -33,6 +41,20 @@ public class BookController {
       @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage) {
     BookDto bookDto = bookCommand.create(bookData);
     return ResponseEntity.status(HttpStatus.CREATED).body(bookDto);
+  }
+
+  // 기본값(orderBy=title, direction=DESC, limit=50)은 명세 그대로
+  @GetMapping
+  public ResponseEntity<CursorPageResponse<BookDto>> search(
+      @RequestParam(required = false) String keyword,
+      @RequestParam(defaultValue = "title") String orderBy,
+      @RequestParam(defaultValue = "DESC") Sort.Direction direction,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false) Instant after,
+      @RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit) {
+    BookSearchCondition condition =
+        new BookSearchCondition(keyword, BookSortField.from(orderBy), direction, cursor, after);
+    return ResponseEntity.ok(bookFinder.search(condition, limit));
   }
 
   @GetMapping("/{bookId}")
