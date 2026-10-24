@@ -51,7 +51,7 @@ public class Review extends BaseSoftDeletableEntity {
   @JoinColumn(name = "book_id", nullable = false)
   Book book;
 
-  public static Review init(Integer rate, String content, User user, Book book) {
+  public static Review create(Integer rate, String content, User user, Book book) {
     validateRatingAndContent(rate, content);
     return builder().rating(rate).content(content).user(user).book(book).build();
   }

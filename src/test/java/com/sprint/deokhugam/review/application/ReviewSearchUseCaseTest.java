@@ -40,7 +40,7 @@ class ReviewSearchUseCaseTest {
 
     User user = User.create("작성자", Email.to("tester@example.com"), Password.to("password"));
     Book book = Book.create("책", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), null, null);
-    Review review = Review.init(4, "좋아요", user, book);
+    Review review = Review.create(4, "좋아요", user, book);
     ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
     ReflectionTestUtils.setField(book, "id", UUID.randomUUID());
     ReflectionTestUtils.setField(review, "id", reviewId);

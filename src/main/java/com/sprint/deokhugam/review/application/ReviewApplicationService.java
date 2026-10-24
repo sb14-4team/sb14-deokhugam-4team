@@ -2,7 +2,9 @@ package com.sprint.deokhugam.review.application;
 
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
+import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
@@ -32,6 +34,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   private final ReviewLikePersistencePort reviewLikePersistencePort;
   private final ReviewPersistencePort reviewPersistencePort;
 
+  // private final BookReviewStatsCommand bookReviewStatsCommand;
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
 
@@ -41,7 +44,7 @@ public class ReviewApplicationService implements ReviewUseCase {
     User user = userFinder.findById(command.userId());
     Book book = bookFinder.findById(command.bookId());
 
-    Review review = Review.init(command.rating(), command.content(), user, book);
+    Review review = Review.create(command.rating(), command.content(), user, book);
     Review savedReview = reviewCommand.createReview(review);
 
     return ReviewResponse.of(savedReview, false);
@@ -102,6 +105,20 @@ public class ReviewApplicationService implements ReviewUseCase {
     ReviewLike reviewLike = toggleOrCreateReviewLike(foundReviewLike, review, user);
 
     return ReviewLikeResponse.from(reviewLike);
+  }
+
+  @Override
+  @Transactional
+  public void softDeleteReview(UUID reviewId, UUID requestUserId) {
+    userFinder.findById(requestUserId);
+    Review review = reviewFinder.getByIdOrThrow(reviewId);
+
+    // bookReviewStatsCommand.removeReview(review.getBook().getId(), review.getRating());
+    if (!review.verifyReviewUpdate(requestUserId)) {
+      throw new BusinessException(ReviewErrorCode.FORBIDDEN);
+    }
+
+    review.softDelete();
   }
 
   private ReviewLike toggleOrCreateReviewLike(
