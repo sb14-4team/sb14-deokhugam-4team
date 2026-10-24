@@ -8,6 +8,7 @@ import com.querydsl.core.types.dsl.ComparableExpressionBase;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
+import com.sprint.deokhugam.book.application.required.BookSearchPort;
 import com.sprint.deokhugam.book.domain.Book;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,10 +19,11 @@ import org.springframework.stereotype.Repository;
 // 도서 목록 검색 쿼리. 조건(키워드·커서·정렬)이 요청마다 달라서 Querydsl로 조립한다
 @Repository
 @RequiredArgsConstructor
-public class BookSearchRepository {
+public class BookSearchAdapter implements BookSearchPort {
 
   private final JPAQueryFactory queryFactory;
 
+  @Override
   public List<Book> search(BookSearchCondition condition, int size) {
     // where()에 null을 넘기면 그 조건은 무시된다 → 키워드·커서가 없을 때 조건이 빠진다
     return queryFactory
@@ -32,6 +34,7 @@ public class BookSearchRepository {
         .fetch();
   }
 
+  @Override
   public long countByKeyword(String keyword) {
     Long count =
         queryFactory

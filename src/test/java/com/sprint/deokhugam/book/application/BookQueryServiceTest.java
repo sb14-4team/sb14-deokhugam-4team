@@ -3,7 +3,8 @@ package com.sprint.deokhugam.book.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.sprint.deokhugam.book.FakeBookPersistencePort;
+import com.sprint.deokhugam.book.FakeBookRepositoryPort;
+import com.sprint.deokhugam.book.FakeBookSearchPort;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
@@ -21,17 +22,18 @@ import org.springframework.data.domain.Sort;
 
 class BookQueryServiceTest {
 
-  private final FakeBookPersistencePort bookPersistencePort = new FakeBookPersistencePort();
-  private final BookQueryService bookQueryService = new BookQueryService(bookPersistencePort);
+  private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
+  private final BookQueryService bookQueryService =
+      new BookQueryService(bookRepositoryPort, new FakeBookSearchPort(bookRepositoryPort));
 
   private Book savedBook() {
-    return bookPersistencePort.save(
+    return bookRepositoryPort.save(
         Book.create(
             "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
   }
 
   private Book savedBook(String title, String author, String isbn, LocalDate publishedDate) {
-    return bookPersistencePort.save(
+    return bookRepositoryPort.save(
         Book.create(title, author, "소개", "출판사", publishedDate, isbn, null));
   }
 

@@ -6,7 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.sprint.deokhugam.book.FakeBookPersistencePort;
+import com.sprint.deokhugam.book.FakeBookRepositoryPort;
+import com.sprint.deokhugam.book.FakeBookSearchPort;
 import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
 import com.sprint.deokhugam.book.domain.Book;
@@ -24,13 +25,14 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class BookControllerTest {
 
-  private final FakeBookPersistencePort bookPersistencePort = new FakeBookPersistencePort();
+  private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
 
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
               new BookController(
-                  new BookCommandService(bookPersistencePort),
-                  new BookQueryService(bookPersistencePort)))
+                  new BookCommandService(bookRepositoryPort),
+                  new BookQueryService(
+                      bookRepositoryPort, new FakeBookSearchPort(bookRepositoryPort))))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
@@ -40,7 +42,7 @@ class BookControllerTest {
   }
 
   private Book savedBook() {
-    return bookPersistencePort.save(
+    return bookRepositoryPort.save(
         Book.create(
             "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
   }
@@ -69,7 +71,7 @@ class BookControllerTest {
       """;
 
   private Book savedBook(String title) {
-    return bookPersistencePort.save(
+    return bookRepositoryPort.save(
         Book.create(title, "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), null, null));
   }
 
