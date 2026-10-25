@@ -4,6 +4,7 @@ import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -26,6 +27,11 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   }
 
   @Override
+  public Optional<Review> getByIdIncludingDeleted(UUID reviewId) {
+    return reviewJpaRepository.findById(reviewId);
+  }
+
+  @Override
   public void requireActiveById(UUID reviewId) {
     reviewJpaRepository.requireActiveById(reviewId);
   }
@@ -33,6 +39,11 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   @Override
   public boolean existsByUserIdAndBookId(UUID userId, UUID bookId) {
     return reviewJpaRepository.existsActiveReview(userId, bookId);
+  }
+
+  @Override
+  public void delete(Review review) {
+    reviewJpaRepository.delete(review);
   }
 
   @Override

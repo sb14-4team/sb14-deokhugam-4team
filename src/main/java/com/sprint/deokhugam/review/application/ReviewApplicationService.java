@@ -1,5 +1,6 @@
 package com.sprint.deokhugam.review.application;
 
+import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
@@ -37,6 +38,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   // private final BookReviewStatsCommand bookReviewStatsCommand;
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
+  private final BookCommandService bookCommandService;
 
   @Override
   @Transactional
@@ -113,12 +115,40 @@ public class ReviewApplicationService implements ReviewUseCase {
     userFinder.findById(requestUserId);
     Review review = reviewFinder.getByIdOrThrow(reviewId);
 
-    // bookReviewStatsCommand.removeReview(review.getBook().getId(), review.getRating());
+    // bookReviewStatsCommand.removeReview(review.getBook().getId(), review.getRating()); - 구현체 x
+    // 논리삭제 시 점수반영으로 진행
     if (!review.verifyReviewUpdate(requestUserId)) {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
     }
 
     review.softDelete();
+    // 알람 호출한다 - 미구현
+  }
+
+  /*
+   리뷰 단일 삭제 ( 스웨거 문서 엔드포인트 용도 )
+   연관 - 해당 리뷰 좋아요 + 댓글
+  */
+  @Override
+  @Transactional
+  public void hardDeleteReview(UUID reviewId, UUID requestUserId) {
+    userFinder.findById(requestUserId);
+    Review review =
+        reviewPersistencePort
+            .getByIdIncludingDeleted(reviewId)
+            .orElseThrow(() -> new BusinessException(ReviewErrorCode.NOT_FOUND));
+
+    if (!review.getUser().getId().equals(requestUserId))
+      throw new BusinessException(ReviewErrorCode.FORBIDDEN);
+
+    reviewLikePersistencePort.deleteAllByReviewId(reviewId);
+    // 댓글 삭제 호출 - 아직 미구현
+
+    if (!review.isDeleted()) {
+      // bookReviewStatsCommand.removeReview(review.getBook().getId(), review.getRating());
+    }
+
+    reviewPersistencePort.delete(review);
   }
 
   private ReviewLike toggleOrCreateReviewLike(

@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class ReviewLikeJpaRepositoryAdapter implements ReviewLikePersistencePort {
   private final ReviewLikeJpaRepository reviewLikeJpaRepository;
+  private final ReviewLikeQuerydslRepository reviewLikeQuerydslRepository;
 
   @Override
   public ReviewLike save(ReviewLike reviewLike) {
@@ -31,5 +32,10 @@ public class ReviewLikeJpaRepositoryAdapter implements ReviewLikePersistencePort
   @Override
   public Optional<ReviewLike> getByUserIdAndReviewId(UUID userId, UUID reviewId) {
     return reviewLikeJpaRepository.findByUser_IdAndReview_Id(userId, reviewId);
+  }
+
+  @Override
+  public void deleteAllByReviewId(UUID reviewId) {
+    reviewLikeQuerydslRepository.deleteAllByReviewId(reviewId);
   }
 }
