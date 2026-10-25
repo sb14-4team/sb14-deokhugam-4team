@@ -6,10 +6,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.sprint.deokhugam.book.FakeBookProviderPort;
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeBookSearchPort;
 import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
+import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
 import java.nio.charset.StandardCharsets;
@@ -26,13 +28,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class BookControllerTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
+  private final FakeBookProviderPort bookProviderPort = new FakeBookProviderPort();
 
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
               new BookController(
                   new BookCommandService(bookRepositoryPort),
                   new BookQueryService(
-                      bookRepositoryPort, new FakeBookSearchPort(bookRepositoryPort))))
+                      bookRepositoryPort,
+                      new FakeBookSearchPort(bookRepositoryPort),
+                      bookProviderPort)))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
@@ -428,5 +433,47 @@ class BookControllerTest {
                 .param("after", "2026-01-01T00:00:01Z"))
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("$.code").value("COMMON_INVALID_INPUT"));
+  }
+
+  // ===== (5) GET /api/books/info : getInfo() =====
+  // (5-1)
+  @Test
+  @DisplayName("ISBN으로 찾은 도서 정보를 200으로 돌려준다. 썸네일은 Base64 문자열")
+  void getInfo() throws Exception {
+    bookProviderPort.put(
+        new BookInfoDto(
+            "클린 코드",
+            "로버트 C. 마틴",
+            "소개",
+            "인사이트",
+            LocalDate.of(2013, 12, 24),
+            "9788966260959",
+            new byte[] {1, 2, 3}));
+
+    mockMvc
+        .perform(get("/api/books/info").param("isbn", "9788966260959"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("클린 코드"))
+        .andExpect(jsonPath("$.author").value("로버트 C. 마틴"))
+        .andExpect(jsonPath("$.publishedDate").value("2013-12-24"))
+        .andExpect(jsonPath("$.isbn").value("9788966260959"))
+        .andExpect(jsonPath("$.thumbnailImage").value("AQID"));
+  }
+
+  // (5-2)
+  @Test
+  @DisplayName("ISBN에 해당하는 도서가 없으면 404를 돌려준다")
+  void getInfoNotFound() throws Exception {
+    mockMvc
+        .perform(get("/api/books/info").param("isbn", "9788966260959"))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_INFO_NOT_FOUND"));
+  }
+
+  // (5-3)
+  @Test
+  @DisplayName("/info 는 /{bookId} 가 아니라 ISBN 조회로 매칭된다")
+  void getInfoIsNotTreatedAsBookId() throws Exception {
+    mockMvc.perform(get("/api/books/info")).andExpect(status().isBadRequest());
   }
 }

@@ -1,8 +1,10 @@
 package com.sprint.deokhugam.book.application;
 
 import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
+import com.sprint.deokhugam.book.application.required.BookProviderPort;
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.application.required.BookSearchPort;
 import com.sprint.deokhugam.book.domain.Book;
@@ -22,6 +24,7 @@ public class BookQueryService implements BookFinder {
 
   private final BookRepositoryPort bookRepositoryPort;
   private final BookSearchPort bookSearchPort;
+  private final BookProviderPort bookProviderPort;
 
   @Override
   public Book findById(UUID bookId) {
@@ -45,5 +48,13 @@ public class BookQueryService implements BookFinder {
     // nextCursor = 마지막 도서의 정렬 기준 값, nextAfter = 마지막 도서의 createdAt
     return CursorPageResponse.of(
         rows, limit, condition.sortField()::cursorOf, BookDto::createdAt, totalElements);
+  }
+
+  // '없음'을 404로 바꾸는 건 우리 서비스의 규칙이라 어댑터가 아닌 여기서 한다
+  @Override
+  public BookInfoDto getBookInfo(String isbn) {
+    return bookProviderPort
+        .findByIsbn(isbn)
+        .orElseThrow(() -> new BusinessException(BookErrorCode.INFO_NOT_FOUND, "isbn=" + isbn));
   }
 }
