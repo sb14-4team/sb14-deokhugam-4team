@@ -23,15 +23,15 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
-// BookSearchRepository가 만드는 SQL만 검증한다. 컨트롤러·서비스는 띄우지 않는다
+// BookSearchAdapter가 만드는 SQL만 검증한다. 컨트롤러·서비스는 띄우지 않는다
 @DataJpaTest // JPA 관련 빈만 띄우는 가벼운 테스트. 각 테스트는 트랜잭션 안에서 돌고 끝나면 롤백된다
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // H2로 바꾸지 않는다
 @ActiveProfiles("test") // application-test.yaml의 PostgreSQL(deokhugam_test)을 쓴다
-@Import({QuerydslConfig.class, JpaConfig.class, BookSearchRepository.class}) // 자동으로 안 띄우는 빈
-class BookSearchRepositoryTest {
+@Import({QuerydslConfig.class, JpaConfig.class, BookSearchAdapter.class}) // 자동으로 안 띄우는 빈
+class BookSearchAdapterTest {
 
   @Autowired private EntityManager entityManager;
-  @Autowired private BookSearchRepository bookSearchRepository;
+  @Autowired private BookSearchAdapter bookSearchAdapter;
 
   // 저장 순서대로 1초씩 늦게 등록된 것으로 본다 → 동률일 때 createdAt 순서를 예측할 수 있다
   private static final Instant BASE_TIME = Instant.parse("2026-01-01T00:00:00Z");
@@ -71,7 +71,7 @@ class BookSearchRepositoryTest {
 
   private List<Book> search(
       String keyword, BookSortField field, Sort.Direction dir, String cursor, Instant after) {
-    return bookSearchRepository.search(
+    return bookSearchAdapter.search(
         new BookSearchCondition(keyword, field, dir, cursor, after), 100);
   }
 
@@ -86,8 +86,7 @@ class BookSearchRepositoryTest {
     Instant after = null;
     while (true) {
       List<Book> page =
-          bookSearchRepository.search(
-              new BookSearchCondition(null, field, dir, cursor, after), size);
+          bookSearchAdapter.search(new BookSearchCondition(null, field, dir, cursor, after), size);
       collected.addAll(page);
       if (page.size() < size) {
         return collected;
@@ -163,9 +162,9 @@ class BookSearchRepositoryTest {
     saved("클린 코더").softDelete();
     flushAndClear();
 
-    assertThat(bookSearchRepository.countByKeyword("클린")).isEqualTo(2);
-    assertThat(bookSearchRepository.countByKeyword(null)).isEqualTo(3);
-    assertThat(bookSearchRepository.countByKeyword("없는책")).isZero();
+    assertThat(bookSearchAdapter.countByKeyword("클린")).isEqualTo(2);
+    assertThat(bookSearchAdapter.countByKeyword(null)).isEqualTo(3);
+    assertThat(bookSearchAdapter.countByKeyword("없는책")).isZero();
   }
 
   // ===== (3) search() : 정렬 =====
@@ -216,7 +215,7 @@ class BookSearchRepositoryTest {
     flushAndClear();
 
     List<Book> result =
-        bookSearchRepository.search(
+        bookSearchAdapter.search(
             new BookSearchCondition(null, BookSortField.TITLE, Sort.Direction.ASC, null, null), 2);
 
     assertThat(result).extracting(Book::getTitle).containsExactly("가", "나");
