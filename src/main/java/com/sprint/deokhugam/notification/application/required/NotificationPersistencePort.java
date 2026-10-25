@@ -15,7 +15,7 @@ public interface NotificationPersistencePort {
   Optional<Notification> findById(UUID notificationId);
 
   // 수신자의 알림 목록 조회
-  List<Notification> findAllByUserId(UUID userId, Instant after, int limit);
+  List<Notification> findAllByUser(UUID userId, Instant after, int limit);
 
   // 이전 페이지에서 마지막 받은 알림의 createdAt ( 첫 페이지면 null)
   // limit = 한번에 주는 갯수

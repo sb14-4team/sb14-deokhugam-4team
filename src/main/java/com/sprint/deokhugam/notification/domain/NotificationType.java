@@ -11,7 +11,7 @@ public enum NotificationType {
 
   private final String template;
 
-  public String format(Object... args) {
-    return template.formatted(args);
+  public String format(String nickname) {
+    return template.formatted(nickname);
   }
 }

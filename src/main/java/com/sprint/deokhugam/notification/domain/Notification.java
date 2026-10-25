@@ -1,11 +1,18 @@
 package com.sprint.deokhugam.notification.domain;
 
+import static jakarta.persistence.FetchType.LAZY;
+
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
+import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.notification.domain.exception.NotificationErrorCode;
+import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -21,11 +28,13 @@ public class Notification extends BaseSoftDeletableEntity {
 
   // 알림을 받는사람
   @JoinColumn(name = "user_id")
-  private UUID userId;
+  @ManyToOne(fetch = LAZY)
+  private User user;
 
   // 알림 대상 리뷰 (알림을 누르면 이동할 리뷰)
   @JoinColumn(name = "review_id")
-  private UUID reviewId;
+  @ManyToOne(fetch = LAZY)
+  private Review review;
 
   // 알림 생성 시점의 리뷰 내용 (리뷰가 수정돼도 그대로 유지)
   @Column(name = "review_content")
@@ -49,27 +58,29 @@ public class Notification extends BaseSoftDeletableEntity {
   private Instant confirmedAt;
 
   private Notification(
-      UUID userId, UUID reviewId, String reviewContent, NotificationType type, Object... args) {
-    this.userId = userId;
-    this.reviewId = reviewId;
-    this.message = type.format(args);
+      User user, Review review, String reviewContent, NotificationType type, String nickname) {
+    this.user = user;
+    this.review = review;
+    this.message = type.format(nickname);
     this.reviewContent = reviewContent;
     this.type = type;
     this.confirmed = false;
   }
 
   public static Notification createLike(
-      UUID userId, UUID reviewId, String reviewContent, String actorNickname) {
-    return new Notification(userId, reviewId, reviewContent, NotificationType.LIKE, actorNickname);
+      User user, Review review, String reviewContent, String actorNickname) {
+    return new Notification(user, review, reviewContent, NotificationType.LIKE, actorNickname);
   }
 
   public static Notification createComment(
-      UUID userId, UUID reviewId, String reviewContent, String actorNickname) {
-    return new Notification(
-        userId, reviewId, reviewContent, NotificationType.COMMENT, actorNickname);
+      User user, Review review, String reviewContent, String actorNickname) {
+    return new Notification(user, review, reviewContent, NotificationType.COMMENT, actorNickname);
   }
 
-  public void confirm() {
+  public void confirm(UUID userId) {
+    if (!userId.equals(this.user.getId())) {
+      throw new BusinessException(NotificationErrorCode.FORBIDDEN);
+    }
     if (confirmed) {
       return;
     }

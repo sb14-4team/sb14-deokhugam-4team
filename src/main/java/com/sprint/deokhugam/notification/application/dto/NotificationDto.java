@@ -11,4 +11,18 @@ public record NotificationDto(
     String message,
     boolean confirmed,
     Instant createdAt,
-    Instant updatedAt) {}
+    Instant updatedAt) {
+
+  public static NotificationDto to(
+      UUID id,
+      UUID userId,
+      UUID reviewId,
+      String reviewContent,
+      String message,
+      boolean confirmed,
+      Instant createdAt,
+      Instant updatedAt) {
+    return new NotificationDto(
+        id, userId, reviewId, reviewContent, message, confirmed, createdAt, updatedAt);
+  }
+}

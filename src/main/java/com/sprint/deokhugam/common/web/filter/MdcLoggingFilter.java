@@ -43,7 +43,7 @@ public class MdcLoggingFilter extends OncePerRequestFilter {
       try {
         long duration = (System.nanoTime() - startedAt) / 1_000_000;
 
-        log.info("요청 종료: 소요시간= {}", duration);
+        log.info("요청 종료: 소요시간 = {}ms", duration);
       } finally {
         MDC.remove(REQUEST_ID);
         MDC.remove(CLIENT_IP);

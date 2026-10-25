@@ -1,8 +1,13 @@
 package com.sprint.deokhugam.notification.application;
 
+import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.notification.application.dto.NotificationDto;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.notification.application.required.NotificationPersistencePort;
+import com.sprint.deokhugam.notification.domain.Notification;
+import com.sprint.deokhugam.notification.domain.exception.NotificationErrorCode;
+import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.user.domain.User;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,14 +21,59 @@ public class NotificationCommandService implements NotificationCommand {
   private final NotificationPersistencePort notificationPersistencePort;
 
   @Override
-  public void createLike(UUID reviewId, UUID userId, String actorNickname) {}
+  public NotificationDto createLike(Review review, User user, String actorNickname) {
+    String content = review.getContent();
+    Notification notification = Notification.createLike(user, review, content, actorNickname);
+    Notification save = notificationPersistencePort.save(notification);
+    NotificationDto notificationDto =
+        NotificationDto.to(
+            notification.getId(),
+            user.getId(),
+            review.getId(),
+            content,
+            notification.getMessage(),
+            notification.isConfirmed(),
+            notification.getCreatedAt(),
+            notification.getUpdatedAt());
+    return notificationDto;
+  }
 
   @Override
-  public void createComment(UUID reviewId, UUID userId, String actorNickname) {}
+  public NotificationDto createComment(Review review, User user, String actorNickname) {
+    String content = review.getContent();
+    Notification notification = Notification.createComment(user, review, content, actorNickname);
+    Notification save = notificationPersistencePort.save(notification);
+    NotificationDto notificationDto =
+        NotificationDto.to(
+            notification.getId(),
+            user.getId(),
+            review.getId(),
+            content,
+            notification.getMessage(),
+            notification.isConfirmed(),
+            notification.getCreatedAt(),
+            notification.getUpdatedAt());
+    return notificationDto;
+  }
 
   @Override
   public NotificationDto confirm(UUID notificationId, UUID userId) {
-    return null;
+    Notification find =
+        notificationPersistencePort
+            .findById(notificationId)
+            .filter(notification -> !notification.isDeleted())
+            .orElseThrow(() -> new BusinessException(NotificationErrorCode.NOT_FOUND));
+
+    find.confirm(userId);
+    return NotificationDto.to(
+        find.getId(),
+        find.getUser().getId(),
+        find.getReview().getId(),
+        find.getReviewContent(),
+        find.getMessage(),
+        find.isConfirmed(),
+        find.getCreatedAt(),
+        find.getUpdatedAt());
   }
 
   @Override
