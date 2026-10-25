@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.book.adapter.kakao;
+package com.sprint.deokhugam.book.adapter.api.kakao;
 
 import java.util.List;
 
