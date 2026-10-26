@@ -2,7 +2,7 @@ package com.sprint.deokhugam.user.domain;
 
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
+import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

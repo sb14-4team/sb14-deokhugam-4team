@@ -16,6 +16,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -86,5 +87,19 @@ public class ReviewApiController {
       @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
     return ResponseEntity.status(HttpStatus.OK)
         .body(reviewUseCase.toggleLike(reviewId, requestUserId));
+  }
+
+  @DeleteMapping("/{reviewId}")
+  public ResponseEntity<Void> softDeleteReview(
+      @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
+    reviewUseCase.softDeleteReview(reviewId, requestUserId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @DeleteMapping("/{reviewId}/hard")
+  public ResponseEntity<Void> hardDeleteReview(
+      @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
+    reviewUseCase.softDeleteReview(reviewId, requestUserId);
+    return ResponseEntity.noContent().build();
   }
 }
