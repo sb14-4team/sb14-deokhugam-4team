@@ -1,5 +1,6 @@
 package com.sprint.deokhugam.notification.adapter.persistence;
 
+import com.sprint.deokhugam.notification.application.dto.NotificationSearchCond;
 import com.sprint.deokhugam.notification.application.required.NotificationPersistencePort;
 import com.sprint.deokhugam.notification.domain.Notification;
 import java.time.Instant;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Repository;
 public class NotificationJpaRepositoryAdaptor implements NotificationPersistencePort {
 
   private final NotificationJpaRepository notificationJpaRepository;
+  private final NotificationQRepository notificationQRepository;
 
   @Override
   public Notification save(Notification notification) {
@@ -26,12 +28,22 @@ public class NotificationJpaRepositoryAdaptor implements NotificationPersistence
   }
 
   @Override
-  public List<Notification> findAllByUser(UUID userId, Instant after, int limit) {
-    return List.of();
+  public List<Notification> findAll(NotificationSearchCond cond) {
+    return notificationQRepository.findAll(cond);
   }
 
   @Override
-  public int confirmAllByUserId(UUID userId) {
-    return 0;
+  public List<UUID> findCleanupIds(Instant cutoff, int limit) {
+    return notificationQRepository.findCleanupIds(cutoff, limit);
+  }
+
+  @Override
+  public long countByUser(UUID userId) {
+    return notificationQRepository.countByUser(userId);
+  }
+
+  @Override
+  public List<Notification> findAllByUser(UUID userId) {
+    return notificationJpaRepository.findAllByUser_Id(userId);
   }
 }

@@ -3,8 +3,6 @@ package com.sprint.deokhugam.notification.domain;
 import static jakarta.persistence.FetchType.LAZY;
 
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
-import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.notification.domain.exception.NotificationErrorCode;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Column;
@@ -15,7 +13,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,12 +24,12 @@ import lombok.NoArgsConstructor;
 public class Notification extends BaseSoftDeletableEntity {
 
   // 알림을 받는사람
-  @JoinColumn(name = "user_id")
+  @JoinColumn(name = "user_id", nullable = false)
   @ManyToOne(fetch = LAZY)
   private User user;
 
   // 알림 대상 리뷰 (알림을 누르면 이동할 리뷰)
-  @JoinColumn(name = "review_id")
+  @JoinColumn(name = "review_id", nullable = false)
   @ManyToOne(fetch = LAZY)
   private Review review;
 
@@ -77,10 +74,7 @@ public class Notification extends BaseSoftDeletableEntity {
     return new Notification(user, review, reviewContent, NotificationType.COMMENT, actorNickname);
   }
 
-  public void confirm(UUID userId) {
-    if (!userId.equals(this.user.getId())) {
-      throw new BusinessException(NotificationErrorCode.FORBIDDEN);
-    }
+  public void confirm() {
     if (confirmed) {
       return;
     }

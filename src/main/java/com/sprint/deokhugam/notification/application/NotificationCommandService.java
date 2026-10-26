@@ -8,6 +8,7 @@ import com.sprint.deokhugam.notification.domain.Notification;
 import com.sprint.deokhugam.notification.domain.exception.NotificationErrorCode;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,11 @@ public class NotificationCommandService implements NotificationCommand {
             .filter(notification -> !notification.isDeleted())
             .orElseThrow(() -> new BusinessException(NotificationErrorCode.NOT_FOUND));
 
-    find.confirm(userId);
+    if (!find.getUser().getId().equals(userId)) {
+      throw new BusinessException(NotificationErrorCode.FORBIDDEN);
+    }
+
+    find.confirm();
     return NotificationDto.to(
         find.getId(),
         find.getUser().getId(),
@@ -77,5 +82,11 @@ public class NotificationCommandService implements NotificationCommand {
   }
 
   @Override
-  public void confirmAll(UUID userId) {}
+  public void confirmAll(UUID userId) {
+    List<Notification> allByUser = notificationPersistencePort.findAllByUser(userId);
+    /*
+     *  시간날 때 리팩터링 예정.
+     * */
+    allByUser.forEach(Notification::confirm);
+  }
 }

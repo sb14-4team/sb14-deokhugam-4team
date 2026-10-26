@@ -3,7 +3,9 @@ package com.sprint.deokhugam.notification.adapter.web;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.common.web.annotation.RequestHeader;
 import com.sprint.deokhugam.notification.application.dto.NotificationDto;
+import com.sprint.deokhugam.notification.application.dto.NotificationSearchCond;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
+import com.sprint.deokhugam.notification.application.provided.query.NotificationFinder;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class NotificationApiController {
 
-  NotificationCommand notificationCommand;
+  private final NotificationCommand notificationCommand;
+  private final NotificationFinder notificationFinder;
 
   @PatchMapping("/{notificationId}")
   public ResponseEntity<NotificationDto> check(
@@ -35,8 +38,9 @@ public class NotificationApiController {
   }
 
   @PatchMapping("/read-all")
-  public ResponseEntity<Void> readAll() {
-    return null;
+  public ResponseEntity<Void> readAll(@RequestHeader("Deokhugam-Request-User-ID") UUID headerId) {
+    notificationCommand.confirmAll(headerId);
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping
@@ -46,6 +50,12 @@ public class NotificationApiController {
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) @DateTimeFormat(iso = ISO.DATE_TIME) Instant after,
       @RequestParam(defaultValue = "20") int limit) {
-    return null;
+
+    NotificationSearchCond cond =
+        NotificationSearchCond.to(userId, direction, cursor, after, limit);
+
+    CursorPageResponse<NotificationDto> response = notificationFinder.findAllByUser(cond);
+
+    return ResponseEntity.ok(response);
   }
 }

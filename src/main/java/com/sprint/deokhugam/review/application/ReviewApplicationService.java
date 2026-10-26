@@ -6,6 +6,7 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
@@ -40,6 +41,8 @@ public class ReviewApplicationService implements ReviewUseCase {
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
   private final BookCommandService bookCommandService;
+
+  private final NotificationCommand notificationCommand;
 
   @Override
   @Transactional
@@ -107,6 +110,9 @@ public class ReviewApplicationService implements ReviewUseCase {
 
     ReviewLike reviewLike = toggleOrCreateReviewLike(foundReviewLike, review, user);
 
+    // 알림 생성
+    notificationCommand.createLike(review, review.getUser(), user.getNickname());
+
     return ReviewLikeResponse.from(reviewLike);
   }
 
@@ -139,8 +145,9 @@ public class ReviewApplicationService implements ReviewUseCase {
             .getByIdIncludingDeleted(reviewId)
             .orElseThrow(() -> new BusinessException(ReviewErrorCode.NOT_FOUND));
 
-    if (!review.getUser().getId().equals(requestUserId))
+    if (!review.getUser().getId().equals(requestUserId)) {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
+    }
 
     reviewLikePersistencePort.deleteAllByReviewId(reviewId);
     // 댓글 삭제 호출 - 아직 미구현
@@ -159,8 +166,11 @@ public class ReviewApplicationService implements ReviewUseCase {
       reviewLike = foundReviewLike.get();
       boolean liked = reviewLike.toggle();
 
-      if (liked) review.increaseLikeCount();
-      else review.decreaseLikeCount();
+      if (liked) {
+        review.increaseLikeCount();
+      } else {
+        review.decreaseLikeCount();
+      }
     } else {
       reviewLike = ReviewLike.init(review, user);
       reviewLikePersistencePort.save(reviewLike);
