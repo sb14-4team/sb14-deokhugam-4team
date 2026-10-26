@@ -9,8 +9,8 @@ import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
 import com.sprint.deokhugam.comment.application.provided.query.CommentFinder;
 import com.sprint.deokhugam.comment.application.required.CommentSearchPort;
 import com.sprint.deokhugam.comment.domain.Comment;
-import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
@@ -49,25 +49,33 @@ public class CommentApplicationService implements CommentUsecase {
   @Override
   @Transactional
   public CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
-    getVerifiedComment(commentId, requestUserId);
-    Comment updatedComment = commentCommand.updateComment(commentId, requestUserId, updateRequest);
+    Comment comment = getVerifiedComment(commentId, requestUserId);
+    Comment updatedComment =
+        commentCommand.updateComment(comment.getId(), comment.getUser().getId(), updateRequest);
 
     return CommentDto.from(updatedComment);
   }
 
   @Override
   @Transactional
-  public void delete(UUID commentId, UUID userId) {
-    getVerifiedComment(commentId, userId);
-    Comment foundComment = commentFinder.findById(commentId);
-    foundComment.softDelete();
+  public void softDelete(UUID commentId, UUID userId) {
+    Comment comment = getVerifiedComment(commentId, userId);
+    comment.softDelete();
   }
 
-  private void getVerifiedComment(UUID commentId, UUID userId) {
+  @Override
+  @Transactional
+  public void hardDelete(UUID commentId, UUID userId) {
+    Comment comment = getVerifiedComment(commentId, userId);
+    commentCommand.hardDelete(comment.getId());
+  }
+
+  private Comment getVerifiedComment(UUID commentId, UUID userId) {
     Comment comment = commentFinder.findById(commentId);
     if (!comment.verifyCommentId(userId)) {
       throw new BusinessException(CommentErrorCode.FORBIDDEN);
     }
+    return comment;
   }
 
   @Override

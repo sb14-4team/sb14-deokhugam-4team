@@ -14,7 +14,9 @@ public interface CommentUsecase {
 
   CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest);
 
-  void delete(UUID commentId, UUID userId);
+  void softDelete(UUID commentId, UUID userId);
+
+  void hardDelete(UUID commentId, UUID userId);
 
   CursorPageResponse<CommentDto> searchCommentsByPagination(CommentSearchCondition condition);
 }

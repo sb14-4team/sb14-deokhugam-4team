@@ -50,9 +50,16 @@ public class CommentController {
   }
 
   @DeleteMapping("{commentId}")
-  public ResponseEntity<Void> delete(
-      @PathVariable UUID commentId, @RequestHeader("Deokhugam-Request-User-ID") UUID userId) {
-    commentApplicationService.delete(commentId, userId);
+  public ResponseEntity<Void> softDelete(
+      @PathVariable UUID commentId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestId) {
+    commentApplicationService.softDelete(commentId, requestId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @DeleteMapping("{commentId}/hard")
+  public ResponseEntity<Void> hardDelete(
+      @PathVariable UUID commentId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestId) {
+    commentApplicationService.hardDelete(commentId, requestId);
     return ResponseEntity.noContent().build();
   }
 
@@ -62,7 +69,7 @@ public class CommentController {
       @RequestParam(defaultValue = "DESC") Sort.Direction direction,
       @RequestParam(required = false) String cursor,
       @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-      Instant after,
+          Instant after,
       @RequestParam(defaultValue = "50") @Min(1) int limit) {
     CommentSearchCondition condition =
         CommentSearchCondition.toCondition(reviewId, direction, cursor, after, limit);

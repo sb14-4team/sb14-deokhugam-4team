@@ -10,4 +10,6 @@ public interface CommentCommand {
   Comment createComment(Comment comment);
 
   Comment updateComment(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest);
+
+  void hardDelete(UUID commentId);
 }

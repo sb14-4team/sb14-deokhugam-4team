@@ -8,4 +8,6 @@ public interface CommentPersistencePort {
   Comment save(Comment entity);
 
   Comment findById(UUID commentId);
+
+  void delete(Comment comment);
 }

@@ -29,4 +29,11 @@ public class CommentCommandService implements CommentCommand {
     comment.update(updateRequest.Content());
     return comment;
   }
+
+  @Override
+  @Transactional
+  public void hardDelete(UUID commentId) {
+    Comment comment = commentPersistencePort.findById(commentId);
+    commentPersistencePort.delete(comment);
+  }
 }
