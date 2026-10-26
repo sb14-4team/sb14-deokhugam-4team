@@ -3,16 +3,19 @@ package com.sprint.deokhugam.book.adapter.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sprint.deokhugam.book.FakeBookProviderPort;
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeBookSearchPort;
+import com.sprint.deokhugam.book.FakeOcrTextPort;
 import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.IsbnExtractor;
 import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -29,6 +32,7 @@ class BookControllerTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
   private final FakeBookProviderPort bookProviderPort = new FakeBookProviderPort();
+  private final FakeOcrTextPort ocrTextPort = new FakeOcrTextPort();
 
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
@@ -37,7 +41,9 @@ class BookControllerTest {
                   new BookQueryService(
                       bookRepositoryPort,
                       new FakeBookSearchPort(bookRepositoryPort),
-                      bookProviderPort)))
+                      bookProviderPort,
+                      ocrTextPort,
+                      new IsbnExtractor())))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
@@ -475,5 +481,51 @@ class BookControllerTest {
   @DisplayName("/info 는 /{bookId} 가 아니라 ISBN 조회로 매칭된다")
   void getInfoIsNotTreatedAsBookId() throws Exception {
     mockMvc.perform(get("/api/books/info")).andExpect(status().isBadRequest());
+  }
+
+  // ===== (6) POST /api/books/isbn/ocr : recognizeIsbn() =====
+  private MockMultipartFile imagePart(String filename, String contentType) {
+    return new MockMultipartFile("image", filename, contentType, new byte[] {1, 2, 3});
+  }
+
+  // (6-1)
+  @Test
+  @DisplayName("이미지에서 읽은 ISBN을 200에 문자열 그대로 돌려준다")
+  void recognizeIsbn() throws Exception {
+    ocrTextPort.setText("ISBN 978-89-6626-095-9");
+
+    mockMvc
+        .perform(multipart("/api/books/isbn/ocr").file(imagePart("cover.jpg", "image/jpeg")))
+        .andExpect(status().isOk())
+        .andExpect(content().string("9788966260959"));
+  }
+
+  // (6-2)
+  @Test
+  @DisplayName("ISBN을 못 읽으면 400 BOOK_OCR_FAILED")
+  void recognizeIsbnFailed() throws Exception {
+    ocrTextPort.setText("");
+
+    mockMvc
+        .perform(multipart("/api/books/isbn/ocr").file(imagePart("cover.jpg", "image/jpeg")))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_OCR_FAILED"));
+  }
+
+  // (6-3)
+  @Test
+  @DisplayName("jpg, png가 아니면 400 BOOK_INVALID_IMAGE")
+  void recognizeIsbnInvalidImage() throws Exception {
+    mockMvc
+        .perform(multipart("/api/books/isbn/ocr").file(imagePart("cover.gif", "image/gif")))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_IMAGE"));
+  }
+
+  // (6-4)
+  @Test
+  @DisplayName("image 파트가 없으면 400")
+  void recognizeIsbnMissingPart() throws Exception {
+    mockMvc.perform(multipart("/api/books/isbn/ocr")).andExpect(status().isBadRequest());
   }
 }

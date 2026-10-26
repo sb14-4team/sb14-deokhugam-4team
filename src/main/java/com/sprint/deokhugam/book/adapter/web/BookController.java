@@ -66,6 +66,12 @@ public class BookController {
     return ResponseEntity.ok(bookFinder.getBookInfo(isbn));
   }
 
+  // 응답은 JSON이 아니라 ISBN 문자열 하나다. FE가 본문을 그대로 isbn 칸에 넣는다
+  @PostMapping(value = "/isbn/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<String> recognizeIsbn(@RequestPart("image") MultipartFile image) {
+    return ResponseEntity.ok(bookFinder.recognizeIsbn(image));
+  }
+
   @GetMapping("/{bookId}")
   public ResponseEntity<BookDto> get(@PathVariable UUID bookId) {
     return ResponseEntity.ok(bookFinder.getById(bookId));

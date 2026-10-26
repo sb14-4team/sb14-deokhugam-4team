@@ -29,6 +29,10 @@ spring:
 kakao:
   rest-api-key: ${KAKAO_REST_API_KEY}
 
+# OCR Space API. 키는 .env의 OCR_SPACE_API_KEY (OcrSpaceClientConfig)
+ocr-space:
+  api-key: ${OCR_SPACE_API_KEY}
+
 management:
   endpoints:
     web:
