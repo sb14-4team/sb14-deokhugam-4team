@@ -12,7 +12,7 @@ import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
-import com.sprint.deokhugam.book.application.required.BookPersistencePort;
+import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
@@ -50,7 +50,7 @@ class BookIntegrationTest {
   @Autowired private ObjectMapper objectMapper;
   @Autowired private EntityManager entityManager;
   @Autowired private BookJpaRepository bookJpaRepository;
-  @Autowired private BookPersistencePort bookPersistencePort;
+  @Autowired private BookRepositoryPort bookRepositoryPort;
   @Autowired private BookFinder bookFinder;
 
   private static final String VALID_JSON =
@@ -158,7 +158,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("BookFinder로 저장한 도서를 찾는다")
   void findById() {
-    Book saved = bookPersistencePort.save(book(null));
+    Book saved = bookRepositoryPort.save(book(null));
 
     assertThat(bookFinder.findById(saved.getId())).isEqualTo(saved);
   }
@@ -177,7 +177,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("BookFinder로 논리 삭제된 도서를 찾으면 BOOK_NOT_FOUND 예외가 발생한다")
   void findByIdDeleted() {
-    Book saved = bookPersistencePort.save(book(null));
+    Book saved = bookRepositoryPort.save(book(null));
     saved.softDelete();
     bookJpaRepository.flush();
 
@@ -192,7 +192,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("등록한 도서를 id로 조회하면 200과 저장된 정보를 돌려준다")
   void getBook() throws Exception {
-    Book saved = bookPersistencePort.save(book("9788966260959"));
+    Book saved = bookRepositoryPort.save(book("9788966260959"));
 
     mockMvc
         .perform(get("/api/books/{bookId}", saved.getId()))
@@ -220,7 +220,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("논리 삭제된 도서를 조회하면 404를 돌려준다")
   void getDeletedBook() throws Exception {
-    Book saved = bookPersistencePort.save(book(null));
+    Book saved = bookRepositoryPort.save(book(null));
     saved.softDelete();
     bookJpaRepository.flush();
 
@@ -245,7 +245,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("도서를 수정하면 DB에 반영되고 다시 조회해도 바뀐 값이 나온다")
   void update() throws Exception {
-    Book saved = bookPersistencePort.save(book("9788966260959"));
+    Book saved = bookRepositoryPort.save(book("9788966260959"));
 
     mockMvc
         .perform(
@@ -278,7 +278,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("수정 요청에 isbn을 넣어도 ISBN은 바뀌지 않는다")
   void updateIgnoresIsbn() throws Exception {
-    Book saved = bookPersistencePort.save(book("9788966260959"));
+    Book saved = bookRepositoryPort.save(book("9788966260959"));
     String json =
         UPDATE_JSON.replace(
             "\"publishedDate\"", "\"isbn\": \"9780000000000\",\n  \"publishedDate\"");
@@ -298,7 +298,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("필수 값이 없으면 400을 돌려주고 DB 값은 그대로다")
   void updateWithoutRequiredField() throws Exception {
-    Book saved = bookPersistencePort.save(book(null));
+    Book saved = bookRepositoryPort.save(book(null));
     String json = UPDATE_JSON.replace("\"author\": \"새 저자\",", "");
 
     mockMvc
@@ -328,7 +328,7 @@ class BookIntegrationTest {
   @Test
   @DisplayName("논리 삭제된 도서를 수정하면 404를 돌려주고 값은 그대로다")
   void updateDeletedBook() throws Exception {
-    Book saved = bookPersistencePort.save(book(null));
+    Book saved = bookRepositoryPort.save(book(null));
     saved.softDelete();
     bookJpaRepository.flush();
 
@@ -350,7 +350,7 @@ class BookIntegrationTest {
     for (int score : scores) {
       book.addReview(score);
     }
-    return bookPersistencePort.save(book);
+    return bookRepositoryPort.save(book);
   }
 
   // 저장한 엔티티를 버리고 DB에서 다시 읽게 한다 → createdAt이 DB에 저장된 정밀도(마이크로초)로 맞춰진다
@@ -388,7 +388,7 @@ class BookIntegrationTest {
   void searchByKeyword() throws Exception {
     savedBook("Clean Code", "Robert C. Martin", LocalDate.of(2008, 8, 1));
     savedBook("리팩터링", "마틴 파울러", LocalDate.of(2020, 4, 1));
-    bookPersistencePort.save(book("9791162242742")); // 제목 "제목", ISBN으로만 걸린다
+    bookRepositoryPort.save(book("9791162242742")); // 제목 "제목", ISBN으로만 걸린다
     savedBook("clean architecture", "저자", LocalDate.of(2017, 9, 1)).softDelete();
     flushAndClear();
 
