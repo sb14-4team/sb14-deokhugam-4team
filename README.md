@@ -29,6 +29,7 @@ docker compose up -d --wait
 기본 프로필은 `dev`입니다. Spring Boot도 로컬 프로필에서 `.env`를 properties 형식으로 읽습니다.
 예제 비밀번호는 로컬 개발 전용이며 `.env`는 Git에 포함하지 않습니다.
 DB 포트가 이미 사용 중이면 `.env`의 `POSTGRES_PORT`를 변경합니다.
+ISBN 도서 정보 조회는 카카오 책 검색 API를 쓰므로 `.env`의 `KAKAO_REST_API_KEY`에 카카오 developers REST API 키를 넣습니다.
 
 - 서버: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui.html

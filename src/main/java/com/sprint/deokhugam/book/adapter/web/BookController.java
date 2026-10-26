@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book.adapter.web;
 
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
@@ -57,6 +58,12 @@ public class BookController {
     BookSearchCondition condition =
         new BookSearchCondition(keyword, BookSortField.from(orderBy), direction, cursor, after);
     return ResponseEntity.ok(bookFinder.search(condition, limit));
+  }
+
+  // 글자 경로 /info 가 /{bookId} 보다 먼저 매칭된다
+  @GetMapping("/info")
+  public ResponseEntity<BookInfoDto> getInfo(@RequestParam String isbn) {
+    return ResponseEntity.ok(bookFinder.getBookInfo(isbn));
   }
 
   @GetMapping("/{bookId}")
