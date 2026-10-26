@@ -25,6 +25,10 @@ spring:
         size: 1 # 작업을 하나씩 차례로 실행
       thread-name-prefix: scheduler-
 
+# 카카오 책 검색 API. 키는 .env의 KAKAO_REST_API_KEY (KakaoClientConfig)
+kakao:
+  rest-api-key: ${KAKAO_REST_API_KEY}
+
 management:
   endpoints:
     web:
