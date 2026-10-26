@@ -31,6 +31,7 @@ class ReviewApplicationServiceTest {
 
   private User user;
   private Book book;
+  private Review review;
 
   @BeforeEach
   void setUp() {
@@ -45,7 +46,7 @@ class ReviewApplicationServiceTest {
 
   @Test
   void 리뷰_디비_정상저장확인() {
-    Review saved = reviewCommand.createReview(Review.init(3, "성공", user, book));
+    Review saved = reviewCommand.createReview(Review.create(3, "성공", user, book));
     em.flush();
     em.clear();
 
@@ -59,21 +60,21 @@ class ReviewApplicationServiceTest {
 
   @Test
   void 리뷰_디비_중복저장_실패확인() {
-    Review saved = reviewCommand.createReview(Review.init(3, "성공", user, book));
+    Review saved = reviewCommand.createReview(Review.create(3, "성공", user, book));
     em.flush();
     em.clear();
 
     assertThat(
             assertThrows(
                     BusinessException.class,
-                    () -> reviewCommand.createReview(Review.init(4, "중복 리뷰", user, book)))
+                    () -> reviewCommand.createReview(Review.create(4, "중복 리뷰", user, book)))
                 .getErrorCode())
         .isEqualTo(ReviewErrorCode.ALREADY_EXISTS);
   }
 
   @Test
   void 리뷰_디비_정상업데이트확인() {
-    Review saved = reviewCommand.createReview(Review.init(3, "성공", user, book));
+    Review saved = reviewCommand.createReview(Review.create(3, "성공", user, book));
     em.flush();
     UUID reviewId = saved.getId();
     em.clear();

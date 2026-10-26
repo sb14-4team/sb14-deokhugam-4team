@@ -51,7 +51,7 @@ class ReviewLikeUseCaseTest {
 
     Book book = Book.create("제목", "저자", null, null, null, null, null);
 
-    review = Review.init(4, "좋아요", user, book);
+    review = Review.create(4, "좋아요", user, book);
 
     ReflectionTestUtils.setField(user, "id", userId);
     ReflectionTestUtils.setField(review, "id", reviewId);

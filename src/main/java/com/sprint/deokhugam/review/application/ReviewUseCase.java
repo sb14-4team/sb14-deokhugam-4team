@@ -18,4 +18,8 @@ public interface ReviewUseCase {
       ReviewSearchCondition condition, UUID requestUserId);
 
   ReviewLikeResponse toggleLike(UUID reviewId, UUID requestUserId);
+
+  void softDeleteReview(UUID reviewId, UUID requestUserId); // 논리삭제 -> 도서에 반영
+
+  void hardDeleteReview(UUID reviewId, UUID requestUserId);
 }

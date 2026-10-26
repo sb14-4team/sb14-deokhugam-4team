@@ -41,9 +41,4 @@ public class ReviewCommandService implements ReviewCommand {
     review.updateContentAndRating(newContent, newRating);
     return review;
   }
-
-  @Override
-  public void deleteReview(UUID reviewId) {
-    // adapter -> port <- application
-  }
 }
