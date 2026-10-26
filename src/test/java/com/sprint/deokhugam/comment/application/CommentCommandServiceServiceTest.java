@@ -5,6 +5,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
@@ -118,10 +119,16 @@ public class CommentCommandServiceServiceTest {
   @DisplayName("댓글 수정 성공")
   void updateComment_success() {
     // Given
+    given(user.getId()).willReturn(userId);
+    given(review.getId()).willReturn(reviewId);
+
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
     Comment comment = Comment.create(review, user, updateRequest.Content());
 
-    given(commentFinder.findById(commentId)).willReturn(comment);
+    Comment spyComment = spy(comment);
+    given(spyComment.getId()).willReturn(commentId);
+
+    given(commentFinder.findById(commentId)).willReturn(spyComment);
     given(commentCommand.updateComment(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
         .willReturn(comment);
 
@@ -162,14 +169,12 @@ public class CommentCommandServiceServiceTest {
     // Given
     UUID otherUserId = UUID.randomUUID();
 
+    given(user.getId()).willReturn(userId);
+
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
     Comment comment = Comment.create(review, user, "testOriginContent");
 
     given(commentFinder.findById(commentId)).willReturn(comment);
-    given(
-            commentCommand.updateComment(
-                eq(commentId), eq(otherUserId), any(CommentUpdateRequest.class)))
-        .willThrow(new BusinessException(CommentErrorCode.FORBIDDEN));
 
     // When & Then
     assertThatThrownBy(
