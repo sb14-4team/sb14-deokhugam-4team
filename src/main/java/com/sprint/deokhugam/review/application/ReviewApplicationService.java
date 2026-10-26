@@ -6,7 +6,7 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
-import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
+import com.sprint.deokhugam.notification.domain.NotifyEvent;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,7 +43,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   private final UserFinder userFinder;
   private final BookCommandService bookCommandService;
 
-  private final NotificationCommand notificationCommand;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -111,7 +112,10 @@ public class ReviewApplicationService implements ReviewUseCase {
     ReviewLike reviewLike = toggleOrCreateReviewLike(foundReviewLike, review, user);
 
     // 알림 생성
-    notificationCommand.createLike(review, review.getUser(), user.getNickname());
+    if (reviewLike.isLiked()) {
+      eventPublisher.publishEvent(
+          NotifyEvent.like(reviewId, review.getUser().getId(), user.getNickname()));
+    }
 
     return ReviewLikeResponse.from(reviewLike);
   }
