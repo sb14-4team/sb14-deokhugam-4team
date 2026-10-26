@@ -3,6 +3,8 @@ package com.sprint.deokhugam.comment.adapter.web;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.willDoNothing;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -143,5 +145,33 @@ public class CommentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(updateRequest)))
         .andExpect(status().isForbidden());
+  }
+
+  @Test
+  @DisplayName("댓글 논리 삭제 성공")
+  void softDelete_success() throws Exception {
+    // Given
+    willDoNothing().given(commentUsecase).softDelete(eq(commentId), eq(userId));
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  @DisplayName("댓글 물리 삭제 성공")
+  void hardDelete_success() throws Exception {
+    // Given
+    willDoNothing().given(commentUsecase).hardDelete(eq(commentId), eq(userId));
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}/hard", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+        .andExpect(status().isNoContent());
   }
 }
