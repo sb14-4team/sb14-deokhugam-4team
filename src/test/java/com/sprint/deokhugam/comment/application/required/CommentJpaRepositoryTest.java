@@ -34,7 +34,6 @@ public class CommentJpaRepositoryTest {
   @Autowired private TestEntityManager entityManager;
 
   private Review review;
-  private Book book;
   private User user;
 
   @DynamicPropertySource
@@ -48,7 +47,7 @@ public class CommentJpaRepositoryTest {
     user = User.create("testNickname", Email.to("test@example.com"), Password.to("abcd1234!"));
     entityManager.persist(user);
 
-    book =
+    Book book =
         Book.create(
             "testTitle",
             "testAuthor",

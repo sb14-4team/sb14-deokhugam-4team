@@ -4,12 +4,13 @@ import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentSearchCondition;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
-import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
 import com.sprint.deokhugam.comment.application.provided.query.CommentFinder;
 import com.sprint.deokhugam.comment.application.required.CommentSearchPort;
 import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class CommentApplicationService implements CommentUsecase {
+public class CommentApplicationService implements CommentUseCase {
 
   private final CommentCommand commentCommand;
   private final CommentFinder commentFinder;
@@ -65,6 +66,8 @@ public class CommentApplicationService implements CommentUsecase {
   @Transactional
   public void softDelete(UUID commentId, UUID userId) {
     Comment comment = getVerifiedComment(commentId, userId);
+    decreaseCommentCountIfDeleted(comment);
+
     comment.softDelete();
   }
 
@@ -72,6 +75,8 @@ public class CommentApplicationService implements CommentUsecase {
   @Transactional
   public void hardDelete(UUID commentId, UUID userId) {
     Comment comment = getVerifiedComment(commentId, userId);
+    decreaseCommentCountIfDeleted(comment);
+
     commentCommand.hardDelete(comment.getId());
   }
 
@@ -81,6 +86,18 @@ public class CommentApplicationService implements CommentUsecase {
       throw new BusinessException(CommentErrorCode.FORBIDDEN);
     }
     return comment;
+  }
+
+  private void decreaseCommentCountIfDeleted(Comment comment) {
+    boolean isDeleted = comment.isDeleted();
+
+    Review review = reviewFinder.getByIdOrThrow(comment.getId());
+
+    if (isDeleted) {
+      review.decreaseCommentCount();
+    } else {
+      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR);
+    }
   }
 
   @Override

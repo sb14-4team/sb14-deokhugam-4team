@@ -4,7 +4,7 @@ import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentSearchCondition;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
-import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -31,7 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/comments")
 public class CommentController {
 
-  private final CommentUsecase commentApplicationService;
+  private final CommentUseCase commentApplicationService;
 
   @PostMapping
   public ResponseEntity<CommentDto> create(@RequestBody @Valid CommentCreateRequest createRequest) {

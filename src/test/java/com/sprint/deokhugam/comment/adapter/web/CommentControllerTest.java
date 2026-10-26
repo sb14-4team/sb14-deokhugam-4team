@@ -13,7 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
-import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.review.adapter.web.ReviewApiController;
@@ -41,7 +41,7 @@ public class CommentControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private JsonMapper jsonMapper;
-  @MockitoBean private CommentUsecase commentUsecase;
+  @MockitoBean private CommentUseCase commentUsecase;
 
   private UUID reviewId;
   private UUID userId;

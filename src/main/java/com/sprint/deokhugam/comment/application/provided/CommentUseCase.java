@@ -8,7 +8,7 @@ import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import java.util.UUID;
 
 // API Swagger를 기반
-public interface CommentUsecase {
+public interface CommentUseCase {
 
   CommentDto create(CommentCreateRequest createRequest);
 
