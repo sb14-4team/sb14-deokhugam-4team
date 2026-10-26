@@ -3,9 +3,11 @@ package com.sprint.deokhugam.book.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.sprint.deokhugam.book.FakeBookProviderPort;
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeBookSearchPort;
 import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.domain.Book;
@@ -23,8 +25,10 @@ import org.springframework.data.domain.Sort;
 class BookQueryServiceTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
+  private final FakeBookProviderPort bookProviderPort = new FakeBookProviderPort();
   private final BookQueryService bookQueryService =
-      new BookQueryService(bookRepositoryPort, new FakeBookSearchPort(bookRepositoryPort));
+      new BookQueryService(
+          bookRepositoryPort, new FakeBookSearchPort(bookRepositoryPort), bookProviderPort);
 
   private Book savedBook() {
     return bookRepositoryPort.save(
@@ -312,5 +316,28 @@ class BookQueryServiceTest {
     } while (cursor != null);
 
     assertThat(collected).containsExactly("자바 1", "자바 2", "자바 3");
+  }
+
+  // ===== (4) getBookInfo() : ISBN 도서 정보 =====
+  // (4-1)
+  @Test
+  @DisplayName("포트가 찾은 도서 정보를 그대로 돌려준다")
+  void getBookInfo() {
+    BookInfoDto info =
+        new BookInfoDto(
+            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null);
+    bookProviderPort.put(info);
+
+    assertThat(bookQueryService.getBookInfo("9788966260959")).isEqualTo(info);
+  }
+
+  // (4-2)
+  @Test
+  @DisplayName("포트가 못 찾으면 INFO_NOT_FOUND 예외가 발생한다")
+  void getBookInfoNotFound() {
+    assertThatThrownBy(() -> bookQueryService.getBookInfo("9788966260959"))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INFO_NOT_FOUND);
   }
 }

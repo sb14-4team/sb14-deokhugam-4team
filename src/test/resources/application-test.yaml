@@ -10,3 +10,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+
+# 테스트는 카카오를 부르지 않는다. 빈이 뜨기만 하면 되는 가짜 키
+kakao:
+  rest-api-key: test-key

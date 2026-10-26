@@ -59,7 +59,7 @@ public class CommentJpaRepositoryTest {
             "https://example.com/thumbnails/testTitle.jpg");
     entityManager.persist(book);
 
-    review = Review.init(1, "testReview", user, book);
+    review = Review.create(1, "testReview", user, book);
     entityManager.persist(review);
 
     entityManager.flush();

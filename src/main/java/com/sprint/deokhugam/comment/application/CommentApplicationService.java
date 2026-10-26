@@ -12,6 +12,7 @@ import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
+import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -34,6 +35,8 @@ public class CommentApplicationService implements CommentUsecase {
 
   private final CommentSearchPort commentSearchPort;
 
+  private final NotificationCommand notificationCommand;
+
   @Override
   @Transactional
   public CommentDto create(CommentCreateRequest createRequest) {
@@ -42,6 +45,8 @@ public class CommentApplicationService implements CommentUsecase {
 
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
+
+    notificationCommand.createComment(review, review.getUser(), user.getNickname());
 
     return CommentDto.from(savedComment);
   }

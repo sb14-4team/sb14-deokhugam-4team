@@ -40,7 +40,7 @@ class ReviewCommandServiceTest {
     Book book = mock(Book.class);
     when(user.getId()).thenReturn(userId);
     when(book.getId()).thenReturn(bookId);
-    review = Review.init(5, "굳", user, book);
+    review = Review.create(5, "굳", user, book);
   }
 
   @Test

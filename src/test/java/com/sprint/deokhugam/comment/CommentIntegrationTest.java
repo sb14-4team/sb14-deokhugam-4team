@@ -73,7 +73,7 @@ public class CommentIntegrationTest {
             "https://example.com/thumbnails/testTitle.jpg");
     savedBook = bookJpaRepository.save(book);
 
-    Review review = Review.init(1, "testReview", savedUser, savedBook);
+    Review review = Review.create(1, "testReview", savedUser, savedBook);
     savedReview = reviewJpaRepository.save(review);
 
     Comment comment = Comment.create(savedReview, savedUser, "testCreateContent");

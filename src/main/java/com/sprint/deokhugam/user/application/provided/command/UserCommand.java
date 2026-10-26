@@ -8,7 +8,9 @@ public interface UserCommand {
 
   UserDto save(UserRegisterRequest request);
 
-  void delete(UUID userId, UUID headerId);
+  void withdraw(UUID userId, UUID headerId);
+
+  void delete(UUID userId);
 
   UserDto update(UUID userId, UUID headerId, String nickname);
 }

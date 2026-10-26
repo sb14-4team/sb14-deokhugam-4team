@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.book.application.provided.query;
 
 import com.sprint.deokhugam.book.application.dto.BookDto;
+import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
@@ -17,4 +18,7 @@ public interface BookFinder {
 
   // 도서 목록 조회 API 응답용. limit개씩 커서 페이지로 돌려준다
   CursorPageResponse<BookDto> search(BookSearchCondition condition, int limit);
+
+  // ISBN으로 등록 폼에 채울 도서 정보 조회. 없으면 BOOK_INFO_NOT_FOUND
+  BookInfoDto getBookInfo(String isbn);
 }
