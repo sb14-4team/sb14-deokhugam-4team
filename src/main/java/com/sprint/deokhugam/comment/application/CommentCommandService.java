@@ -26,7 +26,7 @@ public class CommentCommandService implements CommentCommand {
   public Comment updateComment(
       UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
     Comment comment = commentPersistencePort.findById(commentId);
-    comment.update(updateRequest.Content());
+    comment.update(updateRequest.content());
     return comment;
   }
 
