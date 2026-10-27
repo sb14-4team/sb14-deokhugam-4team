@@ -2,6 +2,7 @@ package com.sprint.deokhugam.comment.adapter.persistence;
 
 import com.sprint.deokhugam.comment.application.required.CommentPersistencePort;
 import com.sprint.deokhugam.comment.domain.Comment;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Repository;
 public class CommentJpaPersistencePortAdapter implements CommentPersistencePort {
 
   private final CommentJpaRepository jpaRepository;
+  private final CommentQuerydslRepository commentQuerydslRepository;
 
   @Override
   public Comment save(Comment entity) {
@@ -25,5 +27,10 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
   @Override
   public void delete(Comment comment) {
     jpaRepository.delete(comment);
+  }
+
+  @Override
+  public void deleteCommentsByUsers(List<UUID> userIds) {
+    commentQuerydslRepository.deleteCommentByUsers(userIds);
   }
 }

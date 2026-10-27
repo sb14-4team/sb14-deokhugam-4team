@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.comment.application.required;
 
 import com.sprint.deokhugam.comment.domain.Comment;
+import java.util.List;
 import java.util.UUID;
 
 public interface CommentPersistencePort {
@@ -10,4 +11,6 @@ public interface CommentPersistencePort {
   Comment findById(UUID commentId);
 
   void delete(Comment comment);
+
+  void deleteCommentsByUsers(List<UUID> userIds);
 }
