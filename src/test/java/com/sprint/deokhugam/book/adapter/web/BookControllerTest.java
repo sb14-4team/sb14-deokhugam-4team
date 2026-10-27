@@ -11,6 +11,7 @@ import com.sprint.deokhugam.book.FakeBookProviderPort;
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeBookSearchPort;
 import com.sprint.deokhugam.book.FakeOcrTextPort;
+import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
 import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
@@ -20,6 +21,8 @@ import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -27,17 +30,19 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 class BookControllerTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
   private final FakeBookProviderPort bookProviderPort = new FakeBookProviderPort();
   private final FakeOcrTextPort ocrTextPort = new FakeOcrTextPort();
+  private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
 
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
               new BookController(
-                  new BookCommandService(bookRepositoryPort),
+                  new BookCommandService(bookRepositoryPort, thumbnailStoragePort),
                   new BookQueryService(
                       bookRepositoryPort,
                       new FakeBookSearchPort(bookRepositoryPort),
@@ -46,6 +51,17 @@ class BookControllerTest {
                       new IsbnExtractor())))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
+
+  // 스프링 트랜잭션이 없어서 동기화를 직접 켜고 끈다
+  @BeforeEach
+  void initSynchronization() {
+    TransactionSynchronizationManager.initSynchronization();
+  }
+
+  @AfterEach
+  void clearSynchronization() {
+    TransactionSynchronizationManager.clearSynchronization();
+  }
 
   private MockMultipartFile bookData(String json) {
     return new MockMultipartFile(
@@ -101,7 +117,36 @@ class BookControllerTest {
         .andExpect(jsonPath("$.publishedDate").value("2013-12-24"))
         .andExpect(jsonPath("$.isbn").value("9788966260959"))
         .andExpect(jsonPath("$.reviewCount").value(0))
-        .andExpect(jsonPath("$.rating").value(0.0));
+        .andExpect(jsonPath("$.rating").value(0.0))
+        .andExpect(
+            jsonPath("$.thumbnailUrl")
+                .value(
+                    FakeThumbnailStoragePort.BASE_URL
+                        + thumbnailStoragePort.uploadedKeys().get(0)));
+  }
+
+  // (1-5)
+  @Test
+  @DisplayName("썸네일 없이 등록하면 thumbnailUrl이 없다")
+  void createWithoutThumbnail() throws Exception {
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(VALID_JSON)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.thumbnailUrl").doesNotExist());
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+  }
+
+  // (1-6)
+  @Test
+  @DisplayName("썸네일이 jpg, png가 아니면 400 BOOK_INVALID_IMAGE")
+  void createWithInvalidThumbnail() throws Exception {
+    MockMultipartFile thumbnail =
+        new MockMultipartFile("thumbnailImage", "cover.gif", "image/gif", new byte[] {1, 2, 3});
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(VALID_JSON)).file(thumbnail))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_IMAGE"));
   }
 
   // (1-2)
@@ -215,7 +260,12 @@ class BookControllerTest {
         .andExpect(jsonPath("$.description").value("새 소개"))
         .andExpect(jsonPath("$.publisher").value("새 출판사"))
         .andExpect(jsonPath("$.publishedDate").value("2021-02-02"))
-        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+        .andExpect(jsonPath("$.isbn").value("9788966260959"))
+        .andExpect(
+            jsonPath("$.thumbnailUrl")
+                .value(
+                    FakeThumbnailStoragePort.BASE_URL
+                        + thumbnailStoragePort.uploadedKeys().get(0)));
   }
 
   // (3-2)

@@ -4,11 +4,12 @@ import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import java.util.UUID;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface BookCommand {
 
-  BookDto create(BookCreateRequest request);
+  BookDto create(BookCreateRequest request, MultipartFile thumbnailImage);
 
-  // 없는 도서·논리 삭제된 도서는 BOOK_NOT_FOUND
-  BookDto update(UUID bookId, BookUpdateRequest request);
+  // 없는 도서, 논리 삭제된 도서는 BOOK_NOT_FOUND
+  BookDto update(UUID bookId, BookUpdateRequest request, MultipartFile thumbnailImage);
 }

@@ -18,3 +18,9 @@ kakao:
 # 테스트는 OCR Space를 부르지 않는다
 ocr-space:
   api-key: test-key
+
+# 테스트는 S3를 부르지 않는다. 빈이 뜨기만 하면 되는 가짜 값
+aws:
+  s3:
+    region: ap-northeast-2
+    bucket: test-bucket
