@@ -19,7 +19,7 @@ public class NotificationQRepository {
 
   private final JPAQueryFactory jpaQueryFactory;
 
-  List<UUID> findCleanupIds(Instant cutoff, int limit) {
+  public List<UUID> findCleanupIds(Instant cutoff, int limit) {
     return jpaQueryFactory
         .select(notification.id)
         .from(notification)
@@ -27,6 +27,13 @@ public class NotificationQRepository {
         .orderBy(notification.deletedAt.asc(), notification.id.asc())
         .limit(limit)
         .fetch();
+  }
+
+  public long deleteConfirmed(Instant cutoff) {
+    return jpaQueryFactory
+        .delete(notification)
+        .where(notification.confirmed.isTrue().and(notification.confirmedAt.loe(cutoff)))
+        .execute();
   }
 
   public List<Notification> findAll(NotificationSearchCond cond) {
