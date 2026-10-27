@@ -13,11 +13,17 @@ public interface ReviewPersistencePort {
 
   Optional<Review> getByIdIncludingDeleted(UUID reviewId);
 
+  List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds);
+
   void requireActiveById(UUID reviewId);
 
   boolean existsByUserIdAndBookId(UUID userId, UUID bookId);
 
   void delete(Review review);
+
+  long deleteAllByIds(List<UUID> reviewIds);
+
+  void decreaseLikeCountsByUserIds(List<UUID> userIds);
 
   List<Review> search(ReviewSearchCondition condition);
 
