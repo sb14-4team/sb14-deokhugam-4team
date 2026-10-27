@@ -25,8 +25,8 @@ public class KakaoBookProviderAdapter implements BookProviderPort {
   private final RestClient imageClient = RestClient.create();
 
   @Override
-  public Optional<BookInfoDto> findByIsbn(String isbn) {
-    return fetchDocument(isbn).map(doc -> toDto(doc, downloadThumbnail(doc.thumbnail())));
+  public Optional<BookInfoDto> findByIsbn(Isbn isbn) {
+    return fetchDocument(isbn.value()).map(doc -> toDto(doc, downloadThumbnail(doc.thumbnail())));
   }
 
   // 카카오 호출 실패(4xx·5xx·끊김)는 잡지 않는다. 책 정보가 없으면 돌려줄 게 없으니 500이 맞다

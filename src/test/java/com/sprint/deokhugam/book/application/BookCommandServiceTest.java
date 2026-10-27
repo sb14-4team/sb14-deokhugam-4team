@@ -11,6 +11,7 @@ import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
@@ -74,7 +75,7 @@ class BookCommandServiceTest {
             "소개",
             "인사이트",
             LocalDate.of(2013, 12, 24),
-            "9788966260959",
+            Isbn.of("9788966260959"),
             thumbnailUrl));
   }
 

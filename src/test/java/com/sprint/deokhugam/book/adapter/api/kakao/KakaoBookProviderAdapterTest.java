@@ -8,6 +8,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
+import com.sprint.deokhugam.book.domain.Isbn;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -63,7 +64,7 @@ class KakaoBookProviderAdapterTest {
         .andExpect(header("Authorization", "KakaoAK test-key"))
         .andRespond(withSuccess(kakaoJson(""), MediaType.APPLICATION_JSON));
 
-    Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+    Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
     assertThat(result).isPresent();
     BookInfoDto info = result.get();
@@ -88,10 +89,12 @@ class KakaoBookProviderAdapterTest {
         .expect(requestTo(SEARCH_URL))
         .andRespond(withSuccess(kakaoJson("", " 8966260950 "), MediaType.APPLICATION_JSON));
 
-    assertThat(adapter.findByIsbn("9788966260959"))
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959")))
         .map(BookInfoDto::isbn)
         .contains("9788966260959");
-    assertThat(adapter.findByIsbn("9788966260959")).map(BookInfoDto::isbn).contains("8966260950");
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959")))
+        .map(BookInfoDto::isbn)
+        .contains("8966260950");
   }
 
   @Test
@@ -101,7 +104,7 @@ class KakaoBookProviderAdapterTest {
         .expect(requestTo(SEARCH_URL))
         .andRespond(withSuccess("{\"documents\": []}", MediaType.APPLICATION_JSON));
 
-    assertThat(adapter.findByIsbn("9788966260959")).isEmpty();
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959"))).isEmpty();
   }
 
   @Test
@@ -109,7 +112,7 @@ class KakaoBookProviderAdapterTest {
   void findByIsbn_serverError() {
     server.expect(requestTo(SEARCH_URL)).andRespond(withServerError());
 
-    assertThatThrownBy(() -> adapter.findByIsbn("9788966260959"))
+    assertThatThrownBy(() -> adapter.findByIsbn(Isbn.of("9788966260959")))
         .isInstanceOf(RestClientException.class);
   }
 
@@ -122,7 +125,7 @@ class KakaoBookProviderAdapterTest {
         .andRespond(
             withSuccess(kakaoJson("http://127.0.0.1:1/cover.jpg"), MediaType.APPLICATION_JSON));
 
-    Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+    Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
     assertThat(result).isPresent();
     assertThat(result.get().title()).isEqualTo("클린 코드");

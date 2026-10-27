@@ -14,7 +14,7 @@ class IsbnExtractorTest {
   void extract_sameValueTwice() {
     String text = "ISBN 978-89-6626-095-9\n9 788966 260959   88000";
 
-    assertThat(extractor.extract(text)).contains("9788966260959");
+    assertThat(extractor.extract(text)).contains(new Isbn("9788966260959"));
   }
 
   @Test
@@ -22,7 +22,7 @@ class IsbnExtractorTest {
   void extract_firstWhenNoDuplicate() {
     String text = "978-89-6626-095-9 그리고 9791162243077";
 
-    assertThat(extractor.extract(text)).contains("9788966260959");
+    assertThat(extractor.extract(text)).contains(new Isbn("9788966260959"));
   }
 
   @Test
@@ -30,7 +30,7 @@ class IsbnExtractorTest {
   void extract_duplicateBeatsFirst() {
     String text = "9791162243077\n978-89-6626-095-9\n9 788966 260959";
 
-    assertThat(extractor.extract(text)).contains("9788966260959");
+    assertThat(extractor.extract(text)).contains(new Isbn("9788966260959"));
   }
 
   @Test
@@ -46,7 +46,7 @@ class IsbnExtractorTest {
   void extract_skipsInvalidChecksum() {
     String text = "ISBN 978-89-6626-095-0\n9791162243077";
 
-    assertThat(extractor.extract(text)).contains("9791162243077");
+    assertThat(extractor.extract(text)).contains(new Isbn("9791162243077"));
   }
 
   @Test

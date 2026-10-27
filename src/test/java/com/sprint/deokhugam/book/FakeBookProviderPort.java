@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.required.BookProviderPort;
+import com.sprint.deokhugam.book.domain.Isbn;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -21,7 +22,7 @@ public class FakeBookProviderPort implements BookProviderPort {
   }
 
   @Override
-  public Optional<BookInfoDto> findByIsbn(String isbn) {
-    return Optional.ofNullable(infos.get(isbn));
+  public Optional<BookInfoDto> findByIsbn(Isbn isbn) {
+    return Optional.ofNullable(infos.get(isbn.value()));
   }
 }

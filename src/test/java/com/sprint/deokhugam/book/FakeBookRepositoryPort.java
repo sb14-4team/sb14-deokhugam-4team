@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book;
 
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +39,7 @@ public class FakeBookRepositoryPort implements BookRepositoryPort {
   }
 
   @Override
-  public boolean existsByIsbn(String isbn) {
+  public boolean existsByIsbn(Isbn isbn) {
     return books.stream().anyMatch(book -> Objects.equals(book.getIsbn(), isbn));
   }
 

@@ -19,9 +19,9 @@ public class IsbnExtractor {
   private static final Pattern ISBN13 =
       Pattern.compile("(?<!\\d)9[- ]?7[- ]?[89](?:[- ]?\\d){10}(?!\\d)");
 
-  public Optional<String> extract(String text) {
+  public Optional<Isbn> extract(String text) {
     List<String> candidates = findCandidates(text);
-    return pickOne(candidates).map(Isbn::normalize);
+    return pickOne(candidates).map(Isbn::new);
   }
 
   // 글에 나온 순서대로 ISBN 모양의 문자열을 모두 찾는다. 숫자를 잘못 읽어 체크섬이 틀린 것은 뺀다
@@ -33,10 +33,9 @@ public class IsbnExtractor {
   // 둘이 같은 값이면 제대로 읽은 것이니 그 값을 고르고, 아니면 먼저 나온 것을 고른다.
   private Optional<String> pickOne(List<String> candidates) {
     // 숫자만 남긴 값이 같은 것끼리 묶는다. LinkedHashMap이라 글에 나온 순서가 유지된다
-    Map<String, List<String>> byValue =
+    Map<Isbn, List<String>> byValue =
         candidates.stream()
-            .collect(
-                Collectors.groupingBy(Isbn::normalize, LinkedHashMap::new, Collectors.toList()));
+            .collect(Collectors.groupingBy(Isbn::new, LinkedHashMap::new, Collectors.toList()));
 
     return byValue.values().stream()
         .filter(same -> same.size() >= 2) // 두 번 이상 나온 값

@@ -36,7 +36,7 @@ public class BookCommandService implements BookCommand {
 
   @Override
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailImage) {
-    String isbn = Isbn.normalize(request.isbn());
+    Isbn isbn = Isbn.of(request.isbn());
     if (isbn != null && bookRepositoryPort.existsByIsbn(isbn)) {
       throw new BusinessException(BookErrorCode.DUPLICATE_ISBN, "isbn=" + isbn);
     }

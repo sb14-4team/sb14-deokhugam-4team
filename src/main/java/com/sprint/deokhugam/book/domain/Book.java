@@ -36,8 +36,9 @@ public class Book extends BaseSoftDeletableEntity {
   @Column(name = "published_date", nullable = false)
   private LocalDate publishedDate;
 
-  @Column(unique = true, updatable = false, length = 13)
-  private String isbn;
+  // DB에는 IsbnConverter가 숫자 13자리 문자열로 넣는다
+  @Column(unique = true, updatable = false, length = Isbn.LENGTH)
+  private Isbn isbn;
 
   @Column(name = "thumbnail_url", length = 2048)
   private String thumbnailUrl;
@@ -57,7 +58,7 @@ public class Book extends BaseSoftDeletableEntity {
       String description,
       String publisher,
       LocalDate publishedDate,
-      String isbn,
+      Isbn isbn,
       String thumbnailUrl) {
     validateInfo(title, author, publisher);
     this.title = title;
@@ -75,7 +76,7 @@ public class Book extends BaseSoftDeletableEntity {
       String description,
       String publisher,
       LocalDate publishedDate,
-      String isbn,
+      Isbn isbn,
       String thumbnailUrl) {
     return new Book(title, author, description, publisher, publishedDate, isbn, thumbnailUrl);
   }

@@ -16,6 +16,7 @@ import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.book.domain.IsbnExtractor;
 import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
 import java.nio.charset.StandardCharsets;
@@ -71,7 +72,13 @@ class BookControllerTest {
   private Book savedBook() {
     return bookRepositoryPort.save(
         Book.create(
-            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
+            "클린 코드",
+            "로버트 C. 마틴",
+            "소개",
+            "인사이트",
+            LocalDate.of(2013, 12, 24),
+            Isbn.of("9788966260959"),
+            null));
   }
 
   private static final String VALID_JSON =

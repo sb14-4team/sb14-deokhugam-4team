@@ -4,21 +4,45 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.util.regex.Pattern;
 
-// ISBN 정리와 검사 규칙은 여기 한 곳에만 둔다. 직접 입력, 카카오, OCR 모두 이 규칙을 거친다
-public final class Isbn {
+// ISBN 값 객체. 만들어질 때 정리와 검사를 끝내므로 value는 항상 숫자 13자리다
+public record Isbn(String value) {
 
   public static final int LENGTH = 13;
 
   private static final Pattern ISBN10 = Pattern.compile("\\d{9}[\\dX]");
   private static final Pattern ISBN13 = Pattern.compile("97[89]\\d{10}");
 
-  private Isbn() {}
+  // 하이픈과 공백은 빼고, 10자리는 13자리로 바꾼다. 비었거나 형식, 체크섬이 틀리면 BOOK_INVALID_ISBN
+  public Isbn {
+    if (value == null || value.isBlank()) {
+      throw new BusinessException(BookErrorCode.INVALID_ISBN, "isbn 없음");
+    }
+    value = normalize(value);
+  }
 
-  // 빈 값은 null, 하이픈과 공백은 빼고, 10자리는 13자리로 바꾼다. 형식이나 체크섬이 틀리면 BOOK_INVALID_ISBN
-  public static String normalize(String raw) {
+  // ISBN은 선택 항목이라 빈 값은 null로 돌려준다
+  public static Isbn of(String raw) {
     if (raw == null || raw.isBlank()) {
       return null;
     }
+    return new Isbn(raw);
+  }
+
+  public static boolean isValid(String raw) {
+    try {
+      new Isbn(raw);
+      return true;
+    } catch (BusinessException e) {
+      return false;
+    }
+  }
+
+  @Override
+  public String toString() {
+    return value;
+  }
+
+  private static String normalize(String raw) {
     String cleaned = raw.replaceAll("[\\s-]", "").toUpperCase();
     if (ISBN10.matcher(cleaned).matches() && isValidIsbn10(cleaned)) {
       return toIsbn13(cleaned);
@@ -27,15 +51,6 @@ public final class Isbn {
       return cleaned;
     }
     throw new BusinessException(BookErrorCode.INVALID_ISBN, "isbn=" + raw);
-  }
-
-  public static boolean isValid(String raw) {
-    try {
-      normalize(raw);
-      return true;
-    } catch (BusinessException e) {
-      return false;
-    }
   }
 
   // 앞에서부터 10, 9, ... 1을 곱해 더한 값이 11로 나누어떨어져야 한다. 마지막 자리 X는 10

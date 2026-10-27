@@ -56,13 +56,14 @@ class BookTest {
   @DisplayName("수정하면 ISBN을 뺀 기본 정보가 바뀐다")
   void update() {
     Book book =
-        Book.create("제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), "9788966260959", null);
+        Book.create(
+            "제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), Isbn.of("9788966260959"), null);
 
     book.update("새 제목", "새 저자", "새 소개", "새 출판사", LocalDate.of(2021, 2, 2));
 
     assertThat(book.getTitle()).isEqualTo("새 제목");
     assertThat(book.getPublishedDate()).isEqualTo(LocalDate.of(2021, 2, 2));
-    assertThat(book.getIsbn()).isEqualTo("9788966260959");
+    assertThat(book.getIsbn()).isEqualTo(Isbn.of("9788966260959"));
   }
 
   // (2-2)

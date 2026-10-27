@@ -14,6 +14,7 @@ import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
@@ -82,7 +83,7 @@ class BookIntegrationTest {
   }
 
   private Book book(String isbn) {
-    return Book.create("제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), isbn, null);
+    return Book.create("제목", "저자", "소개", "출판사", LocalDate.of(2020, 1, 1), Isbn.of(isbn), null);
   }
 
   // ===== (1) POST /api/books : BookController.create() =====
@@ -99,7 +100,7 @@ class BookIntegrationTest {
         .andExpect(jsonPath("$.thumbnailUrl").doesNotExist());
 
     assertThat(bookJpaRepository.count()).isEqualTo(1);
-    assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
+    assertThat(bookJpaRepository.existsByIsbn(Isbn.of("9788966260959"))).isTrue();
   }
 
   // (1-1b)
@@ -172,7 +173,7 @@ class BookIntegrationTest {
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.isbn").value("9788966260959"));
 
-    assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
+    assertThat(bookJpaRepository.existsByIsbn(Isbn.of("9788966260959"))).isTrue();
   }
 
   // (1-6)
@@ -228,6 +229,19 @@ class BookIntegrationTest {
 
     assertThatThrownBy(() -> bookJpaRepository.saveAndFlush(book("9788966260959")))
         .isInstanceOf(DataIntegrityViolationException.class);
+  }
+
+  // (2-2)
+  @Test
+  @DisplayName("DB에서 다시 읽은 도서의 ISBN은 컨버터가 Isbn 값 객체로 되돌려 준다")
+  void isbnConverterRoundTrip() {
+    Book saved = bookJpaRepository.saveAndFlush(book("978-89-6626-095-9"));
+    entityManager.clear();
+
+    Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
+
+    assertThat(found.getIsbn()).isEqualTo(Isbn.of("9788966260959"));
+    assertThat(found.getIsbn().value()).isEqualTo("9788966260959");
   }
 
   // ===== (3) BookFinder.findById() : 다른 도메인이 쓰는 조회 =====
@@ -342,7 +356,7 @@ class BookIntegrationTest {
     assertThat(found.getDescription()).isEqualTo("새 소개");
     assertThat(found.getPublisher()).isEqualTo("새 출판사");
     assertThat(found.getPublishedDate()).isEqualTo(LocalDate.of(2021, 2, 2));
-    assertThat(found.getIsbn()).isEqualTo("9788966260959");
+    assertThat(found.getIsbn()).isEqualTo(Isbn.of("9788966260959"));
 
     mockMvc
         .perform(get("/api/books/{bookId}", saved.getId()))
@@ -367,8 +381,8 @@ class BookIntegrationTest {
         .andExpect(jsonPath("$.isbn").value("9788966260959"));
 
     bookJpaRepository.flush();
-    assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
-    assertThat(bookJpaRepository.existsByIsbn("9780000000000")).isFalse();
+    assertThat(bookJpaRepository.existsByIsbn(Isbn.of("9788966260959"))).isTrue();
+    assertThat(bookJpaRepository.existsByIsbn(Isbn.of("9791162242742"))).isFalse();
   }
 
   // (5-3)

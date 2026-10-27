@@ -53,7 +53,7 @@ public class FakeBookSearchPort implements BookSearchPort {
     String lower = keyword.toLowerCase();
     return book.getTitle().toLowerCase().contains(lower)
         || book.getAuthor().toLowerCase().contains(lower)
-        || (book.getIsbn() != null && book.getIsbn().contains(keyword));
+        || (book.getIsbn() != null && book.getIsbn().value().contains(keyword));
   }
 
   // DESC: 정렬값 < cursor 또는 (정렬값 = cursor 이고 createdAt < after). ASC는 반대
