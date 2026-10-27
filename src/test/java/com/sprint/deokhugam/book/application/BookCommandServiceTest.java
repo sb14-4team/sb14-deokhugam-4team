@@ -2,8 +2,11 @@ package com.sprint.deokhugam.book.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.transaction.support.TransactionSynchronization.STATUS_COMMITTED;
+import static org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK;
 
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
+import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
@@ -12,13 +15,43 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionSynchronizationUtils;
 
 class BookCommandServiceTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
-  private final BookCommandService bookCommandService = new BookCommandService(bookRepositoryPort);
+  private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
+  private final BookCommandService bookCommandService =
+      new BookCommandService(bookRepositoryPort, thumbnailStoragePort);
+
+  private static final String OLD_URL = FakeThumbnailStoragePort.BASE_URL + "books/old.png";
+
+  // 스프링 트랜잭션이 없어서 동기화를 직접 켜고 끈다
+  @BeforeEach
+  void initSynchronization() {
+    TransactionSynchronizationManager.initSynchronization();
+  }
+
+  @AfterEach
+  void clearSynchronization() {
+    TransactionSynchronizationManager.clearSynchronization();
+  }
+
+  // 커밋 또는 롤백이 끝난 상황을 흉내 낸다
+  private void commit() {
+    TransactionSynchronizationUtils.triggerAfterCommit();
+    TransactionSynchronizationUtils.triggerAfterCompletion(STATUS_COMMITTED);
+  }
+
+  private void rollback() {
+    TransactionSynchronizationUtils.triggerAfterCompletion(STATUS_ROLLED_BACK);
+  }
 
   private BookCreateRequest request(String isbn) {
     return new BookCreateRequest(
@@ -30,9 +63,27 @@ class BookCommandServiceTest {
   }
 
   private Book savedBook() {
+    return savedBook(null);
+  }
+
+  private Book savedBook(String thumbnailUrl) {
     return bookRepositoryPort.save(
         Book.create(
-            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
+            "클린 코드",
+            "로버트 C. 마틴",
+            "소개",
+            "인사이트",
+            LocalDate.of(2013, 12, 24),
+            "9788966260959",
+            thumbnailUrl));
+  }
+
+  private MockMultipartFile image(String filename, String contentType, byte[] bytes) {
+    return new MockMultipartFile("thumbnailImage", filename, contentType, bytes);
+  }
+
+  private MockMultipartFile png() {
+    return image("cover.PNG", "image/png", new byte[] {1, 2, 3});
   }
 
   // ===== (1) create() =====
@@ -40,7 +91,7 @@ class BookCommandServiceTest {
   @Test
   @DisplayName("도서를 등록하면 저장되고 리뷰 수와 평점이 0인 응답을 돌려준다")
   void create() {
-    BookDto bookDto = bookCommandService.create(request("9788966260959"));
+    BookDto bookDto = bookCommandService.create(request("9788966260959"), null);
 
     assertThat(bookRepositoryPort.count()).isEqualTo(1);
     assertThat(bookDto.title()).isEqualTo("클린 코드");
@@ -54,9 +105,9 @@ class BookCommandServiceTest {
   @Test
   @DisplayName("이미 등록된 ISBN이면 DUPLICATE_ISBN 예외가 발생하고 저장하지 않는다")
   void createWithDuplicateIsbn() {
-    bookCommandService.create(request("9788966260959"));
+    bookCommandService.create(request("9788966260959"), null);
 
-    assertThatThrownBy(() -> bookCommandService.create(request("9788966260959")))
+    assertThatThrownBy(() -> bookCommandService.create(request("9788966260959"), null))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(BookErrorCode.DUPLICATE_ISBN);
@@ -67,10 +118,111 @@ class BookCommandServiceTest {
   @Test
   @DisplayName("ISBN이 없는 도서는 여러 권 등록할 수 있다")
   void createWithoutIsbn() {
-    bookCommandService.create(request(null));
-    bookCommandService.create(request(null));
+    bookCommandService.create(request(null), null);
+    bookCommandService.create(request(null), null);
 
     assertThat(bookRepositoryPort.count()).isEqualTo(2);
+  }
+
+  // (1-4)
+  @Test
+  @DisplayName("썸네일과 함께 등록하면 books/{uuid}.{확장자} 키로 올리고 그 URL을 저장한다")
+  void createWithThumbnail() {
+    BookDto bookDto = bookCommandService.create(request("9788966260959"), png());
+
+    assertThat(thumbnailStoragePort.uploadedKeys()).hasSize(1);
+    String key = thumbnailStoragePort.uploadedKeys().get(0);
+    assertThat(key).startsWith("books/").endsWith(".png");
+    assertThat(UUID.fromString(key.substring("books/".length(), key.length() - ".png".length())))
+        .isNotNull();
+    assertThat(bookDto.thumbnailUrl()).isEqualTo(FakeThumbnailStoragePort.BASE_URL + key);
+  }
+
+  // (1-5)
+  @Test
+  @DisplayName("빈 파일이면 INVALID_IMAGE 예외가 발생하고 올리지도 저장하지도 않는다")
+  void createWithEmptyThumbnail() {
+    assertThatThrownBy(
+            () ->
+                bookCommandService.create(
+                    request(null), image("cover.png", "image/png", new byte[0])))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_IMAGE);
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+    assertThat(bookRepositoryPort.count()).isZero();
+  }
+
+  // (1-6)
+  @Test
+  @DisplayName("5MB를 넘으면 INVALID_IMAGE 예외가 발생한다")
+  void createWithTooLargeThumbnail() {
+    byte[] tooLarge = new byte[5_000_001];
+
+    assertThatThrownBy(
+            () ->
+                bookCommandService.create(request(null), image("cover.png", "image/png", tooLarge)))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_IMAGE);
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+  }
+
+  // (1-7)
+  @Test
+  @DisplayName("Content-Type이나 확장자가 jpg, png가 아니면 INVALID_IMAGE 예외가 발생한다")
+  void createWithUnsupportedThumbnail() {
+    assertThatThrownBy(
+            () ->
+                bookCommandService.create(
+                    request(null), image("cover.gif", "image/gif", new byte[] {1})))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_IMAGE);
+    assertThatThrownBy(
+            () ->
+                bookCommandService.create(
+                    request(null), image("cover.gif", "image/png", new byte[] {1})))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_IMAGE);
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+  }
+
+  // (1-8)
+  @Test
+  @DisplayName("S3에 올리지 못하면 THUMBNAIL_UPLOAD_FAILED 예외가 발생하고 도서는 저장하지 않는다")
+  void createWhenUploadFails() {
+    thumbnailStoragePort.setFailing(true);
+
+    assertThatThrownBy(() -> bookCommandService.create(request(null), png()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.THUMBNAIL_UPLOAD_FAILED);
+    assertThat(bookRepositoryPort.count()).isZero();
+  }
+
+  // (1-9)
+  @Test
+  @DisplayName("등록이 커밋되면 올린 파일을 지우지 않는다")
+  void createCommitKeepsNewFile() {
+    bookCommandService.create(request(null), png());
+
+    commit();
+
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+  }
+
+  // (1-10)
+  @Test
+  @DisplayName("등록이 롤백되면 방금 올린 파일을 지운다")
+  void createRollbackDeletesNewFile() {
+    bookCommandService.create(request(null), png());
+
+    rollback();
+
+    assertThat(thumbnailStoragePort.deletedKeys())
+        .containsExactly(thumbnailStoragePort.uploadedKeys().get(0));
   }
 
   // ===== (2) update() =====
@@ -80,7 +232,7 @@ class BookCommandServiceTest {
   void update() {
     Book saved = savedBook();
 
-    BookDto bookDto = bookCommandService.update(saved.getId(), updateRequest());
+    BookDto bookDto = bookCommandService.update(saved.getId(), updateRequest(), null);
 
     assertThat(bookDto.id()).isEqualTo(saved.getId());
     assertThat(bookDto.title()).isEqualTo("새 제목");
@@ -96,7 +248,7 @@ class BookCommandServiceTest {
   @Test
   @DisplayName("없는 도서를 수정하면 NOT_FOUND 예외가 발생한다")
   void updateNotFound() {
-    assertThatThrownBy(() -> bookCommandService.update(UUID.randomUUID(), updateRequest()))
+    assertThatThrownBy(() -> bookCommandService.update(UUID.randomUUID(), updateRequest(), null))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(BookErrorCode.NOT_FOUND);
@@ -109,10 +261,84 @@ class BookCommandServiceTest {
     Book saved = savedBook();
     saved.softDelete();
 
-    assertThatThrownBy(() -> bookCommandService.update(saved.getId(), updateRequest()))
+    assertThatThrownBy(() -> bookCommandService.update(saved.getId(), updateRequest(), null))
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(BookErrorCode.NOT_FOUND);
     assertThat(saved.getTitle()).isEqualTo("클린 코드");
+  }
+
+  // (2-4)
+  @Test
+  @DisplayName("썸네일 파트 없이 수정하면 기존 썸네일은 그대로다")
+  void updateWithoutThumbnail() {
+    Book saved = savedBook(OLD_URL);
+
+    BookDto bookDto = bookCommandService.update(saved.getId(), updateRequest(), null);
+
+    assertThat(bookDto.thumbnailUrl()).isEqualTo(OLD_URL);
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+  }
+
+  // (2-5)
+  @Test
+  @DisplayName("썸네일과 함께 수정하면 새 URL로 바뀌고 커밋 뒤에 이전 파일을 지운다")
+  void updateWithThumbnail() {
+    Book saved = savedBook(OLD_URL);
+
+    BookDto bookDto = bookCommandService.update(saved.getId(), updateRequest(), png());
+
+    String newKey = thumbnailStoragePort.uploadedKeys().get(0);
+    assertThat(bookDto.thumbnailUrl()).isEqualTo(FakeThumbnailStoragePort.BASE_URL + newKey);
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+
+    commit();
+
+    assertThat(thumbnailStoragePort.deletedKeys()).containsExactly("books/old.png");
+  }
+
+  // (2-6)
+  @Test
+  @DisplayName("썸네일 수정이 롤백되면 새 파일만 지우고 이전 파일은 남긴다")
+  void updateRollbackDeletesOnlyNewFile() {
+    Book saved = savedBook(OLD_URL);
+    bookCommandService.update(saved.getId(), updateRequest(), png());
+
+    rollback();
+
+    assertThat(thumbnailStoragePort.deletedKeys())
+        .containsExactly(thumbnailStoragePort.uploadedKeys().get(0));
+  }
+
+  // (2-7)
+  @Test
+  @DisplayName("썸네일이 없던 도서에 썸네일을 넣으면 커밋 뒤에 지울 파일이 없다")
+  void updateAddsThumbnailToBookWithoutOne() {
+    Book saved = savedBook();
+
+    bookCommandService.update(saved.getId(), updateRequest(), png());
+    commit();
+
+    assertThat(thumbnailStoragePort.uploadedKeys()).hasSize(1);
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+  }
+
+  // (2-8)
+  @Test
+  @DisplayName("수정 때 썸네일이 잘못되면 INVALID_IMAGE 예외가 발생하고 썸네일은 그대로다")
+  void updateWithInvalidThumbnail() {
+    Book saved = savedBook(OLD_URL);
+
+    assertThatThrownBy(
+            () ->
+                bookCommandService.update(
+                    saved.getId(),
+                    updateRequest(),
+                    image("cover.gif", "image/gif", new byte[] {1})))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_IMAGE);
+    assertThat(saved.getThumbnailUrl()).isEqualTo(OLD_URL);
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
   }
 }
