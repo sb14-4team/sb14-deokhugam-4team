@@ -38,6 +38,11 @@ public class NotificationJpaRepositoryAdaptor implements NotificationPersistence
   }
 
   @Override
+  public long deleteConfirmed(Instant cutoff) {
+    return notificationQRepository.deleteConfirmed(cutoff);
+  }
+
+  @Override
   public long countByUser(UUID userId) {
     return notificationQRepository.countByUser(userId);
   }
