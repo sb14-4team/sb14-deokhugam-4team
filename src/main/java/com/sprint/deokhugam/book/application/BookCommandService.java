@@ -7,6 +7,7 @@ import com.sprint.deokhugam.book.application.provided.command.BookCommand;
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.application.required.ThumbnailStoragePort;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class BookCommandService implements BookCommand {
 
   @Override
   public BookDto create(BookCreateRequest request, MultipartFile thumbnailImage) {
-    String isbn = request.isbn();
+    String isbn = Isbn.normalize(request.isbn());
     if (isbn != null && bookRepositoryPort.existsByIsbn(isbn)) {
       throw new BusinessException(BookErrorCode.DUPLICATE_ISBN, "isbn=" + isbn);
     }

@@ -161,6 +161,64 @@ class BookIntegrationTest {
     assertThat(bookJpaRepository.count()).isEqualTo(2);
   }
 
+  // (1-5)
+  @Test
+  @DisplayName("하이픈이 섞인 ISBN은 숫자 13자리로 정리해 저장한다")
+  void createWithHyphenIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "978-89-6626-095-9");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+
+    assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
+  }
+
+  // (1-6)
+  @Test
+  @DisplayName("같은 책의 10자리 ISBN으로 다시 등록하면 409를 돌려준다")
+  void createWithIsbn10OfSameBook() throws Exception {
+    mockMvc.perform(multipart("/api/books").file(bookData(VALID_JSON)));
+    String json = VALID_JSON.replace("9788966260959", "8966260950");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("BOOK_DUPLICATE_ISBN"));
+
+    assertThat(bookJpaRepository.count()).isEqualTo(1);
+  }
+
+  // (1-7)
+  @Test
+  @DisplayName("빈 문자열 ISBN은 NULL로 저장해 여러 권 등록할 수 있다")
+  void createWithBlankIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.isbn").doesNotExist());
+    mockMvc.perform(multipart("/api/books").file(bookData(json))).andExpect(status().isCreated());
+
+    assertThat(bookJpaRepository.count()).isEqualTo(2);
+  }
+
+  // (1-8)
+  @Test
+  @DisplayName("형식이 틀린 ISBN이면 400을 돌려주고 저장하지 않는다")
+  void createWithInvalidIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "9788966260950");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_ISBN"));
+
+    assertThat(bookJpaRepository.count()).isZero();
+  }
+
   // ===== (2) books 테이블 제약 (isbn unique) =====
   // (2-1)
   @Test

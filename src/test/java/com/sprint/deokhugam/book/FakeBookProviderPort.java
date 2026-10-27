@@ -12,7 +12,12 @@ public class FakeBookProviderPort implements BookProviderPort {
   private final Map<String, BookInfoDto> infos = new HashMap<>();
 
   public void put(BookInfoDto info) {
-    infos.put(info.isbn(), info);
+    put(info.isbn(), info);
+  }
+
+  // 찾는 키와 응답의 isbn을 다르게 둘 때 (카카오가 10자리만 줄 때 흉내)
+  public void put(String isbn, BookInfoDto info) {
+    infos.put(isbn, info);
   }
 
   @Override

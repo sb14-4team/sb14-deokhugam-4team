@@ -186,6 +186,30 @@ class BookControllerTest {
         .andExpect(jsonPath("$.code").value("BOOK_DUPLICATE_ISBN"));
   }
 
+  // (1-7)
+  @Test
+  @DisplayName("하이픈이 섞인 ISBN은 숫자 13자리로 정리해 저장한다")
+  void createWithHyphenIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "978-89-6626-095-9");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+  }
+
+  // (1-8)
+  @Test
+  @DisplayName("형식이 틀린 ISBN이면 400 BOOK_INVALID_ISBN")
+  void createWithInvalidIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "9788966260950");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_ISBN"));
+  }
+
   // ===== (2) GET /api/books/{bookId} : get() =====
   // (2-1)
   @Test
@@ -527,6 +551,16 @@ class BookControllerTest {
   }
 
   // (5-3)
+  @Test
+  @DisplayName("형식이 틀린 ISBN으로 조회하면 400 BOOK_INVALID_ISBN")
+  void getInfoInvalidIsbn() throws Exception {
+    mockMvc
+        .perform(get("/api/books/info").param("isbn", "978-89-6626-095"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_ISBN"));
+  }
+
+  // (5-4)
   @Test
   @DisplayName("/info 는 /{bookId} 가 아니라 ISBN 조회로 매칭된다")
   void getInfoIsNotTreatedAsBookId() throws Exception {
