@@ -15,6 +15,7 @@ import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
+import com.sprint.deokhugam.notification.domain.NotifyEvent;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +45,7 @@ public class CommentApplicationService implements CommentUseCase {
 
   private final NotificationCommand notificationCommand;
   private final ReviewCommand reviewCommand;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -53,7 +56,9 @@ public class CommentApplicationService implements CommentUseCase {
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
 
-    notificationCommand.createComment(review, review.getUser(), user.getNickname());
+    eventPublisher.publishEvent(
+        NotifyEvent.comment(
+            createRequest.reviewId(), review.getUser().getId(), user.getNickname()));
 
     return CommentDto.from(savedComment);
   }
