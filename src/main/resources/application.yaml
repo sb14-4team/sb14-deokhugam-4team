@@ -33,6 +33,12 @@ kakao:
 ocr-space:
   api-key: ${OCR_SPACE_API_KEY}
 
+# S3 썸네일 저장 (S3ClientConfig). 자격 증명은 .env에 없고 로컬은 aws login, 서버는 역할
+aws:
+  s3:
+    region: ${AWS_REGION}
+    bucket: ${AWS_S3_BUCKET}
+
 management:
   endpoints:
     web:
