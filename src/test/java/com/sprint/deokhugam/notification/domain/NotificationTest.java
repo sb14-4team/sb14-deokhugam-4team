@@ -1,4 +1,4 @@
-/*package com.sprint.deokhugam.notification.domain;
+package com.sprint.deokhugam.notification.domain;
 
 import java.util.UUID;
 
@@ -23,4 +23,3 @@ class NotificationTest {
   //    assertThat(notification.getMessage()).isEqualTo("[12]님이 나의 리뷰를 좋아합니다.");
   //  }
 }
-*/

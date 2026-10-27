@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
+import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -129,8 +130,24 @@ public class CommentControllerTest {
   }
 
   @Test
+  @DisplayName("댓글 수정 실패 - 빈 내용 입력 시 예외 발생")
+  void updatedComment_fail_blankContent() throws Exception {
+    // Given
+    CommentUpdateRequest invalidRequest = new CommentUpdateRequest("");
+
+    // When & Then
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   @DisplayName("댓글 수정 실패 - 작성자가 아닌 타인이 요청할 경우 예외 발생")
-  void updateComment_forbidden() throws Exception {
+  void updateComment_fail_forbidden() throws Exception {
     // Given
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
 
@@ -159,6 +176,22 @@ public class CommentControllerTest {
             delete("/api/comments/{commentId}", commentId)
                 .header("Deokhugam-Request-User-ID", userId.toString()))
         .andExpect(status().isNoContent());
+  }
+
+  @Test
+  @DisplayName("댓글 논리 삭제 실패 - 존재하지 않는 댓글일 경우 예외 발생")
+  void softDelete_fail_notFound() throws Exception {
+    // Given
+    willThrow(new BusinessException(CommentErrorCode.NOT_FOUND))
+        .given(commentUsecase)
+        .softDelete(commentId, userId);
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentsId}", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+        .andExpect(status().isNotFound());
   }
 
   @Test
