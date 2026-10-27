@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - feature/infra-cd    # 테스트용
+      - chore/28-aws-deploy    # 테스트용
   workflow_dispatch:
 
 
