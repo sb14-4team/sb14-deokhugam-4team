@@ -33,4 +33,9 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
   public void deleteCommentsByUsers(List<UUID> userIds) {
     commentQuerydslRepository.deleteCommentByUsers(userIds);
   }
+
+  @Override
+  public List<Comment> findAllByUserIds(List<UUID> userIds) {
+    return jpaRepository.findByUser_IdIn(userIds);
+  }
 }

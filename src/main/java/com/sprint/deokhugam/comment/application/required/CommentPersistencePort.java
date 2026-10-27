@@ -10,6 +10,8 @@ public interface CommentPersistencePort {
 
   Comment findById(UUID commentId);
 
+  List<Comment> findAllByUserIds(List<UUID> userIds);
+
   void delete(Comment comment);
 
   void deleteCommentsByUsers(List<UUID> userIds);

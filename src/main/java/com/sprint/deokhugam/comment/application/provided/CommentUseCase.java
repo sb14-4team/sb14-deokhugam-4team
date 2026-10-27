@@ -5,6 +5,7 @@ import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentSearchCondition;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
+import java.util.List;
 import java.util.UUID;
 
 // API Swagger를 기반
@@ -17,6 +18,8 @@ public interface CommentUseCase {
   void softDelete(UUID commentId, UUID userId);
 
   void hardDelete(UUID commentId, UUID userId);
+
+  void deleteCommentsByUsers(List<UUID> userIds);
 
   CursorPageResponse<CommentDto> searchCommentsByPagination(CommentSearchCondition condition);
 }

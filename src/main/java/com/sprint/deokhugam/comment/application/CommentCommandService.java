@@ -4,6 +4,7 @@ import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
 import com.sprint.deokhugam.comment.application.provided.command.CommentCommand;
 import com.sprint.deokhugam.comment.application.required.CommentPersistencePort;
 import com.sprint.deokhugam.comment.domain.Comment;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,5 +36,11 @@ public class CommentCommandService implements CommentCommand {
   public void hardDelete(UUID commentId) {
     Comment comment = commentPersistencePort.findById(commentId);
     commentPersistencePort.delete(comment);
+  }
+
+  @Override
+  @Transactional
+  public void deleteAllByUserIds(List<UUID> userIds) {
+    commentPersistencePort.deleteCommentsByUsers(userIds);
   }
 }

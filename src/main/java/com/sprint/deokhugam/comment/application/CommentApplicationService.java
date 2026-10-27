@@ -14,12 +14,16 @@ import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
+import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +41,7 @@ public class CommentApplicationService implements CommentUseCase {
   private final CommentSearchPort commentSearchPort;
 
   private final NotificationCommand notificationCommand;
+  private final ReviewCommand reviewCommand;
 
   @Override
   @Transactional
@@ -91,13 +96,34 @@ public class CommentApplicationService implements CommentUseCase {
   private void decreaseCommentCountIfDeleted(Comment comment) {
     boolean isDeleted = comment.isDeleted();
 
-    Review review = reviewFinder.getByIdOrThrow(comment.getId());
-
-    if (isDeleted) {
-      review.decreaseCommentCount();
+    if (!isDeleted) {
+      comment.getReview().decreaseCommentCount();
     } else {
       throw new BusinessException(CommonErrorCode.INTERNAL_ERROR);
     }
+  }
+
+  @Override
+  @Transactional
+  public void deleteCommentsByUsers(List<UUID> userIds) {
+    if (userIds.isEmpty()) {
+      throw new BusinessException(UserErrorCode.NOT_FOUND);
+    }
+
+    List<Comment> comments = commentFinder.findAllByUserIds(userIds);
+    if (comments.isEmpty()) {
+      return;
+    }
+
+    Map<UUID, Long> reviewDecrementMap =
+        comments.stream()
+            .collect(
+                Collectors.groupingBy(
+                    comment -> comment.getReview().getId(), Collectors.counting()));
+
+    // reviewCommand.decreaseCommentCounts(reviewDecrementMap);
+
+    commentCommand.deleteAllByUserIds(userIds);
   }
 
   @Override
