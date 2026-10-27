@@ -19,6 +19,8 @@ public interface NotificationPersistencePort {
 
   List<UUID> findCleanupIds(Instant cutoff, int limit);
 
+  public long deleteConfirmed(Instant cutoff);
+
   long countByUser(UUID userId);
 
   public List<Notification> findAllByUser(UUID userId);
