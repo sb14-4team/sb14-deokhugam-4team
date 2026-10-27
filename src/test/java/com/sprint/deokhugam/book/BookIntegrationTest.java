@@ -102,6 +102,25 @@ class BookIntegrationTest {
     assertThat(bookJpaRepository.existsByIsbn("9788966260959")).isTrue();
   }
 
+  // (1-1b)
+  @Test
+  @DisplayName("bookData 파트에 Content-Type이 없어도(octet-stream) JSON으로 읽어 등록한다")
+  void createWithoutPartContentType() throws Exception {
+    MockMultipartFile bookDataWithoutType =
+        new MockMultipartFile(
+            "bookData",
+            "",
+            MediaType.APPLICATION_OCTET_STREAM_VALUE,
+            VALID_JSON.getBytes(StandardCharsets.UTF_8));
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookDataWithoutType))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.title").value("클린 코드"));
+
+    assertThat(bookJpaRepository.count()).isEqualTo(1);
+  }
+
   // (1-2)
   @Test
   @DisplayName("이미 등록된 ISBN으로 등록하면 409를 돌려주고 저장하지 않는다")
