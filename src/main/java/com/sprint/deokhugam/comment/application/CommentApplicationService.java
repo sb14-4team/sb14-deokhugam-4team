@@ -10,7 +10,7 @@ import com.sprint.deokhugam.comment.application.provided.query.CommentFinder;
 import com.sprint.deokhugam.comment.application.required.CommentSearchPort;
 import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
-import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
+import com.sprint.deokhugam.notification.domain.NotifyEvent;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -18,6 +18,7 @@ import com.sprint.deokhugam.user.domain.User;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,7 @@ public class CommentApplicationService implements CommentUsecase {
 
   private final CommentSearchPort commentSearchPort;
 
-  private final NotificationCommand notificationCommand;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -44,7 +45,9 @@ public class CommentApplicationService implements CommentUsecase {
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
 
-    notificationCommand.createComment(review, review.getUser(), user.getNickname());
+    eventPublisher.publishEvent(
+        NotifyEvent.comment(
+            createRequest.reviewId(), review.getUser().getId(), user.getNickname()));
 
     return CommentDto.from(savedComment);
   }
