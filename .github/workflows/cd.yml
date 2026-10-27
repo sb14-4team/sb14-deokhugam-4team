@@ -61,6 +61,24 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.ECS_REGION }}
 
+      - name: Check ECS service desired count
+        env:
+          ECS_REGION: ${{ vars.ECS_REGION }}
+          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+        run: |
+          DESIRED_COUNT=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --region "$ECS_REGION" \
+            --query 'services[0].desiredCount' \
+            --output text)
+
+          if [[ ! "$DESIRED_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "ECS service desired count is $DESIRED_COUNT. Set it to at least 1 before deploying."
+            exit 1
+          fi
+
       - name: Register a new task definition revision
         env:
           IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
