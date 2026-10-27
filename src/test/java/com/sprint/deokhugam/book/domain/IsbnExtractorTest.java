@@ -42,6 +42,20 @@ class IsbnExtractorTest {
   }
 
   @Test
+  @DisplayName("체크섬이 틀린 후보는 건너뛰고 다음 후보를 고른다")
+  void extract_skipsInvalidChecksum() {
+    String text = "ISBN 978-89-6626-095-0\n9791162243077";
+
+    assertThat(extractor.extract(text)).contains("9791162243077");
+  }
+
+  @Test
+  @DisplayName("후보가 모두 체크섬이 틀리면 빈 Optional")
+  void extract_allInvalidChecksum() {
+    assertThat(extractor.extract("9788966260950 9788966260951")).isEmpty();
+  }
+
+  @Test
   @DisplayName("978, 979로 시작하지 않는 숫자나 빈 글이면 빈 Optional")
   void extract_noCandidate() {
     assertThat(extractor.extract("가격 88000원 전화 010-1234-5678")).isEmpty();

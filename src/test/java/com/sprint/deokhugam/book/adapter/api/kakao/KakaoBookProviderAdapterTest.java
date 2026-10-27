@@ -32,6 +32,10 @@ class KakaoBookProviderAdapterTest {
 
   // 카카오 실제 응답 모양. price처럼 안 쓰는 필드도 섞어서 무시되는지 본다
   private static String kakaoJson(String thumbnail) {
+    return kakaoJson(thumbnail, "8966260950 9788966260959");
+  }
+
+  private static String kakaoJson(String thumbnail, String isbn) {
     return """
         {
           "meta": {"is_end": true, "pageable_count": 1, "total_count": 1},
@@ -41,14 +45,14 @@ class KakaoBookProviderAdapterTest {
             "publisher": "인사이트",
             "authors": ["로버트 C. 마틴", "박재호"],
             "datetime": "2013-12-24T00:00:00.000+09:00",
-            "isbn": "8966260950 9788966260959",
+            "isbn": "%s",
             "thumbnail": "%s",
             "price": 33000,
             "status": "정상판매"
           }]
         }
         """
-        .formatted(thumbnail);
+        .formatted(isbn, thumbnail);
   }
 
   @Test
@@ -71,6 +75,23 @@ class KakaoBookProviderAdapterTest {
     assertThat(info.isbn()).isEqualTo("9788966260959");
     assertThat(info.thumbnailImage()).isNull();
     server.verify();
+  }
+
+  @Test
+  @DisplayName("공백으로 나뉜 isbn은 순서와 상관없이 13자리를 고르고, 10자리만 있으면 그대로 넘긴다")
+  void findByIsbn_picksIsbn() {
+    server
+        .expect(requestTo(SEARCH_URL))
+        .andRespond(
+            withSuccess(kakaoJson("", "9788966260959 8966260950"), MediaType.APPLICATION_JSON));
+    server
+        .expect(requestTo(SEARCH_URL))
+        .andRespond(withSuccess(kakaoJson("", " 8966260950 "), MediaType.APPLICATION_JSON));
+
+    assertThat(adapter.findByIsbn("9788966260959"))
+        .map(BookInfoDto::isbn)
+        .contains("9788966260959");
+    assertThat(adapter.findByIsbn("9788966260959")).map(BookInfoDto::isbn).contains("8966260950");
   }
 
   @Test
