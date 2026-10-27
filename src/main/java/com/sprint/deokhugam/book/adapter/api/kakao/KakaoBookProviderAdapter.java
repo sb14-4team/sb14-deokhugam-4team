@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book.adapter.api.kakao;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.required.BookProviderPort;
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -46,7 +47,8 @@ public class KakaoBookProviderAdapter implements BookProviderPort {
       return null;
     }
     try {
-      return imageClient.get().uri(url).retrieve().body(byte[].class);
+      // 카카오 URL은 fname 값이 이미 인코딩돼 있다. 문자열로 넘기면 한 번 더 인코딩돼 403이 난다
+      return imageClient.get().uri(URI.create(url)).retrieve().body(byte[].class);
     } catch (RestClientException e) {
       log.warn("썸네일 받기 실패: {} ({})", url, e.getMessage());
       return null;

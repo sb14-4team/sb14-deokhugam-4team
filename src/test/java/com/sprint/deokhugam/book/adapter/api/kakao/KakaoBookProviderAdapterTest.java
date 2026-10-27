@@ -8,8 +8,12 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
+import com.sun.net.httpserver.HttpServer;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -90,6 +94,41 @@ class KakaoBookProviderAdapterTest {
 
     assertThatThrownBy(() -> adapter.findByIsbn("9788966260959"))
         .isInstanceOf(RestClientException.class);
+  }
+
+  @Test
+  @DisplayName("fname이 인코딩된 썸네일 URL을 그대로 요청해 이미지 바이트를 받는다 (두 번 인코딩하면 403)")
+  void findByIsbn_downloadsThumbnailWithEncodedUrl() throws Exception {
+    // 카카오 썸네일 서버 대신 받은 쿼리 문자열을 기록하고 이미지 바이트를 돌려주는 로컬 서버
+    byte[] image = {1, 2, 3};
+    AtomicReference<String> receivedQuery = new AtomicReference<>();
+    HttpServer thumbServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    thumbServer.createContext(
+        "/thumb/",
+        exchange -> {
+          receivedQuery.set(exchange.getRequestURI().getRawQuery());
+          exchange.sendResponseHeaders(200, image.length);
+          try (OutputStream body = exchange.getResponseBody()) {
+            body.write(image);
+          }
+        });
+    thumbServer.start();
+    try {
+      String encodedQuery = "fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F545848";
+      String thumbnailUrl =
+          "http://127.0.0.1:" + thumbServer.getAddress().getPort() + "/thumb/?" + encodedQuery;
+      server
+          .expect(requestTo(SEARCH_URL))
+          .andRespond(withSuccess(kakaoJson(thumbnailUrl), MediaType.APPLICATION_JSON));
+
+      Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+
+      assertThat(receivedQuery.get()).isEqualTo(encodedQuery);
+      assertThat(result).isPresent();
+      assertThat(result.get().thumbnailImage()).isEqualTo(image);
+    } finally {
+      thumbServer.stop(0);
+    }
   }
 
   @Test
