@@ -18,11 +18,11 @@ import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
-import com.sprint.deokhugam.domain.user.exception.UserErrorCode;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -33,7 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class CommentCommandServiceServiceTest {
+public class CommentCommandServiceTest {
 
   @Mock private CommentCommand commentCommand;
   @Mock private CommentFinder commentFinder;

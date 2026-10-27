@@ -2,7 +2,6 @@ package com.sprint.deokhugam.comment.application.provided.command;
 
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
 import com.sprint.deokhugam.comment.domain.Comment;
-import java.util.List;
 import java.util.UUID;
 
 // CUD 기능
@@ -14,5 +13,7 @@ public interface CommentCommand {
 
   void hardDelete(UUID commentId);
 
-  void deleteAllByUserIds(List<UUID> userIds);
+  void deleteAllByUserId(UUID userId);
+
+  void deleteAllByReviewId(UUID reviewId);
 }
