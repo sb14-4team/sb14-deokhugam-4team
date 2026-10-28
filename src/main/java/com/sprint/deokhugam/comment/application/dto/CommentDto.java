@@ -10,8 +10,8 @@ public record CommentDto(
     UUID userId,
     String userNickname,
     String content,
-    Instant createAt,
-    Instant updateAt) {
+    Instant createdAt,
+    Instant updatedAt) {
 
   public static CommentDto from(Comment comment) {
     return new CommentDto(

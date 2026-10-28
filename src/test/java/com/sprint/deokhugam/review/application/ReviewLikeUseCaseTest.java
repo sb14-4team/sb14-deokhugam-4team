@@ -34,6 +34,7 @@ class ReviewLikeUseCaseTest {
   @Mock ReviewLikePersistencePort reviewLikePersistencePort;
   @Mock ReviewFinder reviewFinder;
   @Mock UserFinder userFinder;
+  @Mock org.springframework.context.ApplicationEventPublisher eventPublisher;
 
   @InjectMocks ReviewApplicationService reviewApplicationService;
 
