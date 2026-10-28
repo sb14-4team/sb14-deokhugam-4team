@@ -54,6 +54,14 @@ public class ReviewQuerydslRepository {
     return count == null ? 0L : count;
   }
 
+  public List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds) {
+    return queryFactory.selectFrom(review).where(review.id.in(reviewIds)).fetch();
+  }
+
+  public long deleteAllByIds(List<UUID> reviewIds) {
+    return queryFactory.delete(review).where(review.id.in(reviewIds)).execute();
+  }
+
   /*
      like -> eq : equals  contains -> contains
      결과 :   like 검색조건   like %{검색 조건}%
