@@ -102,6 +102,9 @@ public class Book extends BaseSoftDeletableEntity {
   }
 
   public void removeReview(int score) {
+    if (reviewCount == 0) {
+      throw new IllegalStateException("리뷰 수가 0이라 더 뺄 수 없습니다.");
+    }
     reviewCount--;
     ratingSum -= score;
     recalculateRating();

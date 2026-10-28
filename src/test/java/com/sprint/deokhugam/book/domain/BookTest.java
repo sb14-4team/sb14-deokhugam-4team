@@ -107,6 +107,15 @@ class BookTest {
     assertThat(book.getRating()).isZero();
   }
 
+  // (4-2)
+  @Test
+  @DisplayName("리뷰 수가 0이면 더 뺄 수 없다")
+  void removeReviewWhenEmpty() {
+    Book book = createBook();
+
+    assertThatThrownBy(() -> book.removeReview(3)).isInstanceOf(IllegalStateException.class);
+  }
+
   // ===== (5) changeReviewScore() =====
   // (5-1)
   @Test
