@@ -17,7 +17,5 @@ public interface CommentJpaRepository extends JpaRepository<Comment, UUID> {
         .orElseThrow(() -> new BusinessException(CommentErrorCode.NOT_FOUND));
   }
 
-  List<Comment> findByUser_Id(UUID userId);
-
   List<Comment> findByReview_IdIn(List<UUID> reviewIds);
 }

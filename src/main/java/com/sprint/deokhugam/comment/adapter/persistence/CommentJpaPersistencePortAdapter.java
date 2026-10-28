@@ -41,7 +41,7 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
 
   @Override
   public List<Comment> findAllByUserId(UUID userId) {
-    return jpaRepository.findByUser_Id(userId);
+    return commentQuerydslRepository.findByUser_Id(userId);
   }
 
   @Override
