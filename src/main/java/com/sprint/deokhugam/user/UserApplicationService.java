@@ -25,7 +25,7 @@ public class UserApplicationService implements UserCleaner {
     List<UUID> targetIds = userFinder.findCleanupIds(cutoff, 20);
     for (UUID targetId : targetIds) {
       //      reviewCommand.deleteReview(targetId);
-      userCommand.delete(targetId);
+      // userCommand.delete(targetId);
       //    유저 아이디로 삭제 메서드 요청해야함 지금은
     }
   }
