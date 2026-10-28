@@ -12,6 +12,7 @@ import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.book.domain.IsbnExtractor;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
@@ -49,12 +50,18 @@ class BookQueryServiceTest {
   private Book savedBook() {
     return bookRepositoryPort.save(
         Book.create(
-            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
+            "클린 코드",
+            "로버트 C. 마틴",
+            "소개",
+            "인사이트",
+            LocalDate.of(2013, 12, 24),
+            Isbn.of("9788966260959"),
+            null));
   }
 
   private Book savedBook(String title, String author, String isbn, LocalDate publishedDate) {
     return bookRepositoryPort.save(
-        Book.create(title, author, "소개", "출판사", publishedDate, isbn, null));
+        Book.create(title, author, "소개", "출판사", publishedDate, Isbn.of(isbn), null));
   }
 
   // 평점 rating인 리뷰가 1개 달린 도서
@@ -357,6 +364,44 @@ class BookQueryServiceTest {
         .isEqualTo(BookErrorCode.INFO_NOT_FOUND);
   }
 
+  // (4-3)
+  @Test
+  @DisplayName("하이픈이나 10자리로 조회해도 13자리로 정리해서 포트에 넘긴다")
+  void getBookInfoNormalizesInput() {
+    BookInfoDto info =
+        new BookInfoDto(
+            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null);
+    bookProviderPort.put(info);
+
+    assertThat(bookQueryService.getBookInfo("978-89-6626-095-9")).isEqualTo(info);
+    assertThat(bookQueryService.getBookInfo("8966260950")).isEqualTo(info);
+  }
+
+  // (4-4)
+  @Test
+  @DisplayName("포트가 준 10자리 ISBN은 13자리로 바꿔 돌려준다")
+  void getBookInfoNormalizesResult() {
+    bookProviderPort.put(
+        "9788996991342",
+        new BookInfoDto("옛 책", "저자", "소개", "출판사", LocalDate.of(2000, 1, 1), "8996991341", null));
+
+    assertThat(bookQueryService.getBookInfo("9788996991342").isbn()).isEqualTo("9788996991342");
+  }
+
+  // (4-5)
+  @Test
+  @DisplayName("형식이 틀리거나 빈 ISBN이면 포트를 부르지 않고 INVALID_ISBN 예외가 발생한다")
+  void getBookInfoInvalidIsbn() {
+    assertThatThrownBy(() -> bookQueryService.getBookInfo("9788966260950"))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_ISBN);
+    assertThatThrownBy(() -> bookQueryService.getBookInfo(""))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_ISBN);
+  }
+
   // ===== (5) recognizeIsbn() : 이미지에서 ISBN =====
   // (5-1)
   @Test
@@ -389,6 +434,15 @@ class BookQueryServiceTest {
         .isInstanceOf(BusinessException.class)
         .extracting("errorCode")
         .isEqualTo(BookErrorCode.OCR_FAILED);
+  }
+
+  // (5-3b)
+  @Test
+  @DisplayName("숫자를 잘못 읽어 체크섬이 틀린 후보는 건너뛴다")
+  void recognizeIsbnSkipsInvalidChecksum() {
+    ocrTextPort.setText("ISBN 978-89-6626-095-0\n9 788966 260959");
+
+    assertThat(bookQueryService.recognizeIsbn(jpeg())).isEqualTo("9788966260959");
   }
 
   // (5-4)

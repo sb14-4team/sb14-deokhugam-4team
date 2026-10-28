@@ -2,9 +2,12 @@ package com.sprint.deokhugam.book.adapter.api.kakao;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.required.BookProviderPort;
+import com.sprint.deokhugam.book.domain.Isbn;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,8 +26,8 @@ public class KakaoBookProviderAdapter implements BookProviderPort {
   private final RestClient imageClient = RestClient.create();
 
   @Override
-  public Optional<BookInfoDto> findByIsbn(String isbn) {
-    return fetchDocument(isbn).map(doc -> toDto(doc, downloadThumbnail(doc.thumbnail())));
+  public Optional<BookInfoDto> findByIsbn(Isbn isbn) {
+    return fetchDocument(isbn.value()).map(doc -> toDto(doc, downloadThumbnail(doc.thumbnail())));
   }
 
   // 카카오 호출 실패(4xx·5xx·끊김)는 잡지 않는다. 책 정보가 없으면 돌려줄 게 없으니 500이 맞다
@@ -62,7 +65,7 @@ public class KakaoBookProviderAdapter implements BookProviderPort {
         doc.contents(),
         doc.publisher(),
         toDate(doc.datetime()),
-        pickIsbn13(doc.isbn()),
+        pickIsbn(doc.isbn()),
         thumbnail);
   }
 
@@ -73,12 +76,15 @@ public class KakaoBookProviderAdapter implements BookProviderPort {
     return OffsetDateTime.parse(datetime).toLocalDate();
   }
 
-  // 카카오 isbn은 "10자리 13자리"가 공백으로 붙어 온다. 마지막 값이 13자리
-  private String pickIsbn13(String isbn) {
+  // 카카오 isbn은 "10자리 13자리"처럼 공백으로 붙어 오고 한쪽만 올 수도 있다. 13자리를 먼저 고른다
+  private String pickIsbn(String isbn) {
     if (isbn == null || isbn.isBlank()) {
       return null;
     }
-    String[] parts = isbn.split(" ");
-    return parts[parts.length - 1];
+    List<String> parts = Arrays.stream(isbn.trim().split("\\s+")).toList();
+    return parts.stream()
+        .filter(part -> part.length() == Isbn.LENGTH)
+        .findFirst()
+        .orElse(parts.getFirst());
   }
 }

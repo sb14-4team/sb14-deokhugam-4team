@@ -8,6 +8,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sun.net.httpserver.HttpServer;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -36,6 +37,10 @@ class KakaoBookProviderAdapterTest {
 
   // 카카오 실제 응답 모양. price처럼 안 쓰는 필드도 섞어서 무시되는지 본다
   private static String kakaoJson(String thumbnail) {
+    return kakaoJson(thumbnail, "8966260950 9788966260959");
+  }
+
+  private static String kakaoJson(String thumbnail, String isbn) {
     return """
         {
           "meta": {"is_end": true, "pageable_count": 1, "total_count": 1},
@@ -45,14 +50,14 @@ class KakaoBookProviderAdapterTest {
             "publisher": "인사이트",
             "authors": ["로버트 C. 마틴", "박재호"],
             "datetime": "2013-12-24T00:00:00.000+09:00",
-            "isbn": "8966260950 9788966260959",
+            "isbn": "%s",
             "thumbnail": "%s",
             "price": 33000,
             "status": "정상판매"
           }]
         }
         """
-        .formatted(thumbnail);
+        .formatted(isbn, thumbnail);
   }
 
   @Test
@@ -63,7 +68,7 @@ class KakaoBookProviderAdapterTest {
         .andExpect(header("Authorization", "KakaoAK test-key"))
         .andRespond(withSuccess(kakaoJson(""), MediaType.APPLICATION_JSON));
 
-    Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+    Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
     assertThat(result).isPresent();
     BookInfoDto info = result.get();
@@ -78,13 +83,32 @@ class KakaoBookProviderAdapterTest {
   }
 
   @Test
+  @DisplayName("공백으로 나뉜 isbn은 순서와 상관없이 13자리를 고르고, 10자리만 있으면 그대로 넘긴다")
+  void findByIsbn_picksIsbn() {
+    server
+        .expect(requestTo(SEARCH_URL))
+        .andRespond(
+            withSuccess(kakaoJson("", "9788966260959 8966260950"), MediaType.APPLICATION_JSON));
+    server
+        .expect(requestTo(SEARCH_URL))
+        .andRespond(withSuccess(kakaoJson("", " 8966260950 "), MediaType.APPLICATION_JSON));
+
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959")))
+        .map(BookInfoDto::isbn)
+        .contains("9788966260959");
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959")))
+        .map(BookInfoDto::isbn)
+        .contains("8966260950");
+  }
+
+  @Test
   @DisplayName("documents가 비어 있으면 빈 Optional을 돌려준다")
   void findByIsbn_emptyDocuments() {
     server
         .expect(requestTo(SEARCH_URL))
         .andRespond(withSuccess("{\"documents\": []}", MediaType.APPLICATION_JSON));
 
-    assertThat(adapter.findByIsbn("9788966260959")).isEmpty();
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959"))).isEmpty();
   }
 
   @Test
@@ -92,7 +116,7 @@ class KakaoBookProviderAdapterTest {
   void findByIsbn_serverError() {
     server.expect(requestTo(SEARCH_URL)).andRespond(withServerError());
 
-    assertThatThrownBy(() -> adapter.findByIsbn("9788966260959"))
+    assertThatThrownBy(() -> adapter.findByIsbn(Isbn.of("9788966260959")))
         .isInstanceOf(RestClientException.class);
   }
 
@@ -121,7 +145,7 @@ class KakaoBookProviderAdapterTest {
           .expect(requestTo(SEARCH_URL))
           .andRespond(withSuccess(kakaoJson(thumbnailUrl), MediaType.APPLICATION_JSON));
 
-      Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+      Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
       assertThat(receivedQuery.get()).isEqualTo(encodedQuery);
       assertThat(result).isPresent();
@@ -140,7 +164,7 @@ class KakaoBookProviderAdapterTest {
         .andRespond(
             withSuccess(kakaoJson("http://127.0.0.1:1/cover.jpg"), MediaType.APPLICATION_JSON));
 
-    Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+    Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
     assertThat(result).isPresent();
     assertThat(result.get().title()).isEqualTo("클린 코드");

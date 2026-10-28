@@ -27,7 +27,7 @@ public record BookDto(
         book.getDescription(),
         book.getPublisher(),
         book.getPublishedDate(),
-        book.getIsbn(),
+        book.getIsbn() == null ? null : book.getIsbn().value(),
         book.getThumbnailUrl(),
         book.getReviewCount(),
         book.getRating(),

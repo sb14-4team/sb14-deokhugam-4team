@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book.adapter.persistence;
 
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +25,7 @@ public class BookRepositoryAdapter implements BookRepositoryPort {
   }
 
   @Override
-  public boolean existsByIsbn(String isbn) {
+  public boolean existsByIsbn(Isbn isbn) {
     return bookJpaRepository.existsByIsbn(isbn);
   }
 }

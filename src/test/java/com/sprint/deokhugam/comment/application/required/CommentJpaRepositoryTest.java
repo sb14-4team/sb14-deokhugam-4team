@@ -55,7 +55,7 @@ public class CommentJpaRepositoryTest {
             "testDescription",
             "testPublisher",
             LocalDate.of(2011, 1, 1),
-            "9999999999999",
+            null,
             "https://example.com/thumbnails/testTitle.jpg");
     entityManager.persist(book);
 
