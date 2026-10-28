@@ -65,7 +65,8 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
     Comment comment = getVerifiedComment(commentId, requestUserId);
-    Comment updatedComment = commentCommand.updateComment(commentId, requestUserId, updateRequest);
+    Comment updatedComment =
+        commentCommand.updateComment(comment.getId(), comment.getUser().getId(), updateRequest);
 
     return CommentDto.from(updatedComment);
   }

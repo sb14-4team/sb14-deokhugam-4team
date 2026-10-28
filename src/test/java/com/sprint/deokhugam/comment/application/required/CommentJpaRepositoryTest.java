@@ -37,11 +37,11 @@ public class CommentJpaRepositoryTest {
   @Autowired private CommentJpaRepository commentJpaRepository;
   @Autowired private CommentQuerydslRepository commentQuerydslRepository;
   @Autowired private TestEntityManager entityManager;
+  @Autowired private UserJpaRepository userJpaRepository;
+  @Autowired private ReviewJpaRepository reviewJpaRepository;
 
   private Review review;
   private User user;
-  @Autowired private UserJpaRepository userJpaRepository;
-  @Autowired private ReviewJpaRepository reviewJpaRepository;
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
