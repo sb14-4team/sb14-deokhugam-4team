@@ -4,7 +4,7 @@ import com.sprint.deokhugam.comment.application.dto.CommentCreateRequest;
 import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentSearchCondition;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
-import com.sprint.deokhugam.comment.application.provided.CommentUsecase;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,12 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/comments")
 public class CommentController {
 
-  private final CommentUsecase commentApplicationService;
+  private final CommentUseCase commentApplicationService;
 
   @PostMapping
   public ResponseEntity<CommentDto> create(@RequestBody @Valid CommentCreateRequest createRequest) {
-    CommentDto commentDto = commentApplicationService.create(createRequest);
-    return ResponseEntity.status(HttpStatus.CREATED).body(commentDto);
+    CommentDto createComment = commentApplicationService.create(createRequest);
+    return ResponseEntity.ok(createComment);
   }
 
   @PatchMapping("{commentId}")
@@ -43,8 +44,23 @@ public class CommentController {
       @PathVariable UUID commentId,
       @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId,
       @RequestBody @Valid CommentUpdateRequest updateRequest) {
-    return ResponseEntity.status(HttpStatus.OK)
-        .body(commentApplicationService.update(commentId, requestUserId, updateRequest));
+    CommentDto updatedComment =
+        commentApplicationService.update(commentId, requestUserId, updateRequest);
+    return ResponseEntity.ok(updatedComment);
+  }
+
+  @DeleteMapping("{commentId}")
+  public ResponseEntity<Void> softDelete(
+      @PathVariable UUID commentId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestId) {
+    commentApplicationService.softDelete(commentId, requestId);
+    return ResponseEntity.noContent().build();
+  }
+
+  @DeleteMapping("{commentId}/hard")
+  public ResponseEntity<Void> hardDelete(
+      @PathVariable UUID commentId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestId) {
+    commentApplicationService.hardDelete(commentId, requestId);
+    return ResponseEntity.noContent().build();
   }
 
   @GetMapping

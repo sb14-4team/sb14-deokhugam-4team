@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.review.application;
 
 import com.sprint.deokhugam.book.application.BookCommandService;
+import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
@@ -38,7 +39,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   private final ReviewLikePersistencePort reviewLikePersistencePort;
   private final ReviewPersistencePort reviewPersistencePort;
 
-  // private final BookReviewStatsCommand bookReviewStatsCommand;
+  private final BookReviewStatsCommand bookReviewStatsCommand;
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
   private final BookCommandService bookCommandService;
@@ -126,13 +127,13 @@ public class ReviewApplicationService implements ReviewUseCase {
     userFinder.findById(requestUserId);
     Review review = reviewFinder.getByIdOrThrow(reviewId);
 
-    // bookReviewStatsCommand.removeReview(review.getBook().getId(), review.getRating()); - 구현체 x
-    // 논리삭제 시 점수반영으로 진행
     if (!review.verifyReviewUpdate(requestUserId)) {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
     }
 
     review.softDelete();
+    // 논리 삭제된 리뷰는 도서 집계에서 뺀다 (#42)
+    bookReviewStatsCommand.removeReview(review.getBook(), review.getRating());
     // 알람 호출한다 - 미구현
   }
 
@@ -156,8 +157,9 @@ public class ReviewApplicationService implements ReviewUseCase {
     reviewLikePersistencePort.deleteAllByReviewId(reviewId);
     // 댓글 삭제 호출 - 아직 미구현
 
+    // 논리 삭제를 거친 리뷰는 이미 집계에서 빠져 있다
     if (!review.isDeleted()) {
-      // bookReviewStatsCommand.removeReview(review.getBook().getId(), review.getRating());
+      bookReviewStatsCommand.removeReview(review.getBook(), review.getRating());
     }
 
     reviewPersistencePort.delete(review);

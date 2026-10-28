@@ -56,6 +56,11 @@ class ReviewApplicationServiceTest {
     assertThat(found.getContent()).isEqualTo("성공");
     assertThat(found.getUser().getId()).isEqualTo(user.getId());
     assertThat(found.getBook().getId()).isEqualTo(book.getId()); // 널임
+
+    // 리뷰가 달리면 도서 집계도 같은 트랜잭션에서 바뀐다
+    Book foundBook = em.find(Book.class, book.getId());
+    assertThat(foundBook.getReviewCount()).isEqualTo(1);
+    assertThat(foundBook.getRating()).isEqualTo(3.0);
   }
 
   @Test

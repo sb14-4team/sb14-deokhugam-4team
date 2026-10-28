@@ -7,6 +7,7 @@ import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.common.config.JpaConfig;
 import com.sprint.deokhugam.common.config.QuerydslConfig;
 import jakarta.persistence.EntityManager;
@@ -45,7 +46,7 @@ class BookSearchAdapterTest {
   // 동률 순서를 예측하려고 저장한 뒤 UPDATE로 createdAt을 BASE_TIME + n초로 바꿔 둔다
   private Book saved(
       String title, String author, String isbn, LocalDate publishedDate, int... scores) {
-    Book book = Book.create(title, author, "소개", "출판사", publishedDate, isbn, null);
+    Book book = Book.create(title, author, "소개", "출판사", publishedDate, Isbn.of(isbn), null);
     for (int score : scores) {
       book.addReview(score);
     }

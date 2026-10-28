@@ -9,6 +9,7 @@ import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.application.required.BookSearchPort;
 import com.sprint.deokhugam.book.application.required.OcrTextPort;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.book.domain.IsbnExtractor;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
@@ -64,10 +65,18 @@ public class BookQueryService implements BookFinder {
 
   // '없음'을 404로 바꾸는 건 우리 서비스의 규칙이라 어댑터가 아닌 여기서 한다
   @Override
-  public BookInfoDto getBookInfo(String isbn) {
-    return bookProviderPort
-        .findByIsbn(isbn)
-        .orElseThrow(() -> new BusinessException(BookErrorCode.INFO_NOT_FOUND, "isbn=" + isbn));
+  public BookInfoDto getBookInfo(String rawIsbn) {
+    Isbn isbn = Isbn.of(rawIsbn);
+    if (isbn == null) {
+      throw new BusinessException(BookErrorCode.INVALID_ISBN, "isbn 없음");
+    }
+    BookInfoDto info =
+        bookProviderPort
+            .findByIsbn(isbn)
+            .orElseThrow(() -> new BusinessException(BookErrorCode.INFO_NOT_FOUND, "isbn=" + isbn));
+    // 카카오가 준 ISBN도 등록 때 저장되는 모양으로 맞춘다. 없으면 조회한 값을 쓴다
+    Isbn provided = Isbn.of(info.isbn());
+    return info.withIsbn((provided == null ? isbn : provided).value());
   }
 
   // 사진에서 글자를 읽고 그 안에서 ISBN을 찾는다. 글자나 ISBN이 없으면 400
@@ -89,6 +98,7 @@ public class BookQueryService implements BookFinder {
     }
     return isbnExtractor
         .extract(text)
+        .map(Isbn::value)
         .orElseThrow(
             () -> new BusinessException(BookErrorCode.OCR_FAILED, "ISBN 없음, file=" + filename));
   }

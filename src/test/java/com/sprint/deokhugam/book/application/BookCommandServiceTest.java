@@ -11,6 +11,7 @@ import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
@@ -74,7 +75,7 @@ class BookCommandServiceTest {
             "소개",
             "인사이트",
             LocalDate.of(2013, 12, 24),
-            "9788966260959",
+            Isbn.of("9788966260959"),
             thumbnailUrl));
   }
 
@@ -223,6 +224,50 @@ class BookCommandServiceTest {
 
     assertThat(thumbnailStoragePort.deletedKeys())
         .containsExactly(thumbnailStoragePort.uploadedKeys().get(0));
+  }
+
+  // (1-11)
+  @Test
+  @DisplayName("하이픈이 섞인 ISBN은 숫자 13자리로 정리해 저장한다")
+  void createWithHyphenIsbn() {
+    BookDto bookDto = bookCommandService.create(request("978-89-6626-095-9"), null);
+
+    assertThat(bookDto.isbn()).isEqualTo("9788966260959");
+  }
+
+  // (1-12)
+  @Test
+  @DisplayName("10자리 ISBN은 13자리로 바꿔 저장하므로 같은 책의 13자리와 중복이 걸린다")
+  void createWithIsbn10ThenIsbn13() {
+    bookCommandService.create(request("8966260950"), null);
+
+    assertThatThrownBy(() -> bookCommandService.create(request("9788966260959"), null))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.DUPLICATE_ISBN);
+    assertThat(bookRepositoryPort.count()).isEqualTo(1);
+  }
+
+  // (1-13)
+  @Test
+  @DisplayName("빈 문자열 ISBN은 없는 것으로 보고 여러 권 등록할 수 있다")
+  void createWithBlankIsbn() {
+    BookDto first = bookCommandService.create(request(""), null);
+    bookCommandService.create(request("  "), null);
+
+    assertThat(first.isbn()).isNull();
+    assertThat(bookRepositoryPort.count()).isEqualTo(2);
+  }
+
+  // (1-14)
+  @Test
+  @DisplayName("형식이 틀린 ISBN이면 INVALID_ISBN 예외가 발생하고 저장하지 않는다")
+  void createWithInvalidIsbn() {
+    assertThatThrownBy(() -> bookCommandService.create(request("9788966260950"), null))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.INVALID_ISBN);
+    assertThat(bookRepositoryPort.count()).isZero();
   }
 
   // ===== (2) update() =====

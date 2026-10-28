@@ -3,8 +3,11 @@ package com.sprint.deokhugam.review.application;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
@@ -24,6 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class ReviewApplicationServiceSoftDeleteTest {
   @Mock UserFinder userFinder;
   @Mock ReviewFinder reviewFinder;
+  @Mock BookReviewStatsCommand bookReviewStatsCommand;
   @InjectMocks ReviewApplicationService service;
 
   private UUID userId;
@@ -59,6 +63,7 @@ public class ReviewApplicationServiceSoftDeleteTest {
     // then
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.FORBIDDEN);
     assertThat(review.isDeleted()).isFalse();
+    verify(bookReviewStatsCommand, never()).removeReview(book, 3);
   }
 
   @Test
@@ -72,5 +77,6 @@ public class ReviewApplicationServiceSoftDeleteTest {
 
     // then
     assertThat(review.isDeleted()).isTrue();
+    verify(bookReviewStatsCommand).removeReview(book, 3);
   }
 }
