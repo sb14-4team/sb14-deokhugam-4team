@@ -2,8 +2,6 @@ package com.sprint.deokhugam.book.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.springframework.transaction.support.TransactionSynchronization.STATUS_COMMITTED;
-import static org.springframework.transaction.support.TransactionSynchronization.STATUS_ROLLED_BACK;
 
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
@@ -12,47 +10,27 @@ import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.book.domain.Isbn;
+import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.transaction.support.TransactionSynchronizationUtils;
 
 class BookCommandServiceTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
   private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
+  // 스프링 대신 발행된 이벤트를 리스트에 모은다. 파일 뒷정리는 ThumbnailCleanupListenerTest에서 본다
+  private final List<Object> events = new ArrayList<>();
   private final BookCommandService bookCommandService =
-      new BookCommandService(bookRepositoryPort, thumbnailStoragePort);
+      new BookCommandService(bookRepositoryPort, thumbnailStoragePort, events::add);
 
   private static final String OLD_URL = FakeThumbnailStoragePort.BASE_URL + "books/old.png";
-
-  // 스프링 트랜잭션이 없어서 동기화를 직접 켜고 끈다
-  @BeforeEach
-  void initSynchronization() {
-    TransactionSynchronizationManager.initSynchronization();
-  }
-
-  @AfterEach
-  void clearSynchronization() {
-    TransactionSynchronizationManager.clearSynchronization();
-  }
-
-  // 커밋 또는 롤백이 끝난 상황을 흉내 낸다
-  private void commit() {
-    TransactionSynchronizationUtils.triggerAfterCommit();
-    TransactionSynchronizationUtils.triggerAfterCompletion(STATUS_COMMITTED);
-  }
-
-  private void rollback() {
-    TransactionSynchronizationUtils.triggerAfterCompletion(STATUS_ROLLED_BACK);
-  }
 
   private BookCreateRequest request(String isbn) {
     return new BookCreateRequest(
@@ -205,25 +183,23 @@ class BookCommandServiceTest {
 
   // (1-9)
   @Test
-  @DisplayName("등록이 커밋되면 올린 파일을 지우지 않는다")
-  void createCommitKeepsNewFile() {
+  @DisplayName("썸네일과 함께 등록하면 새 키만 담은 이벤트를 발행하고 직접 지우지는 않는다")
+  void createPublishesEvent() {
     bookCommandService.create(request(null), png());
 
-    commit();
-
+    assertThat(events)
+        .containsExactly(
+            new ThumbnailChangedEvent(thumbnailStoragePort.uploadedKeys().get(0), null));
     assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
   }
 
   // (1-10)
   @Test
-  @DisplayName("등록이 롤백되면 방금 올린 파일을 지운다")
-  void createRollbackDeletesNewFile() {
-    bookCommandService.create(request(null), png());
+  @DisplayName("썸네일 없이 등록하면 이벤트를 발행하지 않는다")
+  void createWithoutThumbnailPublishesNothing() {
+    bookCommandService.create(request(null), null);
 
-    rollback();
-
-    assertThat(thumbnailStoragePort.deletedKeys())
-        .containsExactly(thumbnailStoragePort.uploadedKeys().get(0));
+    assertThat(events).isEmpty();
   }
 
   // (1-11)
@@ -323,11 +299,12 @@ class BookCommandServiceTest {
 
     assertThat(bookDto.thumbnailUrl()).isEqualTo(OLD_URL);
     assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+    assertThat(events).isEmpty();
   }
 
   // (2-5)
   @Test
-  @DisplayName("썸네일과 함께 수정하면 새 URL로 바뀌고 커밋 뒤에 이전 파일을 지운다")
+  @DisplayName("썸네일과 함께 수정하면 새 URL로 바뀌고 새 키와 이전 키를 담은 이벤트를 발행한다")
   void updateWithThumbnail() {
     Book saved = savedBook(OLD_URL);
 
@@ -335,37 +312,21 @@ class BookCommandServiceTest {
 
     String newKey = thumbnailStoragePort.uploadedKeys().get(0);
     assertThat(bookDto.thumbnailUrl()).isEqualTo(FakeThumbnailStoragePort.BASE_URL + newKey);
+    assertThat(events).containsExactly(new ThumbnailChangedEvent(newKey, "books/old.png"));
     assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
-
-    commit();
-
-    assertThat(thumbnailStoragePort.deletedKeys()).containsExactly("books/old.png");
   }
 
   // (2-6)
   @Test
-  @DisplayName("썸네일 수정이 롤백되면 새 파일만 지우고 이전 파일은 남긴다")
-  void updateRollbackDeletesOnlyNewFile() {
-    Book saved = savedBook(OLD_URL);
-    bookCommandService.update(saved.getId(), updateRequest(), png());
-
-    rollback();
-
-    assertThat(thumbnailStoragePort.deletedKeys())
-        .containsExactly(thumbnailStoragePort.uploadedKeys().get(0));
-  }
-
-  // (2-7)
-  @Test
-  @DisplayName("썸네일이 없던 도서에 썸네일을 넣으면 커밋 뒤에 지울 파일이 없다")
+  @DisplayName("썸네일이 없던 도서에 썸네일을 넣으면 이벤트에 이전 키가 없다")
   void updateAddsThumbnailToBookWithoutOne() {
     Book saved = savedBook();
 
     bookCommandService.update(saved.getId(), updateRequest(), png());
-    commit();
 
-    assertThat(thumbnailStoragePort.uploadedKeys()).hasSize(1);
-    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+    assertThat(events)
+        .containsExactly(
+            new ThumbnailChangedEvent(thumbnailStoragePort.uploadedKeys().get(0), null));
   }
 
   // (2-8)
