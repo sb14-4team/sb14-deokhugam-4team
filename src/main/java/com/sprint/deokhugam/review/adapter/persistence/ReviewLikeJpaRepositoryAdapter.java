@@ -43,4 +43,9 @@ public class ReviewLikeJpaRepositoryAdapter implements ReviewLikePersistencePort
   public long deleteAllByUserIds(List<UUID> userIds) {
     return reviewLikeQuerydslRepository.deleteAllByUserIds(userIds);
   }
+
+  @Override
+  public void deleteAllByReviewIds(List<UUID> reviewIds) {
+    reviewLikeQuerydslRepository.deleteAllByReviewIds(reviewIds);
+  }
 }

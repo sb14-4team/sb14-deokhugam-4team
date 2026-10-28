@@ -1,6 +1,6 @@
 package com.sprint.deokhugam.review.application;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -8,9 +8,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommandService;
+import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
@@ -24,6 +26,8 @@ import org.junit.jupiter.api.Test;
 class ReviewCommandServiceTest {
 
   private ReviewPersistencePort reviewPersistencePort;
+  private ReviewLikePersistencePort reviewLikePersistencePort;
+  private CommentCommandService commentCommandService;
   private ReviewCommandService reviewCommandService;
   private UUID userId;
   private UUID bookId;
@@ -32,7 +36,9 @@ class ReviewCommandServiceTest {
   @BeforeEach
   void setUp() {
     reviewPersistencePort = mock(ReviewPersistencePort.class);
-    reviewCommandService = new ReviewCommandService(reviewPersistencePort);
+    reviewCommandService =
+        new ReviewCommandService(
+            reviewPersistencePort, reviewLikePersistencePort, commentCommandService);
 
     userId = UUID.randomUUID();
     bookId = UUID.randomUUID();
