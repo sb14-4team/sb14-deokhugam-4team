@@ -24,6 +24,11 @@ public class BookRepositoryAdapter implements BookRepositoryPort {
   }
 
   @Override
+  public Optional<Book> findById(UUID bookId) {
+    return bookJpaRepository.findById(bookId);
+  }
+
+  @Override
   public boolean existsByIsbn(String isbn) {
     return bookJpaRepository.existsByIsbn(isbn);
   }

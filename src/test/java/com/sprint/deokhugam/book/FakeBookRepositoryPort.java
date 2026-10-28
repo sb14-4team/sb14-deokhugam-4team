@@ -38,6 +38,11 @@ public class FakeBookRepositoryPort implements BookRepositoryPort {
   }
 
   @Override
+  public Optional<Book> findById(UUID bookId) {
+    return books.stream().filter(book -> Objects.equals(book.getId(), bookId)).findFirst();
+  }
+
+  @Override
   public boolean existsByIsbn(String isbn) {
     return books.stream().anyMatch(book -> Objects.equals(book.getIsbn(), isbn));
   }
