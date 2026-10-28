@@ -36,7 +36,7 @@ public class Book extends BaseSoftDeletableEntity {
   @Column(name = "published_date", nullable = false)
   private LocalDate publishedDate;
 
-  @Column(unique = true, updatable = false, length = 13)
+  @Column(unique = true, updatable = false)
   private String isbn;
 
   @Column(name = "thumbnail_url", length = 2048)
