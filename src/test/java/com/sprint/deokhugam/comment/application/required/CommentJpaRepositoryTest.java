@@ -5,10 +5,13 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.adapter.persistence.CommentJpaRepository;
+import com.sprint.deokhugam.comment.adapter.persistence.CommentQuerydslRepository;
 import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
+import com.sprint.deokhugam.review.adapter.persistence.ReviewJpaRepository;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.user.adapter.persistence.UserJpaRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
@@ -32,10 +35,13 @@ import org.springframework.test.context.DynamicPropertySource;
 public class CommentJpaRepositoryTest {
 
   @Autowired private CommentJpaRepository commentJpaRepository;
+  @Autowired private CommentQuerydslRepository commentQuerydslRepository;
   @Autowired private TestEntityManager entityManager;
 
   private Review review;
   private User user;
+  @Autowired private UserJpaRepository userJpaRepository;
+  @Autowired private ReviewJpaRepository reviewJpaRepository;
 
   @DynamicPropertySource
   static void configureProperties(DynamicPropertyRegistry registry) {
@@ -117,13 +123,16 @@ public class CommentJpaRepositoryTest {
   @DisplayName("유저 ID로 댓글 리스트 조회 성공")
   void findByUser_Id() {
     // Given
+    userJpaRepository.save(user);
+    reviewJpaRepository.save(review);
+
     Comment comment1 = Comment.create(review, user, "testComment1");
     Comment comment2 = Comment.create(review, user, "testComment2");
     commentJpaRepository.save(comment1);
     commentJpaRepository.save(comment2);
 
     // When
-    List<Comment> comments = commentJpaRepository.findByUser_Id(user.getId());
+    List<Comment> comments = commentQuerydslRepository.findByUser_Id(user.getId());
 
     // Then
     assertThat(comments).hasSize(2);

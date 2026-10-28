@@ -16,7 +16,7 @@ public class CommentQuerydslRepository {
   private final JPAQueryFactory queryFactory;
 
   // review 내 ID 조회로 발생한 N+1 문제를 해결하기 위해 조인.
-  List<Comment> findByUser_Id(UUID userId) {
+  public List<Comment> findByUser_Id(UUID userId) {
     return queryFactory
         .selectFrom(comment)
         .join(comment.review)

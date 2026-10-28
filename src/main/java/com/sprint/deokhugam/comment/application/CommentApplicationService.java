@@ -13,7 +13,6 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.notification.domain.NotifyEvent;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
@@ -66,8 +65,7 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
     Comment comment = getVerifiedComment(commentId, requestUserId);
-    Comment updatedComment =
-        commentCommand.updateComment(comment.getId(), comment.getUser().getId(), updateRequest);
+    Comment updatedComment = commentCommand.updateComment(commentId, requestUserId, updateRequest);
 
     return CommentDto.from(updatedComment);
   }
@@ -133,7 +131,7 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public void deleteCommentsByReviews(List<UUID> reviewIds) {
     if (reviewIds == null || reviewIds.isEmpty()) {
-      throw new BusinessException(ReviewErrorCode.NOT_FOUND);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
 
     List<Comment> comments = commentFinder.findAllByReviewIds(reviewIds);
