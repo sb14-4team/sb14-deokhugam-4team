@@ -6,6 +6,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,9 +17,11 @@ import com.sprint.deokhugam.comment.application.dto.CommentDto;
 import com.sprint.deokhugam.comment.application.dto.CommentUpdateRequest;
 import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.review.adapter.web.ReviewApiController;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -189,7 +192,7 @@ public class CommentControllerTest {
     // When & Then
     mockMvc
         .perform(
-            delete("/api/comments/{commentsId}", commentId)
+            delete("/api/comments/{commentId}", commentId)
                 .header("Deokhugam-Request-User-ID", userId.toString()))
         .andExpect(status().isNotFound());
   }
@@ -206,5 +209,36 @@ public class CommentControllerTest {
             delete("/api/comments/{commentId}/hard", commentId)
                 .header("Deokhugam-Request-User-ID", userId.toString()))
         .andExpect(status().isNoContent());
+  }
+
+  @Test
+  @DisplayName("댓글 물리 삭제 실패 - 존재하지 않는 댓글일 경우 예외 발생")
+  void hardDelete_fail_notFound() throws Exception {
+    // Given
+    willThrow(new BusinessException(CommentErrorCode.NOT_FOUND))
+        .given(commentUsecase)
+        .hardDelete(commentId, userId);
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}/hard", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("댓글 목록 조회 성공")
+  void searchComments_success() throws Exception {
+    // Given
+    CursorPageResponse<CommentDto> pageResponse =
+        CursorPageResponse.of(List.of(), 50, CommentDto::createdAt, CommentDto::createdAt, 0L);
+
+    given(commentUsecase.searchCommentsByPagination(any())).willReturn(pageResponse);
+
+    // When & Then
+    mockMvc
+        .perform(get("/api/comments").param("reviewId", reviewId.toString()).param("limit", "50"))
+        .andExpect(status().isOk());
   }
 }
