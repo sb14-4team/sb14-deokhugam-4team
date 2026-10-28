@@ -22,8 +22,6 @@ import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -31,7 +29,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 class BookControllerTest {
 
@@ -43,7 +40,8 @@ class BookControllerTest {
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
               new BookController(
-                  new BookCommandService(bookRepositoryPort, thumbnailStoragePort),
+                  // 이벤트는 받는 사람 없이 버린다. 파일 뒷정리는 ThumbnailCleanupListenerTest에서 본다
+                  new BookCommandService(bookRepositoryPort, thumbnailStoragePort, event -> {}),
                   new BookQueryService(
                       bookRepositoryPort,
                       new FakeBookSearchPort(bookRepositoryPort),
@@ -52,17 +50,6 @@ class BookControllerTest {
                       new IsbnExtractor())))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
-
-  // 스프링 트랜잭션이 없어서 동기화를 직접 켜고 끈다
-  @BeforeEach
-  void initSynchronization() {
-    TransactionSynchronizationManager.initSynchronization();
-  }
-
-  @AfterEach
-  void clearSynchronization() {
-    TransactionSynchronizationManager.clearSynchronization();
-  }
 
   private MockMultipartFile bookData(String json) {
     return new MockMultipartFile(
