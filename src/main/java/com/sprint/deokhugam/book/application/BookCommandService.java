@@ -8,6 +8,7 @@ import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.application.required.ThumbnailStoragePort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.book.domain.Isbn;
+import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.io.IOException;
@@ -15,10 +16,9 @@ import java.net.URI;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,6 +29,7 @@ public class BookCommandService implements BookCommand {
 
   private final BookRepositoryPort bookRepositoryPort;
   private final ThumbnailStoragePort thumbnailStoragePort;
+  private final ApplicationEventPublisher eventPublisher;
 
   private static final long MAX_THUMBNAIL_BYTES = 5_000_000;
   private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png");
@@ -88,7 +89,9 @@ public class BookCommandService implements BookCommand {
     }
 
     String url = thumbnailStoragePort.upload(key, bytes, image.getContentType());
-    registerCleanup(key, previousUrl);
+    // 파일 뒷정리는 커밋, 롤백 뒤에 ThumbnailCleanupListener가 한다
+    String previousKey = previousUrl == null ? null : keyOf(previousUrl);
+    eventPublisher.publishEvent(new ThumbnailChangedEvent(key, previousKey));
     return url;
   }
 
@@ -112,26 +115,6 @@ public class BookCommandService implements BookCommand {
   private String thumbnailKey(MultipartFile image) {
     String extension = StringUtils.getFilenameExtension(image.getOriginalFilename()).toLowerCase();
     return "books/" + UUID.randomUUID() + "." + extension;
-  }
-
-  // 파일은 롤백이 안 되니 커밋 결과를 본 뒤에 정리한다
-  private void registerCleanup(String newKey, String previousUrl) {
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            if (previousUrl != null) {
-              thumbnailStoragePort.delete(keyOf(previousUrl));
-            }
-          }
-
-          @Override
-          public void afterCompletion(int status) {
-            if (status != STATUS_COMMITTED) {
-              thumbnailStoragePort.delete(newKey);
-            }
-          }
-        });
   }
 
   // DB의 썸네일 URL은 늘 우리 버킷 URL이라 경로가 곧 키다

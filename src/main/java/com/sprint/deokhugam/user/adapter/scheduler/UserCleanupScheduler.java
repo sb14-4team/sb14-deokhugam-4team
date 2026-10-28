@@ -15,9 +15,9 @@ public class UserCleanupScheduler {
 
   private final UserCleaner userCleaner;
 
-  @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
+  @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Seoul")
   public void cleanup() {
-    Instant cutoff = Instant.now().minus(Duration.ofDays(1));
+    Instant cutoff = Instant.now().minus(Duration.ofMinutes(5));
     userCleaner.cleanup(cutoff);
   }
 }

@@ -1,0 +1,53 @@
+package com.sprint.deokhugam.book.application;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
+import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+class ThumbnailCleanupListenerTest {
+
+  private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
+  private final ThumbnailCleanupListener listener =
+      new ThumbnailCleanupListener(thumbnailStoragePort);
+
+  // ===== (1) deletePreviousOnCommit() =====
+  // (1-1)
+  @Test
+  @DisplayName("커밋 뒤에는 이전 파일만 지운다")
+  void commitDeletesPrevious() {
+    listener.deletePreviousOnCommit(new ThumbnailChangedEvent("books/new.png", "books/old.png"));
+
+    assertThat(thumbnailStoragePort.deletedKeys()).containsExactly("books/old.png");
+  }
+
+  // (1-2)
+  @Test
+  @DisplayName("이전 파일이 없으면 커밋 뒤에 지울 것이 없다")
+  void commitWithoutPrevious() {
+    listener.deletePreviousOnCommit(new ThumbnailChangedEvent("books/new.png", null));
+
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+  }
+
+  // ===== (2) deleteNewOnRollback() =====
+  // (2-1)
+  @Test
+  @DisplayName("롤백 뒤에는 새 파일만 지운다")
+  void rollbackDeletesNew() {
+    listener.deleteNewOnRollback(new ThumbnailChangedEvent("books/new.png", "books/old.png"));
+
+    assertThat(thumbnailStoragePort.deletedKeys()).containsExactly("books/new.png");
+  }
+
+  // (2-2)
+  @Test
+  @DisplayName("새 파일이 없으면 롤백 뒤에 지울 것이 없다")
+  void rollbackWithoutNew() {
+    listener.deleteNewOnRollback(new ThumbnailChangedEvent(null, "books/old.png"));
+
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+  }
+}

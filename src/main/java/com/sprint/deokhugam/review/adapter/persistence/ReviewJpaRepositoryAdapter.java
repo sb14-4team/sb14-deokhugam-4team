@@ -32,6 +32,11 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   }
 
   @Override
+  public List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds) {
+    return reviewQuerydslRepository.getByIdsIncludingDeleted(reviewIds);
+  }
+
+  @Override
   public void requireActiveById(UUID reviewId) {
     reviewJpaRepository.requireActiveById(reviewId);
   }
@@ -54,5 +59,15 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   @Override
   public long count(ReviewSearchCondition condition) {
     return reviewQuerydslRepository.count(condition);
+  }
+
+  @Override
+  public long deleteAllByIds(List<UUID> reviewIds) {
+    return reviewQuerydslRepository.deleteAllByIds(reviewIds);
+  }
+
+  @Override
+  public void decreaseLikeCountsByUserIds(List<UUID> userIds) {
+    reviewJpaRepository.decreaseLikeCountsByUserIds(userIds);
   }
 }

@@ -15,4 +15,6 @@ public interface ReviewLikePersistencePort {
   Optional<ReviewLike> getByUserIdAndReviewId(UUID userId, UUID reviewId);
 
   void deleteAllByReviewId(UUID reviewId);
+
+  long deleteAllByUserIds(List<UUID> userIds);
 }

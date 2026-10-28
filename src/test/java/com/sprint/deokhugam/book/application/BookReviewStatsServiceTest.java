@@ -3,6 +3,7 @@
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
 import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +14,13 @@ class BookReviewStatsServiceTest {
 
   private Book book() {
     return Book.create(
-        "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null);
+        "클린 코드",
+        "로버트 C. 마틴",
+        "소개",
+        "인사이트",
+        LocalDate.of(2013, 12, 24),
+        Isbn.of("9788966260959"),
+        null);
   }
 
   // ===== (1) addReview() =====
