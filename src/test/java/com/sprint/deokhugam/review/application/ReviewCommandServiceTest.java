@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
@@ -28,22 +29,30 @@ class ReviewCommandServiceTest {
   private ReviewPersistencePort reviewPersistencePort;
   private ReviewLikePersistencePort reviewLikePersistencePort;
   private CommentCommandService commentCommandService;
+  private BookReviewStatsCommand bookReviewStatsCommand;
   private ReviewCommandService reviewCommandService;
   private UUID userId;
   private UUID bookId;
+  private Book book;
   private Review review;
 
   @BeforeEach
   void setUp() {
     reviewPersistencePort = mock(ReviewPersistencePort.class);
+    bookReviewStatsCommand = mock(BookReviewStatsCommand.class);
+    commentCommandService = mock(CommentCommandService.class);
+    reviewLikePersistencePort = mock(ReviewLikePersistencePort.class);
     reviewCommandService =
         new ReviewCommandService(
-            reviewPersistencePort, reviewLikePersistencePort, commentCommandService);
+            reviewPersistencePort,
+            reviewLikePersistencePort,
+            commentCommandService,
+            bookReviewStatsCommand);
 
     userId = UUID.randomUUID();
     bookId = UUID.randomUUID();
     User user = mock(User.class);
-    Book book = mock(Book.class);
+    book = mock(Book.class);
     when(user.getId()).thenReturn(userId);
     when(book.getId()).thenReturn(bookId);
     review = Review.create(5, "굳", user, book);
@@ -59,6 +68,7 @@ class ReviewCommandServiceTest {
     assertThat(savedReview.getRating()).isEqualTo(5);
     verify(reviewPersistencePort).existsByUserIdAndBookId(userId, bookId);
     verify(reviewPersistencePort).save(review);
+    verify(bookReviewStatsCommand).addReview(book, 5);
   }
 
   @Test
@@ -70,6 +80,7 @@ class ReviewCommandServiceTest {
 
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.ALREADY_EXISTS);
     verify(reviewPersistencePort, never()).save(review);
+    verify(bookReviewStatsCommand, never()).addReview(book, 5);
   }
 
   @Test
@@ -84,6 +95,7 @@ class ReviewCommandServiceTest {
     assertThat(updated.getContent()).isEqualTo("수정한 내용");
     assertThat(updated.getRating()).isEqualTo(4);
     verify(reviewPersistencePort).getByIdOrThrow(reviewId);
+    verify(bookReviewStatsCommand).changeReviewRating(book, 5, 4);
   }
 
   @Test
@@ -99,5 +111,6 @@ class ReviewCommandServiceTest {
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.FORBIDDEN);
     assertThat(review.getContent()).isEqualTo("굳");
     assertThat(review.getRating()).isEqualTo(5);
+    verify(bookReviewStatsCommand, never()).changeReviewRating(book, 5, 4);
   }
 }

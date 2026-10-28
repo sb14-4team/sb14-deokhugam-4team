@@ -5,6 +5,7 @@ import static com.sprint.deokhugam.book.domain.QBook.book;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.ComparableExpressionBase;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
@@ -51,6 +52,7 @@ public class BookSearchAdapter implements BookSearchPort {
   }
 
   // 제목·저자·ISBN 중 하나라도 키워드를 포함하면 통과 (LIKE '%키워드%', 대소문자 무시)
+  // isbn은 Isbn 타입이라 그대로 LIKE를 걸면 Hibernate가 Isbn 값을 요구한다. 문자열로 캐스팅해서 비교한다
   private BooleanExpression matchesKeyword(String keyword) {
     if (keyword == null) {
       return null;
@@ -58,7 +60,7 @@ public class BookSearchAdapter implements BookSearchPort {
     return book.title
         .containsIgnoreCase(keyword)
         .or(book.author.containsIgnoreCase(keyword))
-        .or(book.isbn.contains(keyword));
+        .or(Expressions.stringTemplate("cast({0} as string)", book.isbn).contains(keyword));
   }
 
   // ORDER BY 정렬기준 방향, createdAt 방향 (같은 값이면 등록 시각으로 가른다)

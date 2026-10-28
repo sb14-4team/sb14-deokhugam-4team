@@ -3,16 +3,21 @@ package com.sprint.deokhugam.book.adapter.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.sprint.deokhugam.book.FakeBookProviderPort;
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeBookSearchPort;
+import com.sprint.deokhugam.book.FakeOcrTextPort;
+import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
 import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
+import com.sprint.deokhugam.book.domain.IsbnExtractor;
 import com.sprint.deokhugam.common.exception.GlobalExceptionHandler;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -29,15 +34,20 @@ class BookControllerTest {
 
   private final FakeBookRepositoryPort bookRepositoryPort = new FakeBookRepositoryPort();
   private final FakeBookProviderPort bookProviderPort = new FakeBookProviderPort();
+  private final FakeOcrTextPort ocrTextPort = new FakeOcrTextPort();
+  private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
 
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
               new BookController(
-                  new BookCommandService(bookRepositoryPort),
+                  // 이벤트는 받는 사람 없이 버린다. 파일 뒷정리는 ThumbnailCleanupListenerTest에서 본다
+                  new BookCommandService(bookRepositoryPort, thumbnailStoragePort, event -> {}),
                   new BookQueryService(
                       bookRepositoryPort,
                       new FakeBookSearchPort(bookRepositoryPort),
-                      bookProviderPort)))
+                      bookProviderPort,
+                      ocrTextPort,
+                      new IsbnExtractor())))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
@@ -49,7 +59,13 @@ class BookControllerTest {
   private Book savedBook() {
     return bookRepositoryPort.save(
         Book.create(
-            "클린 코드", "로버트 C. 마틴", "소개", "인사이트", LocalDate.of(2013, 12, 24), "9788966260959", null));
+            "클린 코드",
+            "로버트 C. 마틴",
+            "소개",
+            "인사이트",
+            LocalDate.of(2013, 12, 24),
+            Isbn.of("9788966260959"),
+            null));
   }
 
   private static final String VALID_JSON =
@@ -95,7 +111,36 @@ class BookControllerTest {
         .andExpect(jsonPath("$.publishedDate").value("2013-12-24"))
         .andExpect(jsonPath("$.isbn").value("9788966260959"))
         .andExpect(jsonPath("$.reviewCount").value(0))
-        .andExpect(jsonPath("$.rating").value(0.0));
+        .andExpect(jsonPath("$.rating").value(0.0))
+        .andExpect(
+            jsonPath("$.thumbnailUrl")
+                .value(
+                    FakeThumbnailStoragePort.BASE_URL
+                        + thumbnailStoragePort.uploadedKeys().get(0)));
+  }
+
+  // (1-5)
+  @Test
+  @DisplayName("썸네일 없이 등록하면 thumbnailUrl이 없다")
+  void createWithoutThumbnail() throws Exception {
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(VALID_JSON)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.thumbnailUrl").doesNotExist());
+    assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+  }
+
+  // (1-6)
+  @Test
+  @DisplayName("썸네일이 jpg, png가 아니면 400 BOOK_INVALID_IMAGE")
+  void createWithInvalidThumbnail() throws Exception {
+    MockMultipartFile thumbnail =
+        new MockMultipartFile("thumbnailImage", "cover.gif", "image/gif", new byte[] {1, 2, 3});
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(VALID_JSON)).file(thumbnail))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_IMAGE"));
   }
 
   // (1-2)
@@ -133,6 +178,30 @@ class BookControllerTest {
         .perform(multipart("/api/books").file(bookData(VALID_JSON)))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("BOOK_DUPLICATE_ISBN"));
+  }
+
+  // (1-7)
+  @Test
+  @DisplayName("하이픈이 섞인 ISBN은 숫자 13자리로 정리해 저장한다")
+  void createWithHyphenIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "978-89-6626-095-9");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+  }
+
+  // (1-8)
+  @Test
+  @DisplayName("형식이 틀린 ISBN이면 400 BOOK_INVALID_ISBN")
+  void createWithInvalidIsbn() throws Exception {
+    String json = VALID_JSON.replace("9788966260959", "9788966260950");
+
+    mockMvc
+        .perform(multipart("/api/books").file(bookData(json)))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_ISBN"));
   }
 
   // ===== (2) GET /api/books/{bookId} : get() =====
@@ -209,7 +278,12 @@ class BookControllerTest {
         .andExpect(jsonPath("$.description").value("새 소개"))
         .andExpect(jsonPath("$.publisher").value("새 출판사"))
         .andExpect(jsonPath("$.publishedDate").value("2021-02-02"))
-        .andExpect(jsonPath("$.isbn").value("9788966260959"));
+        .andExpect(jsonPath("$.isbn").value("9788966260959"))
+        .andExpect(
+            jsonPath("$.thumbnailUrl")
+                .value(
+                    FakeThumbnailStoragePort.BASE_URL
+                        + thumbnailStoragePort.uploadedKeys().get(0)));
   }
 
   // (3-2)
@@ -472,8 +546,64 @@ class BookControllerTest {
 
   // (5-3)
   @Test
+  @DisplayName("형식이 틀린 ISBN으로 조회하면 400 BOOK_INVALID_ISBN")
+  void getInfoInvalidIsbn() throws Exception {
+    mockMvc
+        .perform(get("/api/books/info").param("isbn", "978-89-6626-095"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_ISBN"));
+  }
+
+  // (5-4)
+  @Test
   @DisplayName("/info 는 /{bookId} 가 아니라 ISBN 조회로 매칭된다")
   void getInfoIsNotTreatedAsBookId() throws Exception {
     mockMvc.perform(get("/api/books/info")).andExpect(status().isBadRequest());
+  }
+
+  // ===== (6) POST /api/books/isbn/ocr : recognizeIsbn() =====
+  private MockMultipartFile imagePart(String filename, String contentType) {
+    return new MockMultipartFile("image", filename, contentType, new byte[] {1, 2, 3});
+  }
+
+  // (6-1)
+  @Test
+  @DisplayName("이미지에서 읽은 ISBN을 200에 문자열 그대로 돌려준다")
+  void recognizeIsbn() throws Exception {
+    ocrTextPort.setText("ISBN 978-89-6626-095-9");
+
+    mockMvc
+        .perform(multipart("/api/books/isbn/ocr").file(imagePart("cover.jpg", "image/jpeg")))
+        .andExpect(status().isOk())
+        .andExpect(content().string("9788966260959"));
+  }
+
+  // (6-2)
+  @Test
+  @DisplayName("ISBN을 못 읽으면 400 BOOK_OCR_FAILED")
+  void recognizeIsbnFailed() throws Exception {
+    ocrTextPort.setText("");
+
+    mockMvc
+        .perform(multipart("/api/books/isbn/ocr").file(imagePart("cover.jpg", "image/jpeg")))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_OCR_FAILED"));
+  }
+
+  // (6-3)
+  @Test
+  @DisplayName("jpg, png가 아니면 400 BOOK_INVALID_IMAGE")
+  void recognizeIsbnInvalidImage() throws Exception {
+    mockMvc
+        .perform(multipart("/api/books/isbn/ocr").file(imagePart("cover.gif", "image/gif")))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("BOOK_INVALID_IMAGE"));
+  }
+
+  // (6-4)
+  @Test
+  @DisplayName("image 파트가 없으면 400")
+  void recognizeIsbnMissingPart() throws Exception {
+    mockMvc.perform(multipart("/api/books/isbn/ocr")).andExpect(status().isBadRequest());
   }
 }

@@ -1,5 +1,7 @@
 package com.sprint.deokhugam.review.application.provided.command;
 
+import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
+import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
@@ -22,6 +24,7 @@ public class ReviewCommandService implements ReviewCommand {
   private final ReviewPersistencePort reviewPersistencePort;
   private final ReviewLikePersistencePort reviewLikePersistencePort;
   private final CommentCommandService commentCommandService;
+  private final BookReviewStatsCommand bookReviewStatsCommand;
 
   // private final BookReviewStatsCommand bookReviewStatsCommand;
 
@@ -33,7 +36,9 @@ public class ReviewCommandService implements ReviewCommand {
       throw new BusinessException(ReviewErrorCode.ALREADY_EXISTS);
     }
 
-    return reviewPersistencePort.save(review);
+    Review saved = reviewPersistencePort.save(review);
+    bookReviewStatsCommand.addReview(saved.getBook(), saved.getRating());
+    return saved;
   }
 
   @Override
@@ -45,7 +50,9 @@ public class ReviewCommandService implements ReviewCommand {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
     }
 
+    int oldRating = review.getRating();
     review.updateContentAndRating(newContent, newRating);
+    bookReviewStatsCommand.changeReviewRating(review.getBook(), oldRating, newRating);
     return review;
   }
 
@@ -67,10 +74,11 @@ public class ReviewCommandService implements ReviewCommand {
   }
 
   @Override
-  public long deleteReviewsWithRelatedDataByIds(List<UUID> reviewIds) {
+  public long deleteReviewsWithRelatedDataByBook(Book book) {
     // commentCommandService
 
-    reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
-    return reviewPersistencePort.deleteAllByIds(reviewIds);
+    // reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
+    // return reviewPersistencePort.deleteAllByIds(reviewIds);
+    return 0L;
   }
 }

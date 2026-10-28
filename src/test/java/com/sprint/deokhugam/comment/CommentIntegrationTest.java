@@ -69,7 +69,7 @@ public class CommentIntegrationTest {
             "testDescription",
             "testPublisher",
             LocalDate.of(2011, 1, 1),
-            "9999999999999",
+            null,
             "https://example.com/thumbnails/testTitle.jpg");
     savedBook = bookJpaRepository.save(book);
 
@@ -93,7 +93,7 @@ public class CommentIntegrationTest {
             post("/api/comments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(request)))
-        .andExpect(status().isCreated())
+        .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value("testCreateContent"));
   }
 

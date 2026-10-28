@@ -62,7 +62,7 @@ public class UserApiController {
   public ResponseEntity<Void> delete(
       @RequestHeader("Deokhugam-Request-User-ID") UUID headerId, @PathVariable UUID userId) {
 
-    userCommand.delete(userId, headerId);
+    userCommand.withdraw(userId, headerId);
 
     return ResponseEntity.noContent().build();
   }
