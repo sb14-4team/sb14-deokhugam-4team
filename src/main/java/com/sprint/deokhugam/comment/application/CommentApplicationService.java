@@ -21,7 +21,6 @@ import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
-import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -113,7 +112,7 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public void deleteCommentsByUser(UUID userId) {
     if (userId == null) {
-      throw new BusinessException(UserErrorCode.NOT_FOUND);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
 
     List<Comment> comments = commentFinder.findAllByUserId(userId);
@@ -132,16 +131,14 @@ public class CommentApplicationService implements CommentUseCase {
 
   @Override
   @Transactional
-  public void deleteCommentsByReview(UUID reviewId) {
-    if (reviewId == null) {
+  public void deleteCommentsByReviews(List<UUID> reviewIds) {
+    if (reviewIds == null || reviewIds.isEmpty()) {
       throw new BusinessException(ReviewErrorCode.NOT_FOUND);
     }
 
-    List<Comment> comments = commentFinder.findAllByReviewId(reviewId);
+    List<Comment> comments = commentFinder.findAllByReviewIds(reviewIds);
     if (!comments.isEmpty()) {
-      List<UUID> commentsIds = comments.stream().map(Comment::getId).toList();
-
-      commentCommand.deleteAllByReviewId(reviewId);
+      commentCommand.deleteAllByReviewIds(reviewIds);
     }
   }
 
@@ -162,6 +159,6 @@ public class CommentApplicationService implements CommentUseCase {
   private CursorPageResponse<CommentDto> toCursorPage(
       List<CommentDto> responses, CommentSearchCondition condition, long totalElements) {
     return CursorPageResponse.of(
-        responses, condition.limit(), CommentDto::createAt, CommentDto::createAt, totalElements);
+        responses, condition.limit(), CommentDto::createdAt, CommentDto::createdAt, totalElements);
   }
 }

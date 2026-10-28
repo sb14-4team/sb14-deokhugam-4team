@@ -5,7 +5,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.adapter.persistence.CommentJpaRepository;
-import com.sprint.deokhugam.comment.adapter.persistence.CommentQuerydslRepository;
 import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
@@ -33,7 +32,6 @@ import org.springframework.test.context.DynamicPropertySource;
 public class CommentJpaRepositoryTest {
 
   @Autowired private CommentJpaRepository commentJpaRepository;
-  @Autowired private CommentQuerydslRepository commentQuerydslRepository;
   @Autowired private TestEntityManager entityManager;
 
   private Review review;

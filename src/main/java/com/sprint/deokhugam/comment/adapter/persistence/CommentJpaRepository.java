@@ -19,5 +19,5 @@ public interface CommentJpaRepository extends JpaRepository<Comment, UUID> {
 
   List<Comment> findByUser_Id(UUID userId);
 
-  List<Comment> findByReview_Id(UUID reviewId);
+  List<Comment> findByReview_IdIn(List<UUID> reviewIds);
 }

@@ -35,8 +35,8 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
   }
 
   @Override
-  public void deleteCommentsByReview(UUID reviewId) {
-    commentQuerydslRepository.deleteCommentsByReview(reviewId);
+  public void deleteCommentsByReviews(List<UUID> reviewIds) {
+    commentQuerydslRepository.deleteCommentsByReview(reviewIds);
   }
 
   @Override
@@ -45,7 +45,7 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
   }
 
   @Override
-  public List<Comment> findAllByReviewId(UUID reviewId) {
-    return jpaRepository.findByReview_Id(reviewId);
+  public List<Comment> findAllByReviewIds(List<UUID> reviewIds) {
+    return jpaRepository.findByReview_IdIn(reviewIds);
   }
 }

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 public class CommentCommandServiceTest {
@@ -41,6 +42,7 @@ public class CommentCommandServiceTest {
   @Mock private ReviewFinder reviewFinder;
   @Mock private Review review;
   @Mock private User user;
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks private CommentApplicationService commentApplicationService;
 
@@ -64,6 +66,7 @@ public class CommentCommandServiceTest {
 
     given(reviewFinder.getByIdOrThrow(reviewId)).willReturn(review);
     given(userFinder.findById(userId)).willReturn(user);
+    given(review.getUser()).willReturn(user);
 
     Comment comment = Comment.create(review, user, createRequest.content());
     given(commentCommand.createComment(any(Comment.class))).willReturn(comment);
@@ -124,7 +127,7 @@ public class CommentCommandServiceTest {
     given(review.getId()).willReturn(reviewId);
 
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
-    Comment comment = Comment.create(review, user, updateRequest.Content());
+    Comment comment = Comment.create(review, user, updateRequest.content());
 
     Comment spyComment = spy(comment);
     given(spyComment.getId()).willReturn(commentId);

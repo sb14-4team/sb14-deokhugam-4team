@@ -111,7 +111,7 @@ public class CommentControllerTest {
             reviewId,
             userId,
             "testNickname",
-            updateRequest.Content(),
+            updateRequest.content(),
             Instant.now(),
             Instant.now());
 

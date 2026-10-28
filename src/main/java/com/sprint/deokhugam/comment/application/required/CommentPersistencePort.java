@@ -12,11 +12,11 @@ public interface CommentPersistencePort {
 
   List<Comment> findAllByUserId(UUID userId);
 
-  List<Comment> findAllByReviewId(UUID reviewId);
+  List<Comment> findAllByReviewIds(List<UUID> reviewIds);
 
   void delete(Comment comment);
 
   void deleteCommentsByUser(UUID userId);
 
-  void deleteCommentsByReview(UUID reviewId);
+  void deleteCommentsByReviews(List<UUID> reviewIds);
 }
