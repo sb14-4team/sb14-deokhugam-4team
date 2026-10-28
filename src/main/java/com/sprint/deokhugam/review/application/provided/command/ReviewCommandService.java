@@ -1,5 +1,6 @@
 package com.sprint.deokhugam.review.application.provided.command;
 
+import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ReviewCommandService implements ReviewCommand {
   private final ReviewPersistencePort reviewPersistencePort;
+  private final BookReviewStatsCommand bookReviewStatsCommand;
 
   // private final BookReviewStatsCommand bookReviewStatsCommand;
 
@@ -29,7 +31,9 @@ public class ReviewCommandService implements ReviewCommand {
       throw new BusinessException(ReviewErrorCode.ALREADY_EXISTS);
     }
 
-    return reviewPersistencePort.save(review);
+    Review saved = reviewPersistencePort.save(review);
+    bookReviewStatsCommand.addReview(saved.getBook(), saved.getRating());
+    return saved;
   }
 
   @Override
@@ -41,7 +45,9 @@ public class ReviewCommandService implements ReviewCommand {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
     }
 
+    int oldRating = review.getRating();
     review.updateContentAndRating(newContent, newRating);
+    bookReviewStatsCommand.changeReviewRating(review.getBook(), oldRating, newRating);
     return review;
   }
 

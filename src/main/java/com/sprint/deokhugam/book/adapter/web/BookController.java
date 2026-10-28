@@ -37,12 +37,11 @@ public class BookController {
   private final BookCommand bookCommand;
   private final BookFinder bookFinder;
 
-  // thumbnailImage는 명세에 맞춰 받기만 한다. S3 저장은 A06에서 연결
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> create(
       @RequestPart("bookData") @Valid BookCreateRequest bookData,
       @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage) {
-    BookDto bookDto = bookCommand.create(bookData);
+    BookDto bookDto = bookCommand.create(bookData, thumbnailImage);
     return ResponseEntity.status(HttpStatus.CREATED).body(bookDto);
   }
 
@@ -66,17 +65,23 @@ public class BookController {
     return ResponseEntity.ok(bookFinder.getBookInfo(isbn));
   }
 
+  // 응답은 JSON이 아니라 ISBN 문자열 하나다. FE가 본문을 그대로 isbn 칸에 넣는다
+  @PostMapping(value = "/isbn/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<String> recognizeIsbn(@RequestPart("image") MultipartFile image) {
+    return ResponseEntity.ok(bookFinder.recognizeIsbn(image));
+  }
+
   @GetMapping("/{bookId}")
   public ResponseEntity<BookDto> get(@PathVariable UUID bookId) {
     return ResponseEntity.ok(bookFinder.getById(bookId));
   }
 
-  // 등록과 같은 multipart 형식. 썸네일 교체는 A06에서 연결
+  // 등록과 같은 multipart 형식
   @PatchMapping(value = "/{bookId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> update(
       @PathVariable UUID bookId,
       @RequestPart("bookData") @Valid BookUpdateRequest bookData,
       @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage) {
-    return ResponseEntity.ok(bookCommand.update(bookId, bookData));
+    return ResponseEntity.ok(bookCommand.update(bookId, bookData, thumbnailImage));
   }
 }

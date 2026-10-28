@@ -1,6 +1,6 @@
 package com.sprint.deokhugam.comment.application.required;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 
 import com.sprint.deokhugam.book.domain.Book;
@@ -13,6 +13,7 @@ import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,7 +35,6 @@ public class CommentJpaRepositoryTest {
   @Autowired private TestEntityManager entityManager;
 
   private Review review;
-  private Book book;
   private User user;
 
   @DynamicPropertySource
@@ -48,14 +48,14 @@ public class CommentJpaRepositoryTest {
     user = User.create("testNickname", Email.to("test@example.com"), Password.to("abcd1234!"));
     entityManager.persist(user);
 
-    book =
+    Book book =
         Book.create(
             "testTitle",
             "testAuthor",
             "testDescription",
             "testPublisher",
             LocalDate.of(2011, 1, 1),
-            "9999999999999",
+            null,
             "https://example.com/thumbnails/testTitle.jpg");
     entityManager.persist(book);
 
@@ -111,5 +111,24 @@ public class CommentJpaRepositoryTest {
     // Then
     Comment updatedComment = commentJpaRepository.getByIdOrThrow(savedComment.getId());
     assertThat(updatedComment.getContent()).isEqualTo("testUpdatedContent");
+  }
+
+  @Test
+  @DisplayName("유저 ID로 댓글 리스트 조회 성공")
+  void findByUser_Id() {
+    // Given
+    Comment comment1 = Comment.create(review, user, "testComment1");
+    Comment comment2 = Comment.create(review, user, "testComment2");
+    commentJpaRepository.save(comment1);
+    commentJpaRepository.save(comment2);
+
+    // When
+    List<Comment> comments = commentJpaRepository.findByUser_Id(user.getId());
+
+    // Then
+    assertThat(comments).hasSize(2);
+    assertThat(comments)
+        .extracting(Comment::getContent)
+        .containsExactlyInAnyOrder("testComment1", "testComment2");
   }
 }

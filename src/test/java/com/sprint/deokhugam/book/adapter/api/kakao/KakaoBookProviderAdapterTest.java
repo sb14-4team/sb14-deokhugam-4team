@@ -8,8 +8,13 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
+import com.sprint.deokhugam.book.domain.Isbn;
+import com.sun.net.httpserver.HttpServer;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -32,6 +37,10 @@ class KakaoBookProviderAdapterTest {
 
   // 카카오 실제 응답 모양. price처럼 안 쓰는 필드도 섞어서 무시되는지 본다
   private static String kakaoJson(String thumbnail) {
+    return kakaoJson(thumbnail, "8966260950 9788966260959");
+  }
+
+  private static String kakaoJson(String thumbnail, String isbn) {
     return """
         {
           "meta": {"is_end": true, "pageable_count": 1, "total_count": 1},
@@ -41,14 +50,14 @@ class KakaoBookProviderAdapterTest {
             "publisher": "인사이트",
             "authors": ["로버트 C. 마틴", "박재호"],
             "datetime": "2013-12-24T00:00:00.000+09:00",
-            "isbn": "8966260950 9788966260959",
+            "isbn": "%s",
             "thumbnail": "%s",
             "price": 33000,
             "status": "정상판매"
           }]
         }
         """
-        .formatted(thumbnail);
+        .formatted(isbn, thumbnail);
   }
 
   @Test
@@ -59,7 +68,7 @@ class KakaoBookProviderAdapterTest {
         .andExpect(header("Authorization", "KakaoAK test-key"))
         .andRespond(withSuccess(kakaoJson(""), MediaType.APPLICATION_JSON));
 
-    Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+    Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
     assertThat(result).isPresent();
     BookInfoDto info = result.get();
@@ -74,13 +83,32 @@ class KakaoBookProviderAdapterTest {
   }
 
   @Test
+  @DisplayName("공백으로 나뉜 isbn은 순서와 상관없이 13자리를 고르고, 10자리만 있으면 그대로 넘긴다")
+  void findByIsbn_picksIsbn() {
+    server
+        .expect(requestTo(SEARCH_URL))
+        .andRespond(
+            withSuccess(kakaoJson("", "9788966260959 8966260950"), MediaType.APPLICATION_JSON));
+    server
+        .expect(requestTo(SEARCH_URL))
+        .andRespond(withSuccess(kakaoJson("", " 8966260950 "), MediaType.APPLICATION_JSON));
+
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959")))
+        .map(BookInfoDto::isbn)
+        .contains("9788966260959");
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959")))
+        .map(BookInfoDto::isbn)
+        .contains("8966260950");
+  }
+
+  @Test
   @DisplayName("documents가 비어 있으면 빈 Optional을 돌려준다")
   void findByIsbn_emptyDocuments() {
     server
         .expect(requestTo(SEARCH_URL))
         .andRespond(withSuccess("{\"documents\": []}", MediaType.APPLICATION_JSON));
 
-    assertThat(adapter.findByIsbn("9788966260959")).isEmpty();
+    assertThat(adapter.findByIsbn(Isbn.of("9788966260959"))).isEmpty();
   }
 
   @Test
@@ -88,8 +116,43 @@ class KakaoBookProviderAdapterTest {
   void findByIsbn_serverError() {
     server.expect(requestTo(SEARCH_URL)).andRespond(withServerError());
 
-    assertThatThrownBy(() -> adapter.findByIsbn("9788966260959"))
+    assertThatThrownBy(() -> adapter.findByIsbn(Isbn.of("9788966260959")))
         .isInstanceOf(RestClientException.class);
+  }
+
+  @Test
+  @DisplayName("fname이 인코딩된 썸네일 URL을 그대로 요청해 이미지 바이트를 받는다 (두 번 인코딩하면 403)")
+  void findByIsbn_downloadsThumbnailWithEncodedUrl() throws Exception {
+    // 카카오 썸네일 서버 대신 받은 쿼리 문자열을 기록하고 이미지 바이트를 돌려주는 로컬 서버
+    byte[] image = {1, 2, 3};
+    AtomicReference<String> receivedQuery = new AtomicReference<>();
+    HttpServer thumbServer = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    thumbServer.createContext(
+        "/thumb/",
+        exchange -> {
+          receivedQuery.set(exchange.getRequestURI().getRawQuery());
+          exchange.sendResponseHeaders(200, image.length);
+          try (OutputStream body = exchange.getResponseBody()) {
+            body.write(image);
+          }
+        });
+    thumbServer.start();
+    try {
+      String encodedQuery = "fname=http%3A%2F%2Ft1.daumcdn.net%2Flbook%2Fimage%2F545848";
+      String thumbnailUrl =
+          "http://127.0.0.1:" + thumbServer.getAddress().getPort() + "/thumb/?" + encodedQuery;
+      server
+          .expect(requestTo(SEARCH_URL))
+          .andRespond(withSuccess(kakaoJson(thumbnailUrl), MediaType.APPLICATION_JSON));
+
+      Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
+
+      assertThat(receivedQuery.get()).isEqualTo(encodedQuery);
+      assertThat(result).isPresent();
+      assertThat(result.get().thumbnailImage()).isEqualTo(image);
+    } finally {
+      thumbServer.stop(0);
+    }
   }
 
   @Test
@@ -101,7 +164,7 @@ class KakaoBookProviderAdapterTest {
         .andRespond(
             withSuccess(kakaoJson("http://127.0.0.1:1/cover.jpg"), MediaType.APPLICATION_JSON));
 
-    Optional<BookInfoDto> result = adapter.findByIsbn("9788966260959");
+    Optional<BookInfoDto> result = adapter.findByIsbn(Isbn.of("9788966260959"));
 
     assertThat(result).isPresent();
     assertThat(result.get().title()).isEqualTo("클린 코드");
