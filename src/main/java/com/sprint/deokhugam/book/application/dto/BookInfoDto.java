@@ -10,4 +10,10 @@ public record BookInfoDto(
     String publisher,
     LocalDate publishedDate,
     String isbn,
-    byte[] thumbnailImage) {} // Jackson이 Base64 문자열로 내보낸다
+    byte[] thumbnailImage) { // Jackson이 Base64 문자열로 내보낸다
+
+  public BookInfoDto withIsbn(String isbn) {
+    return new BookInfoDto(
+        title, author, description, publisher, publishedDate, isbn, thumbnailImage);
+  }
+}
