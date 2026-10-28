@@ -5,6 +5,7 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -33,6 +34,7 @@ public class Comment extends BaseSoftDeletableEntity {
   @JoinColumn(name = "user_id")
   User user;
 
+  @Column(name = "content")
   String content;
 
   public static Comment create(Review review, User user, String content) {
@@ -46,7 +48,7 @@ public class Comment extends BaseSoftDeletableEntity {
     this.content = newContent;
   }
 
-  public boolean verifyCommentUpdate(UUID userId) {
+  public boolean verifyCommentId(UUID userId) {
     return this.getUser().getId().equals(userId);
   }
 }
