@@ -75,4 +75,9 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   public List<UUID> getIdsByUserIds(List<UUID> userIds) {
     return reviewQuerydslRepository.getIdsByUserIds(userIds);
   }
+
+  @Override
+  public List<UUID> getIdsByBookId(UUID bookId) {
+    return reviewQuerydslRepository.getIdsByBookId(bookId);
+  }
 }

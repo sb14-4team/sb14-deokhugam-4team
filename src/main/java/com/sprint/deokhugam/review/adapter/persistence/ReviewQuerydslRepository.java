@@ -62,6 +62,10 @@ public class ReviewQuerydslRepository {
     return queryFactory.select(review.id).from(review).where(review.user.id.in(userIds)).fetch();
   }
 
+  public List<UUID> getIdsByBookId(UUID bookId) {
+    return queryFactory.select(review.id).from(review).where(review.book.id.eq(bookId)).fetch();
+  }
+
   public long deleteAllByIds(List<UUID> reviewIds) {
     return queryFactory.delete(review).where(review.id.in(reviewIds)).execute();
   }

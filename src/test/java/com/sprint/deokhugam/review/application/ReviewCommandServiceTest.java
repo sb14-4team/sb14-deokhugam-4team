@@ -2,6 +2,7 @@ package com.sprint.deokhugam.review.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -17,10 +18,12 @@ import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePor
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
+import java.util.List;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 // 단위테스트 용
 @Slf4j
@@ -112,5 +115,33 @@ class ReviewCommandServiceTest {
     assertThat(review.getContent()).isEqualTo("굳");
     assertThat(review.getRating()).isEqualTo(5);
     verify(bookReviewStatsCommand, never()).changeReviewRating(book, 5, 4);
+  }
+
+  @Test
+  void 도서_물리삭제_리뷰정리_좋아요_댓글_리뷰순서로지운다() {
+    List<UUID> reviewIds = List.of(UUID.randomUUID(), UUID.randomUUID());
+    when(reviewPersistencePort.getIdsByBookId(bookId)).thenReturn(reviewIds);
+    when(reviewPersistencePort.deleteAllByIds(reviewIds)).thenReturn(2L);
+
+    long deleted = reviewCommandService.deleteReviewsWithRelatedDataByBook(book);
+
+    assertThat(deleted).isEqualTo(2L);
+    InOrder inOrder =
+        inOrder(reviewLikePersistencePort, commentCommandService, reviewPersistencePort);
+    inOrder.verify(reviewLikePersistencePort).deleteAllByReviewIds(reviewIds);
+    inOrder.verify(commentCommandService).deleteAllByReviewIds(reviewIds);
+    inOrder.verify(reviewPersistencePort).deleteAllByIds(reviewIds);
+  }
+
+  @Test
+  void 도서_물리삭제_리뷰가없으면_아무것도지우지않는다() {
+    when(reviewPersistencePort.getIdsByBookId(bookId)).thenReturn(List.of());
+
+    long deleted = reviewCommandService.deleteReviewsWithRelatedDataByBook(book);
+
+    assertThat(deleted).isZero();
+    verify(reviewLikePersistencePort, never()).deleteAllByReviewIds(List.of());
+    verify(commentCommandService, never()).deleteAllByReviewIds(List.of());
+    verify(reviewPersistencePort, never()).deleteAllByIds(List.of());
   }
 }
