@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.book.adapter.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -605,5 +606,35 @@ class BookControllerTest {
   @DisplayName("image 파트가 없으면 400")
   void recognizeIsbnMissingPart() throws Exception {
     mockMvc.perform(multipart("/api/books/isbn/ocr")).andExpect(status().isBadRequest());
+  }
+
+  // ===== (6) DELETE /api/books/{bookId} : BookController.delete() =====
+  // (6-1)
+  @Test
+  @DisplayName("도서를 논리 삭제하면 204를 돌려주고 다시 조회하면 404다")
+  void deleteBook() throws Exception {
+    Book saved = savedBook();
+
+    mockMvc.perform(delete("/api/books/{bookId}", saved.getId())).andExpect(status().isNoContent());
+
+    assertThat(saved.isDeleted()).isTrue();
+    mockMvc.perform(get("/api/books/{bookId}", saved.getId())).andExpect(status().isNotFound());
+  }
+
+  // (6-2)
+  @Test
+  @DisplayName("없는 도서를 논리 삭제하면 404를 돌려준다")
+  void deleteNotFound() throws Exception {
+    mockMvc
+        .perform(delete("/api/books/{bookId}", UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
+  // (6-3)
+  @Test
+  @DisplayName("도서 id가 UUID 형식이 아니면 400을 돌려준다")
+  void deleteWithInvalidId() throws Exception {
+    mockMvc.perform(delete("/api/books/{bookId}", "not-a-uuid")).andExpect(status().isBadRequest());
   }
 }

@@ -76,6 +76,16 @@ public class BookCommandService implements BookCommand {
     return BookDto.from(book);
   }
 
+  @Override
+  public void delete(UUID bookId) {
+    Book book =
+        bookRepositoryPort
+            .findActiveById(bookId)
+            .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
+    // deletedAt만 찍는다. 변경 감지로 UPDATE 되고, 리뷰와 파일은 그대로 둔다
+    book.softDelete();
+  }
+
   // 등록이면 previousUrl은 null
   private String storeThumbnail(MultipartFile image, String previousUrl) {
     validateThumbnail(image);

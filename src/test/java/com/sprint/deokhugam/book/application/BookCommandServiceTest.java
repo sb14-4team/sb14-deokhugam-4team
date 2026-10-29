@@ -347,4 +347,42 @@ class BookCommandServiceTest {
     assertThat(saved.getThumbnailUrl()).isEqualTo(OLD_URL);
     assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
   }
+
+  // ===== (3) delete() =====
+  // (3-1)
+  @Test
+  @DisplayName("논리 삭제하면 deletedAt이 찍히고 활성 조회에서 빠지지만 저장소에는 남는다")
+  void delete() {
+    Book saved = savedBook(OLD_URL);
+
+    bookCommandService.delete(saved.getId());
+
+    assertThat(saved.isDeleted()).isTrue();
+    assertThat(bookRepositoryPort.findActiveById(saved.getId())).isEmpty();
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+    assertThat(events).isEmpty();
+  }
+
+  // (3-2)
+  @Test
+  @DisplayName("없는 도서를 논리 삭제하면 NOT_FOUND 예외가 발생한다")
+  void deleteNotFound() {
+    assertThatThrownBy(() -> bookCommandService.delete(UUID.randomUUID()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
+
+  // (3-3)
+  @Test
+  @DisplayName("이미 논리 삭제된 도서를 다시 논리 삭제하면 NOT_FOUND 예외가 발생한다")
+  void deleteAlreadyDeleted() {
+    Book saved = savedBook();
+    saved.softDelete();
+
+    assertThatThrownBy(() -> bookCommandService.delete(saved.getId()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
 }
