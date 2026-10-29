@@ -22,6 +22,7 @@
         <maxHistory>30</maxHistory>
       </rollingPolicy>
       <encoder>
+        <charset>UTF-8</charset>
         <pattern>${LOG_PATTERN}</pattern>
       </encoder>
     </appender>
@@ -40,6 +41,7 @@
         <maxHistory>30</maxHistory>
       </rollingPolicy>
       <encoder>
+        <charset>UTF-8</charset>
         <pattern>${LOG_PATTERN}</pattern>
       </encoder>
     </appender>
@@ -58,6 +60,7 @@
         <maxHistory>30</maxHistory>
       </rollingPolicy>
       <encoder>
+        <charset>UTF-8</charset>
         <pattern>${LOG_PATTERN}</pattern>
       </encoder>
     </appender>

@@ -78,16 +78,31 @@ es PUT /_ilm/policy/deokhugam-logs -d @- <<'JSON'
 JSON
 
 step "ES: logback 한 줄을 필드로 나누는 인제스트 파이프라인"
-# 패턴: %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %kvp %msg
+# dev 패턴: %d [%thread] %-5level %logger{36} [requestId=.. | clientIp=.. | method=.. | uri=..] - %kvp %msg
+# dev 외 패턴: 같은데 [요청 정보] 부분이 없다
 es PUT /_ingest/pipeline/deokhugam-logs -d @- <<'JSON'
 {
-  "description": "logback 줄(날짜 [스레드] 레벨 로거 - 메시지)을 필드로 나눈다",
+  "description": "logback 줄(날짜 [스레드] 레벨 로거 [요청 정보] - 메시지)을 필드로 나눈다",
   "processors": [
     { "dissect": {
+        "description": "dev 패턴: 로거 뒤에 MDC 요청 정보가 붙는다",
+        "field": "message",
+        "pattern": "%{log_time} %{+log_time} [%{process.thread.name}] %{log.level->} %{log.logger} [requestId=%{http.request.id} | clientIp=%{client.ip} | method=%{http.request.method} | uri=%{url.path}] - %{log_message}",
+        "append_separator": " ",
+        "ignore_failure": true } },
+    { "dissect": {
+        "description": "요청 정보가 없는 패턴 (dev 외 프로필)",
+        "if": "ctx.log_time == null",
         "field": "message",
         "pattern": "%{log_time} %{+log_time} [%{process.thread.name}] %{log.level->} %{log.logger} - %{log_message}",
         "append_separator": " ",
         "ignore_failure": true } },
+    { "trim": { "field": "log.logger", "ignore_missing": true } },
+    { "remove": {
+        "description": "요청 밖에서 찍힌 로그는 요청 정보가 none이라 지운다",
+        "if": "ctx.http?.request?.id == 'none'",
+        "field": ["http", "client", "url"],
+        "ignore_missing": true } },
     { "date": {
         "if": "ctx.log_time != null",
         "field": "log_time",
@@ -118,7 +133,10 @@ es PUT /_index_template/deokhugam-logs -d @- <<'JSON'
         "@timestamp": { "type": "date" },
         "message": { "type": "text" },
         "log": { "properties": { "level": { "type": "keyword" }, "logger": { "type": "keyword" } } },
-        "process": { "properties": { "thread": { "properties": { "name": { "type": "keyword" } } } } }
+        "process": { "properties": { "thread": { "properties": { "name": { "type": "keyword" } } } } },
+        "http": { "properties": { "request": { "properties": { "id": { "type": "keyword" }, "method": { "type": "keyword" } } } } },
+        "client": { "properties": { "ip": { "type": "keyword" } } },
+        "url": { "properties": { "path": { "type": "keyword" } } }
       }
     }
   }

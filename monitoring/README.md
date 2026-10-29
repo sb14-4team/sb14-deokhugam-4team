@@ -146,11 +146,12 @@ curl -s -u elastic:$ELASTIC_PASSWORD "localhost:9200/_ilm/policy/deokhugam-logs?
 
 ## 4단계. 인제스트 파이프라인 (로그 한 줄 → 필드)
 
-앱 로그 한 줄(`logback-spring.xml`의 dev 패턴):
+앱 로그 한 줄(`logback-spring.xml`의 dev 패턴, 로거 뒤에 MDC 요청 정보가 붙음):
 ```
-2026-10-29 19:18:14.872 [http-nio-8080-exec-2] INFO  o.s.api.AbstractOpenApiResource -  Init duration ...
+2026-10-29 22:53:42.788 [http-nio-8080-exec-3] INFO  c.s.d.c.e.GlobalExceptionHandler     [requestId=9be6... | clientIp=0:0:0:0:0:0:0:1 | method=GET | uri=/api/books/x] -  잘못된 요청: ...
+2026-10-29 22:53:23.988 [main] INFO  c.s.deokhugam.DeokhugamApplication     [requestId=none | clientIp=none | method=none | uri=none] -  Started DeokhugamApplication ...
 ```
-이것을 `@timestamp`, `process.thread.name`, `log.level`, `log.logger`, `message`로 나눕니다. ES에 저장되기 직전에 실행됩니다.
+이것을 `@timestamp`, `process.thread.name`, `log.level`, `log.logger`, `http.request.id`, `client.ip`, `http.request.method`, `url.path`, `message`로 나눕니다. ES에 저장되기 직전에 실행됩니다.
 
 **먼저 저장하지 않고 시험(`_simulate`)** — 파이프라인 정의와 시험 문서를 함께 보냅니다.
 ```bash
@@ -159,30 +160,46 @@ curl -s -u elastic:$ELASTIC_PASSWORD -X POST "localhost:9200/_ingest/pipeline/_s
   "pipeline": {
     "processors": [
       { "dissect": { "field": "message",
-          "pattern": "%{log_time} %{+log_time} [%{process.thread.name}] %{log.level->} %{log.logger} - %{log_message}" } }
+          "pattern": "%{log_time} %{+log_time} [%{process.thread.name}] %{log.level->} %{log.logger} [requestId=%{http.request.id} | clientIp=%{client.ip} | method=%{http.request.method} | uri=%{url.path}] - %{log_message}" } }
     ]
   },
   "docs": [
-    { "_source": { "message": "2026-10-29 19:18:14.872 [main] INFO  c.s.d.BookService - 시험 메시지" } }
+    { "_source": { "message": "2026-10-29 22:53:42.788 [http-nio-8080-exec-3] INFO  c.s.d.c.e.GlobalExceptionHandler     [requestId=9be614108a2c41da85a14b61aa750ee7 | clientIp=0:0:0:0:0:0:0:1 | method=GET | uri=/api/books/x] -  잘못된 요청: bookId" } }
   ]
 }
 JSON
 ```
 
-결과의 `log_time`을 보세요. `2026-10-2919:18:14.872`처럼 **날짜와 시각이 붙어** 있습니다. `%{+log_time}`은 앞 조각에 "이어 붙이기"인데, 기본 구분자가 빈 문자열이기 때문입니다.
-이대로 날짜 처리기에 넣으면 파싱이 실패하고 ES가 로그를 거부합니다(실제로 겪은 문제).
+결과에서 세 가지가 아직 이상합니다.
+- `log_time`이 `2026-10-2922:53:42.788`처럼 **날짜와 시각이 붙어** 있습니다. `%{+log_time}`은 앞 조각에 "이어 붙이기"인데 기본 구분자가 빈 문자열이기 때문입니다. 이대로 날짜 처리기에 넣으면 파싱이 실패하고 ES가 로그를 거부합니다(실제로 겪은 문제).
+- `log.logger` 끝에 공백이 남습니다(패턴의 줄바꿈이 공백으로 찍힘).
+- `log_message` 앞에 공백이 있습니다(`%kvp`가 비어서).
 
 **고친 버전을 저장**:
 ```bash
 curl -s -u elastic:$ELASTIC_PASSWORD -X PUT localhost:9200/_ingest/pipeline/deokhugam-logs -H "Content-Type: application/json" --data-binary @- <<'JSON'
 {
-  "description": "logback 줄(날짜 [스레드] 레벨 로거 - 메시지)을 필드로 나눈다",
+  "description": "logback 줄(날짜 [스레드] 레벨 로거 [요청 정보] - 메시지)을 필드로 나눈다",
   "processors": [
     { "dissect": {
+        "description": "dev 패턴: 로거 뒤에 MDC 요청 정보가 붙는다",
+        "field": "message",
+        "pattern": "%{log_time} %{+log_time} [%{process.thread.name}] %{log.level->} %{log.logger} [requestId=%{http.request.id} | clientIp=%{client.ip} | method=%{http.request.method} | uri=%{url.path}] - %{log_message}",
+        "append_separator": " ",
+        "ignore_failure": true } },
+    { "dissect": {
+        "description": "요청 정보가 없는 패턴 (dev 외 프로필)",
+        "if": "ctx.log_time == null",
         "field": "message",
         "pattern": "%{log_time} %{+log_time} [%{process.thread.name}] %{log.level->} %{log.logger} - %{log_message}",
         "append_separator": " ",
         "ignore_failure": true } },
+    { "trim": { "field": "log.logger", "ignore_missing": true } },
+    { "remove": {
+        "description": "요청 밖에서 찍힌 로그는 요청 정보가 none이라 지운다",
+        "if": "ctx.http?.request?.id == 'none'",
+        "field": ["http", "client", "url"],
+        "ignore_missing": true } },
     { "date": {
         "if": "ctx.log_time != null",
         "field": "log_time",
@@ -199,25 +216,32 @@ JSON
 
 | 처리기 | 하는 일 |
 |---|---|
-| `dissect` | 구분자로 자릅니다. `append_separator: " "`로 날짜·시각 사이에 공백을 넣습니다. `%{log.level->}`의 `->`는 `%-5level`이 넣은 여러 칸 공백을 건너뜁니다. 형식이 다른 줄은 `ignore_failure`로 그대로 둡니다 |
+| `dissect` (1) | dev 패턴으로 자릅니다. `append_separator: " "`로 날짜·시각 사이에 공백을 넣습니다. `%{log.level->}`의 `->`는 `%-5level`이 넣은 여러 칸 공백을 건너뜁니다. 맞지 않는 줄은 `ignore_failure`로 그냥 넘깁니다 |
+| `dissect` (2) | (1)이 실패했을 때만(`if: ctx.log_time == null`) 요청 정보가 없는 패턴으로 다시 시도합니다 |
+| `trim` | `log.logger` 끝 공백 제거 |
+| `remove` | 요청 밖 로그(앱 시작 등)는 요청 정보가 전부 `none`이라 지웁니다. `ctx.http?.request?.id`의 `?.`는 필드가 없어도 오류 없이 넘어가는 문법(painless) |
 | `date` | `log_time` → `@timestamp`. 시간대를 안 주면 UTC로 읽어 9시간 어긋납니다. 실패해도 버리지 않고 `tags`에 표시만 합니다 |
-| `set` | 줄 전체였던 `message`를 본문만으로 바꿉니다 |
-| `trim` | `%kvp`가 비면 생기는 앞 공백을 지웁니다 |
+| `set` + `trim` | 줄 전체였던 `message`를 본문만으로 바꾸고 앞 공백을 지웁니다 |
 | `remove` | 임시 필드를 지웁니다 |
 
-**저장한 파이프라인으로 시험** — 정상 줄, 스택 트레이스, 형식이 다른 줄:
+**저장한 파이프라인으로 시험** — 요청 로그, 요청 밖 로그, 스택 트레이스, 요청 정보 없는 형식, 형식이 다른 줄:
 ```bash
 curl -s -u elastic:$ELASTIC_PASSWORD -X POST "localhost:9200/_ingest/pipeline/deokhugam-logs/_simulate?pretty" -H "Content-Type: application/json" --data-binary @- <<'JSON'
 {
   "docs": [
-    { "_source": { "message": "2026-10-29 19:18:14.872 [main] INFO  c.s.d.BookService - 시험 메시지" } },
-    { "_source": { "message": "2026-10-29 19:20:00.001 [main] ERROR c.s.d.BookService - 삭제 실패\njava.lang.IllegalStateException: boom\n\tat c.s.d.BookService.delete(BookService.java:10)" } },
+    { "_source": { "message": "2026-10-29 22:53:42.788 [http-nio-8080-exec-3] INFO  c.s.d.c.e.GlobalExceptionHandler     [requestId=9be614108a2c41da85a14b61aa750ee7 | clientIp=0:0:0:0:0:0:0:1 | method=GET | uri=/api/books/x] -  잘못된 요청: bookId" } },
+    { "_source": { "message": "2026-10-29 22:53:23.988 [main] INFO  c.s.deokhugam.DeokhugamApplication     [requestId=none | clientIp=none | method=none | uri=none] -  Started DeokhugamApplication" } },
+    { "_source": { "message": "2026-10-29 19:20:00.001 [main] ERROR c.s.d.BookService     [requestId=abc | clientIp=127.0.0.1 | method=DELETE | uri=/api/books/1] -  삭제 실패\njava.lang.IllegalStateException: boom\n\tat c.s.d.BookService.delete(BookService.java:10)" } },
+    { "_source": { "message": "2026-10-29 19:18:14.872 [main] INFO  c.s.d.BookService - 요청 정보 없는 형식" } },
     { "_source": { "message": "형식이 다른 줄" } }
   ]
 }
 JSON
 ```
-`@timestamp`가 `...+09:00`으로, `log.level`이 `INFO`/`ERROR`로 나오고, 세 번째는 `message`만 남으면 성공입니다.
+성공 기준: `@timestamp`가 `...+09:00`, 첫 번째·세 번째에 `http.request.id`·`client.ip`·`url.path`가 있고, 두 번째에는 없고, 다섯 번째는 `message`만 남습니다.
+
+> 로그 파일은 UTF-8로 씁니다(`logback-spring.xml` 파일 appender의 `<charset>UTF-8</charset>`). 한국어 Windows에서는 Gradle이 JVM 기본 인코딩을 CP949로 넘겨서, 이 설정이 없으면 Filebeat(UTF-8로 읽음)를 거친 한글이 Kibana에서 깨집니다.
+
 
 ---
 
@@ -242,7 +266,10 @@ curl -s -u elastic:$ELASTIC_PASSWORD -X PUT localhost:9200/_index_template/deokh
         "@timestamp": { "type": "date" },
         "message": { "type": "text" },
         "log": { "properties": { "level": { "type": "keyword" }, "logger": { "type": "keyword" } } },
-        "process": { "properties": { "thread": { "properties": { "name": { "type": "keyword" } } } } }
+        "process": { "properties": { "thread": { "properties": { "name": { "type": "keyword" } } } } },
+        "http": { "properties": { "request": { "properties": { "id": { "type": "keyword" }, "method": { "type": "keyword" } } } } },
+        "client": { "properties": { "ip": { "type": "keyword" } } },
+        "url": { "properties": { "path": { "type": "keyword" } } }
       }
     }
   }
@@ -256,7 +283,7 @@ JSON
 | `index.default_pipeline` | 누가 보내든 4단계 파이프라인을 거칩니다. 그래서 Filebeat 설정에는 파이프라인을 적지 않았습니다 |
 | `index.lifecycle.name` | 3단계 보관 정책을 붙입니다 |
 | `number_of_replicas: 0` | 노드가 1대라 복제본을 둘 곳이 없습니다. 0이 아니면 `yellow`로 남습니다 |
-| `keyword` / `text` | 레벨·로거는 집계와 정확히 일치 검색용(keyword), 본문은 단어 검색용(text) |
+| `keyword` / `text` | 레벨·로거·requestId·IP·URI는 집계와 정확히 일치 검색용(keyword), 본문은 단어 검색용(text). requestId로 검색하면 요청 하나의 로그만 모아 볼 수 있습니다 |
 
 - 템플릿은 **새로 만들어지는 인덱스에만** 적용됩니다. 나중에 바꾸면 `POST /deokhugam-logs/_rollover`로 새 인덱스를 만들어 반영합니다.
 
