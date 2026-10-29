@@ -70,4 +70,9 @@ public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
   public void decreaseLikeCountsByUserIds(List<UUID> userIds) {
     reviewJpaRepository.decreaseLikeCountsByUserIds(userIds);
   }
+
+  @Override
+  public List<UUID> getIdsByUserIds(List<UUID> userIds) {
+    return reviewQuerydslRepository.getIdsByUserIds(userIds);
+  }
 }

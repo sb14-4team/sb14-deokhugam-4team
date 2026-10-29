@@ -1,6 +1,6 @@
 package com.sprint.deokhugam.review.application;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -9,9 +9,11 @@ import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommandService;
+import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
@@ -25,6 +27,8 @@ import org.junit.jupiter.api.Test;
 class ReviewCommandServiceTest {
 
   private ReviewPersistencePort reviewPersistencePort;
+  private ReviewLikePersistencePort reviewLikePersistencePort;
+  private CommentCommandService commentCommandService;
   private BookReviewStatsCommand bookReviewStatsCommand;
   private ReviewCommandService reviewCommandService;
   private UUID userId;
@@ -36,7 +40,14 @@ class ReviewCommandServiceTest {
   void setUp() {
     reviewPersistencePort = mock(ReviewPersistencePort.class);
     bookReviewStatsCommand = mock(BookReviewStatsCommand.class);
-    reviewCommandService = new ReviewCommandService(reviewPersistencePort, bookReviewStatsCommand);
+    commentCommandService = mock(CommentCommandService.class);
+    reviewLikePersistencePort = mock(ReviewLikePersistencePort.class);
+    reviewCommandService =
+        new ReviewCommandService(
+            reviewPersistencePort,
+            reviewLikePersistencePort,
+            commentCommandService,
+            bookReviewStatsCommand);
 
     userId = UUID.randomUUID();
     bookId = UUID.randomUUID();
