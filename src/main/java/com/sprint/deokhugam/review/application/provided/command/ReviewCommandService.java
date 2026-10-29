@@ -5,6 +5,7 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.notification.application.provided.command.NotificationCleaner;
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
@@ -21,10 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Service
 public class ReviewCommandService implements ReviewCommand {
+
   private final ReviewPersistencePort reviewPersistencePort;
   private final ReviewLikePersistencePort reviewLikePersistencePort;
   private final CommentCommandService commentCommandService;
   private final BookReviewStatsCommand bookReviewStatsCommand;
+  private final NotificationCleaner notificationCleaner;
 
   @Override
   @Transactional
@@ -57,7 +60,9 @@ public class ReviewCommandService implements ReviewCommand {
   @Override
   @Transactional
   public long deleteReviewByIds(List<UUID> reviewIds) {
-    if (reviewIds.isEmpty()) return 0L;
+    if (reviewIds.isEmpty()) {
+      return 0L;
+    }
     List<Review> reviews = reviewPersistencePort.getByIdsIncludingDeleted(reviewIds);
 
     /*
@@ -75,9 +80,12 @@ public class ReviewCommandService implements ReviewCommand {
   @Transactional
   public long deleteReviewsWithRelatedDataByBook(Book book) {
     List<UUID> reviewIds = reviewPersistencePort.getIdsByBookId(book.getId());
-    if (reviewIds.isEmpty()) return 0L;
+    if (reviewIds.isEmpty()) {
+      return 0L;
+    }
 
     // FK 자식부터 지운다: 좋아요, 댓글, 그다음 리뷰
+    notificationCleaner.deleteByReviewIds(reviewIds);
     reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
     commentCommandService.deleteAllByReviewIds(reviewIds);
     return reviewPersistencePort.deleteAllByIds(reviewIds);

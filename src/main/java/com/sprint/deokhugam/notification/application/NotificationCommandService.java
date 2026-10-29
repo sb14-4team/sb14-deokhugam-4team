@@ -96,4 +96,14 @@ public class NotificationCommandService implements NotificationCommand, Notifica
   public void deleteConfirmed(Instant cutoff) {
     notificationPersistencePort.deleteConfirmed(cutoff);
   }
+
+  @Override
+  public void deleteByUser(UUID userId) {
+    notificationPersistencePort.deleteByUser(userId);
+  }
+
+  @Override
+  public void deleteByReview(UUID reviewId) {
+    notificationPersistencePort.deleteByReview(reviewId);
+  }
 }
