@@ -17,4 +17,8 @@ public interface ReviewLikePersistencePort {
   void deleteAllByReviewId(UUID reviewId);
 
   long deleteAllByUserIds(List<UUID> userIds);
+
+  void deleteAllByReviewIds(List<UUID> reviewIds);
+
+  long deleteAllByUserIdsOrReviewIds(List<UUID> userIds, List<UUID> reviewIds);
 }

@@ -16,10 +16,10 @@ public class ReviewLikeCommandService implements ReviewLikeCommand {
 
   @Override
   @Transactional
-  public long deleteLikesByUserIds(List<UUID> userIds) {
-    if (userIds.isEmpty()) return 0L;
+  public long deleteLikesByUserIds(List<UUID> userIds, List<UUID> reviewIds) {
+    if (userIds.isEmpty() && reviewIds.isEmpty()) return 0L;
 
     reviewPersistencePort.decreaseLikeCountsByUserIds(userIds); // 좋아요 수 감소 반영
-    return reviewLikePersistencePort.deleteAllByUserIds(userIds);
+    return reviewLikePersistencePort.deleteAllByUserIdsOrReviewIds(userIds, reviewIds);
   }
 }
