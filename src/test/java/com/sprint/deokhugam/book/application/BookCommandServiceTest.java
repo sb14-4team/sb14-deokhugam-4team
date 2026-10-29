@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
+import com.sprint.deokhugam.book.FakeReviewCommand;
 import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
 import com.sprint.deokhugam.book.application.dto.BookCreateRequest;
 import com.sprint.deokhugam.book.application.dto.BookDto;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.BookDeletedEvent;
 import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import com.sprint.deokhugam.common.exception.BusinessException;
@@ -27,8 +29,9 @@ class BookCommandServiceTest {
   private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
   // 스프링 대신 발행된 이벤트를 리스트에 모은다. 파일 뒷정리는 ThumbnailCleanupListenerTest에서 본다
   private final List<Object> events = new ArrayList<>();
+  private final FakeReviewCommand reviewCommand = new FakeReviewCommand();
   private final BookCommandService bookCommandService =
-      new BookCommandService(bookRepositoryPort, thumbnailStoragePort, events::add);
+      new BookCommandService(bookRepositoryPort, thumbnailStoragePort, events::add, reviewCommand);
 
   private static final String OLD_URL = FakeThumbnailStoragePort.BASE_URL + "books/old.png";
 
@@ -346,5 +349,93 @@ class BookCommandServiceTest {
         .isEqualTo(BookErrorCode.INVALID_IMAGE);
     assertThat(saved.getThumbnailUrl()).isEqualTo(OLD_URL);
     assertThat(thumbnailStoragePort.uploadedKeys()).isEmpty();
+  }
+
+  // ===== (3) delete() =====
+  // (3-1)
+  @Test
+  @DisplayName("논리 삭제하면 deletedAt이 찍히고 활성 조회에서 빠지지만 저장소에는 남는다")
+  void delete() {
+    Book saved = savedBook(OLD_URL);
+
+    bookCommandService.delete(saved.getId());
+
+    assertThat(saved.isDeleted()).isTrue();
+    assertThat(bookRepositoryPort.findActiveById(saved.getId())).isEmpty();
+    assertThat(bookRepositoryPort.findById(saved.getId())).contains(saved);
+    assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
+    assertThat(events).isEmpty();
+    assertThat(reviewCommand.cleanedBooks()).isEmpty();
+  }
+
+  // (3-2)
+  @Test
+  @DisplayName("없는 도서를 논리 삭제하면 NOT_FOUND 예외가 발생한다")
+  void deleteNotFound() {
+    assertThatThrownBy(() -> bookCommandService.delete(UUID.randomUUID()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
+
+  // (3-3)
+  @Test
+  @DisplayName("이미 논리 삭제된 도서를 다시 논리 삭제하면 NOT_FOUND 예외가 발생한다")
+  void deleteAlreadyDeleted() {
+    Book saved = savedBook();
+    saved.softDelete();
+
+    assertThatThrownBy(() -> bookCommandService.delete(saved.getId()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+  }
+
+  // ===== (4) hardDelete() =====
+  // (4-1)
+  @Test
+  @DisplayName("물리 삭제하면 리뷰 정리 명령을 그 도서로 부르고 행을 지우고 썸네일 키 이벤트를 낸다")
+  void hardDelete() {
+    Book saved = savedBook(OLD_URL);
+
+    bookCommandService.hardDelete(saved.getId());
+
+    assertThat(reviewCommand.cleanedBooks()).containsExactly(saved);
+    assertThat(bookRepositoryPort.findById(saved.getId())).isEmpty();
+    assertThat(events).containsExactly(new BookDeletedEvent("books/old.png"));
+  }
+
+  // (4-2)
+  @Test
+  @DisplayName("논리 삭제된 도서도 물리 삭제할 수 있다")
+  void hardDeleteSoftDeletedBook() {
+    Book saved = savedBook();
+    saved.softDelete();
+
+    bookCommandService.hardDelete(saved.getId());
+
+    assertThat(bookRepositoryPort.findById(saved.getId())).isEmpty();
+  }
+
+  // (4-3)
+  @Test
+  @DisplayName("썸네일이 없던 도서를 물리 삭제하면 키가 null인 이벤트를 낸다")
+  void hardDeleteWithoutThumbnail() {
+    Book saved = savedBook();
+
+    bookCommandService.hardDelete(saved.getId());
+
+    assertThat(events).containsExactly(new BookDeletedEvent(null));
+  }
+
+  // (4-4)
+  @Test
+  @DisplayName("없는 도서를 물리 삭제하면 NOT_FOUND 예외가 발생하고 리뷰 정리도 부르지 않는다")
+  void hardDeleteNotFound() {
+    assertThatThrownBy(() -> bookCommandService.hardDelete(UUID.randomUUID()))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.NOT_FOUND);
+    assertThat(reviewCommand.cleanedBooks()).isEmpty();
   }
 }
