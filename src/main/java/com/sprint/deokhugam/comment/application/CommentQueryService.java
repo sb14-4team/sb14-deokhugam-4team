@@ -25,9 +25,4 @@ public class CommentQueryService implements CommentFinder {
   public List<Comment> findAllByUserId(UUID userId) {
     return commentPersistencePort.findAllByUserId(userId);
   }
-
-  @Override
-  public List<Comment> findAllByReviewIds(List<UUID> reviewIds) {
-    return commentPersistencePort.findAllByReviewIds(reviewIds);
-  }
 }

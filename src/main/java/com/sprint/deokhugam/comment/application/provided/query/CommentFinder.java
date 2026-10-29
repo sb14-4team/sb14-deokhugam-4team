@@ -10,6 +10,4 @@ public interface CommentFinder {
   Comment findById(UUID commentId);
 
   List<Comment> findAllByUserId(UUID userId);
-
-  List<Comment> findAllByReviewIds(List<UUID> reviewIds);
 }

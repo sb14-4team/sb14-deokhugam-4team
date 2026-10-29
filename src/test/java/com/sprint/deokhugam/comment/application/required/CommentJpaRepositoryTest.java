@@ -7,6 +7,7 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.adapter.persistence.CommentJpaRepository;
 import com.sprint.deokhugam.comment.adapter.persistence.CommentQuerydslRepository;
 import com.sprint.deokhugam.comment.domain.Comment;
+import com.sprint.deokhugam.common.config.QuerydslConfig;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.review.adapter.persistence.ReviewJpaRepository;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -32,6 +34,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @DataJpaTest
 @EnableJpaAuditing
 @ActiveProfiles("test")
+@Import({CommentQuerydslRepository.class, QuerydslConfig.class})
 public class CommentJpaRepositoryTest {
 
   @Autowired private CommentJpaRepository commentJpaRepository;

@@ -23,6 +23,7 @@ import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -266,5 +267,22 @@ public class CommentCommandServiceTest {
               BusinessException businessException = (BusinessException) exception;
               assertThat(businessException.getErrorCode()).isEqualTo(CommentErrorCode.FORBIDDEN);
             });
+  }
+
+  @Test
+  @DisplayName("유저 ID로 댓글 일괄 삭제 성공")
+  void deleteCommentsByUser_success() {
+    // Given
+    given(review.getId()).willReturn(reviewId);
+
+    Comment comment = Comment.create(review, user, "testCreateContent");
+    given(commentFinder.findAllByUserId(userId)).willReturn(List.of(comment));
+
+    // When
+    commentApplicationService.deleteCommentsByUser(userId);
+
+    // Then
+    verify(commentFinder).findAllByUserId(userId);
+    verify(commentCommand).deleteAllByUserId(userId);
   }
 }

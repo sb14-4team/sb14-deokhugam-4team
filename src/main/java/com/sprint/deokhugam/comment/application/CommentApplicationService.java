@@ -54,6 +54,9 @@ public class CommentApplicationService implements CommentUseCase {
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
 
+    // 포트를 통해 댓글 개수 증가할 예정
+    // reviewCommand.increaseCommentCount(review.getId());
+
     eventPublisher.publishEvent(
         NotifyEvent.comment(
             createRequest.reviewId(), review.getUser().getId(), user.getNickname()));
@@ -101,7 +104,7 @@ public class CommentApplicationService implements CommentUseCase {
     boolean isDeleted = comment.isDeleted();
 
     if (!isDeleted) {
-      comment.getReview().decreaseCommentCount();
+      // reviewCommand.decreaseCommentCount();
     } else {
       throw new BusinessException(CommonErrorCode.INTERNAL_ERROR);
     }
@@ -122,6 +125,7 @@ public class CommentApplicationService implements CommentUseCase {
                   Collectors.groupingBy(
                       comment -> comment.getReview().getId(), Collectors.counting()));
 
+      // Map으로 <reviewId, reviewCommentCount>를 전달
       // reviewCommand.decreaseCommentCounts(reviewDecrementMap);
 
       commentCommand.deleteAllByUserId(userId);
@@ -134,11 +138,7 @@ public class CommentApplicationService implements CommentUseCase {
     if (reviewIds == null || reviewIds.isEmpty()) {
       throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
-
-    List<Comment> comments = commentFinder.findAllByReviewIds(reviewIds);
-    if (!comments.isEmpty()) {
-      commentCommand.deleteAllByReviewIds(reviewIds);
-    }
+    commentCommand.deleteAllByReviewIds(reviewIds);
   }
 
   @Override
