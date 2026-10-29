@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 30s
+
+scrape_configs:
+  - job_name: spring
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [ "10.20.11.12:32785" ]       # 스프링 컨테이너 돌아가는 프라이빗 ip 설정하면 됨

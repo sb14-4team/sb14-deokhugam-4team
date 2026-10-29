@@ -13,7 +13,6 @@ permissions:
 
 jobs:
   build-and-push:
-    name: Docker 이미지 빌드 및 ECR 푸쉬
     runs-on: ubuntu-latest
     outputs:
       image_uri: ${{ steps.image.outputs.image_uri }}   # ecr 주소 + 이미지이름 : 태그 // 다른 job 에서 접근가능
@@ -57,7 +56,6 @@ jobs:
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 
   deploy:
-    name: ecs api 호출해서 머신에서 컨테이너 띄우고 배포 진행
     needs: build-and-push
     runs-on: ubuntu-latest
 
