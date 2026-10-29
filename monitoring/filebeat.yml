@@ -1,0 +1,24 @@
+# dev 프로필의 .logs/app.log를 읽어 ES 데이터 스트림 deokhugam-logs로 보낸다
+# 줄 파싱은 ES 인제스트 파이프라인(setup.sh)이 하고, Filebeat는 줄을 모아 보내기만 한다
+filebeat.inputs:
+  - type: filestream
+    id: deokhugam-app
+    paths:
+      - /logs/app.log
+    parsers:
+      # 날짜로 시작하지 않는 줄(스택 트레이스)은 앞 줄에 붙인다
+      - multiline:
+          type: pattern
+          pattern: '^\d{4}-\d{2}-\d{2} '
+          negate: true
+          match: after
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
+  username: filebeat_writer
+  password: "${FILEBEAT_ES_PASSWORD}"
+  index: deokhugam-logs
+
+# 인덱스 템플릿과 ILM은 setup.sh가 ES API로 만든다
+setup.template.enabled: false
+setup.ilm.enabled: false

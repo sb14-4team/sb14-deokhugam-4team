@@ -1,0 +1,96 @@
+{
+  "uid": "deokhugam-app",
+  "title": "덕후감 앱",
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "초당 HTTP 요청",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
+          "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\"}[1m]))",
+          "legendFormat": "{{method}} {{uri}} {{status}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "평균 응답 시간",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
+          "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{uri!~\"/actuator.*\"}[1m])) / sum by (uri) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\"}[1m]))",
+          "legendFormat": "{{uri}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "JVM 힙 사용량",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
+          "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})",
+          "legendFormat": "heap used"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "레벨별 로그 수",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 } }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
+          "query": "",
+          "timeField": "@timestamp",
+          "metrics": [{ "id": "1", "type": "count" }],
+          "bucketAggs": [
+            { "id": "2", "type": "terms", "field": "log.level",
+              "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "10" } },
+            { "id": "3", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "logs",
+      "title": "최근 WARN·ERROR 로그",
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 10 },
+      "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
+          "query": "log.level:(WARN OR ERROR)",
+          "timeField": "@timestamp",
+          "metrics": [{ "id": "1", "type": "logs" }],
+          "bucketAggs": []
+        }
+      ]
+    }
+  ]
+}

@@ -38,6 +38,23 @@ DB 포트가 이미 사용 중이면 `.env`의 `POSTGRES_PORT`를 변경합니�
 로컬 `ddl-auto=update`는 개발 편의를 위한 설정입니다. 배포 전에는 스키마 관리 방식과 배포 프로필을 별도로 구성해야 합니다.
 Batch Job 자동 실행은 기본적으로 비활성화했으며, 기능 구현 시 실행 시점을 명시적으로 연결합니다.
 
+## 로컬 모니터링 (실험용)
+
+Elasticsearch·Kibana·Filebeat·Prometheus·Grafana를 `monitoring` 프로필로 띄우고, 설정은 `monitoring/setup.sh`가 API로 넣습니다.
+
+```sh
+docker compose --profile monitoring up -d
+bash monitoring/setup.sh
+./gradlew bootRun
+```
+
+- 로그: 앱(dev) → `.logs/app.log` → Filebeat → ES 데이터 스트림 `deokhugam-logs`(인제스트 파이프라인이 레벨·로거·스레드로 나눔, 7일 보관)
+- 메트릭: Prometheus가 `host.docker.internal:8080/actuator/prometheus`를 15초마다 수집
+- Kibana: http://localhost:5601 (`elastic` / `ELASTIC_PASSWORD`)
+- Grafana: http://localhost:3001/d/deokhugam-app (`admin` / `GRAFANA_ADMIN_PASSWORD`, 포트는 `GRAFANA_PORT`)
+- 비밀번호 기본값은 `.env.example`에 있습니다. 포트는 모두 `127.0.0.1`에만 엽니다.
+- 끄기: `docker compose --profile monitoring down` (`-v`를 붙이면 Postgres 데이터까지 지워지니 주의)
+
 ## Git 규칙
 
 초급 프로젝트와 같은 `main`(제출·배포), `develop`(통합), `feat/*`, `fix/*`

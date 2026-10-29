@@ -16,5 +16,83 @@ services:
       timeout: 5s
       retries: 10
 
+  # 아래는 모니터링 실험용. `docker compose --profile monitoring up -d`로만 뜬다
+  # 설정(사용자·인덱스·데이터 뷰·데이터 소스·대시보드)은 monitoring/setup.sh가 API로 넣는다
+  elasticsearch:
+    profiles: [monitoring]
+    image: elasticsearch:9.5.3
+    ports:
+      - "127.0.0.1:9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      # 로컬 실험이라 HTTP TLS는 끈다. 인증은 켜 두어 EC2로 옮길 때 API 호출이 그대로 쓰이게 한다
+      xpack.security.http.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-elastic-local}
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s -u elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  kibana:
+    profiles: [monitoring]
+    image: kibana:9.5.3
+    ports:
+      - "127.0.0.1:5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      # kibana_system 비밀번호는 setup.sh가 ES API로 정한다. 그 전까지 Kibana는 연결을 재시도한다
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-kibana-local}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  filebeat:
+    profiles: [monitoring]
+    image: docker.elastic.co/beats/filebeat:9.5.3
+    # --environment container는 이미지 기본값(로그를 stdout으로). command를 바꾸면 사라져서 다시 적는다
+    # Windows 바인드 마운트는 파일 권한이 넓게 보여서 권한 검사를 끈다
+    command: ["--environment", "container", "--strict.perms=false"]
+    environment:
+      FILEBEAT_ES_PASSWORD: ${FILEBEAT_ES_PASSWORD:-filebeat-local}
+    volumes:
+      - ./monitoring/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./.logs:/logs:ro
+      - filebeat-data:/usr/share/filebeat/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+  prometheus:
+    profiles: [monitoring]
+    image: prom/prometheus:v3.15.0
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    profiles: [monitoring]
+    image: grafana/grafana:13.2.5
+    ports:
+      # 3000은 PC에 설치된 Grafana 서비스와 겹치기 쉬워 3001을 기본으로 쓴다
+      - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-grafana-local}
+    volumes:
+      - grafana-data:/var/lib/grafana
+
 volumes:
   postgres-data:
+  es-data:
+  filebeat-data:
+  prometheus-data:
+  grafana-data:
