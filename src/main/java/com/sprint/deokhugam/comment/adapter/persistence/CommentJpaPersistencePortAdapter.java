@@ -21,7 +21,7 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
 
   @Override
   public Comment findById(UUID commentId) {
-    return jpaRepository.getByIdOrThrow(commentId);
+    return jpaRepository.findByIdOrThrow(commentId);
   }
 
   @Override

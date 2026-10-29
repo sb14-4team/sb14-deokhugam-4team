@@ -11,7 +11,7 @@ public interface CommentJpaRepository extends JpaRepository<Comment, UUID> {
 
   Optional<Comment> findByIdAndDeletedAtIsNull(UUID commentId);
 
-  default Comment getByIdOrThrow(UUID commentId) {
+  default Comment findByIdOrThrow(UUID commentId) {
     return findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> new BusinessException(CommentErrorCode.NOT_FOUND));
   }
