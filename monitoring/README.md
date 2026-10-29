@@ -87,12 +87,13 @@ curl -s -u elastic:$ELASTIC_PASSWORD localhost:9200
 curl -s -u elastic:$ELASTIC_PASSWORD "localhost:9200/_cluster/health?pretty"
 ```
 
-**Kibana가 아직 안 뜬 이유 보기** → `"level":"unavailable"`. 로그에 `kibana_system` 인증 실패가 보입니다.
+**Kibana가 아직 안 뜬 이유 보기** → `"level":"unavailable"`(아무것도 안 나오면 Kibana가 아직 시작 중이니 30초 뒤 다시).
 ```bash
 curl -s localhost:5601/api/status
 ```
+로그에 `unable to authenticate user [kibana_system]`이 보입니다.
 ```bash
-docker compose --profile monitoring logs kibana --tail 5
+docker compose --profile monitoring logs kibana | grep "unable to authenticate" | tail -2
 ```
 
 Kibana는 내장 사용자 **`kibana_system`**으로 ES에 붙는데, 이 사용자의 비밀번호를 아직 아무도 정하지 않았습니다.
@@ -372,6 +373,8 @@ curl -s -u elastic:$ELASTIC_PASSWORD -X POST localhost:5601/api/data_views/defau
 
 - `id`를 고정하고 `override: true`라서 다시 보내도 하나만 생깁니다. id를 안 주면 보낼 때마다 새로 생깁니다.
 - 확인: http://localhost:5601/app/discover → "덕후감 로그"가 열리고, 왼쪽 필드 목록에서 `log.level`을 눌러 레벨별 비율을 봅니다.
+- Prometheus가 15초마다 `/actuator/prometheus`를 불러서 그 요청 로그가 대부분입니다. 검색창에 `NOT url.path:/actuator*`를 넣으면 실제 API 요청 로그만 남습니다.
+- 요청 하나의 로그만 모아 보기: 로그 한 줄을 펼쳐 `http.request.id` 값 옆 돋보기(+)를 누르면 같은 requestId 로그만 걸러집니다.
 
 ---
 
