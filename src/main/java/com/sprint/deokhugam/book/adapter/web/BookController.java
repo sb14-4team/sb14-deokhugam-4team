@@ -91,4 +91,11 @@ public class BookController {
     bookCommand.delete(bookId);
     return ResponseEntity.noContent().build();
   }
+
+  // UI에는 없는 기능. 리뷰, 댓글, 좋아요, 썸네일 파일까지 지운다
+  @DeleteMapping("/{bookId}/hard")
+  public ResponseEntity<Void> hardDelete(@PathVariable UUID bookId) {
+    bookCommand.hardDelete(bookId);
+    return ResponseEntity.noContent().build();
+  }
 }

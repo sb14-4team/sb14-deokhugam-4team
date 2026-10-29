@@ -13,5 +13,10 @@ public interface BookRepositoryPort {
   // 논리 삭제된 도서는 빼고 찾는다
   Optional<Book> findActiveById(UUID bookId);
 
+  // 논리 삭제된 도서도 찾는다 (물리 삭제용)
+  Optional<Book> findById(UUID bookId);
+
   boolean existsByIsbn(Isbn isbn);
+
+  void delete(Book book);
 }

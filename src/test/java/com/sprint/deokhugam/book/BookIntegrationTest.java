@@ -493,6 +493,50 @@ class BookIntegrationTest {
         .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
   }
 
+  // ===== (8) DELETE /api/books/{bookId}/hard : BookController.hardDelete() =====
+  // (8-1)
+  @Test
+  @DisplayName("물리 삭제하면 204를 돌려주고 도서, 리뷰, 댓글, 좋아요 행이 모두 사라진다")
+  void hardDeleteBook() throws Exception {
+    Book saved = bookWithReview();
+
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", saved.getId()))
+        .andExpect(status().isNoContent());
+    flushAndClear();
+
+    assertThat(bookJpaRepository.findById(saved.getId())).isEmpty();
+    assertThat(reviewJpaRepository.count()).isZero();
+    assertThat(commentJpaRepository.count()).isZero();
+    assertThat(reviewLikeJpaRepository.count()).isZero();
+  }
+
+  // (8-2)
+  @Test
+  @DisplayName("논리 삭제된 도서도 물리 삭제하면 204를 돌려주고 행이 사라진다")
+  void hardDeleteSoftDeletedBook() throws Exception {
+    Book saved = bookRepositoryPort.save(book(null));
+    saved.softDelete();
+    flushAndClear();
+
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", saved.getId()))
+        .andExpect(status().isNoContent());
+    flushAndClear();
+
+    assertThat(bookJpaRepository.findById(saved.getId())).isEmpty();
+  }
+
+  // (8-3)
+  @Test
+  @DisplayName("없는 도서를 물리 삭제하면 404를 돌려준다")
+  void hardDeleteNotFound() throws Exception {
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
   // ===== (6) GET /api/books : BookController.search() — 실제 SQL 검증 =====
 
   private Book savedBook(String title, String author, LocalDate publishedDate, int... scores) {
