@@ -28,4 +28,6 @@ public interface ReviewPersistencePort {
   List<Review> search(ReviewSearchCondition condition);
 
   long count(ReviewSearchCondition condition);
+
+  List<UUID> getIdsByUserIds(List<UUID> userIds);
 }

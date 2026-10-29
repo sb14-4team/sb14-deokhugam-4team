@@ -23,10 +23,11 @@ public class UserApplicationService implements UserCleaner {
   @Override
   public void cleanup(Instant cutoff) {
     List<UUID> targetIds = userFinder.findCleanupIds(cutoff, 20);
+
     for (UUID targetId : targetIds) {
-      //      reviewCommand.deleteReview(targetId);
+      // reviewCommand.deleteReview(targetId);
       userCommand.delete(targetId);
-      //    유저 아이디로 삭제 메서드 요청해야함 지금은
+      // 유저 아이디로 삭제 메서드 요청해야함 지금은
     }
   }
 }

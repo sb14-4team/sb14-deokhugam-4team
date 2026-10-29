@@ -58,6 +58,10 @@ public class ReviewQuerydslRepository {
     return queryFactory.selectFrom(review).where(review.id.in(reviewIds)).fetch();
   }
 
+  public List<UUID> getIdsByUserIds(List<UUID> userIds) {
+    return queryFactory.select(review.id).from(review).where(review.user.id.in(userIds)).fetch();
+  }
+
   public long deleteAllByIds(List<UUID> reviewIds) {
     return queryFactory.delete(review).where(review.id.in(reviewIds)).execute();
   }

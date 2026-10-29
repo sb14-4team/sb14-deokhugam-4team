@@ -1,8 +1,11 @@
 package com.sprint.deokhugam.review.application.provided.command;
 
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
+import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
 import java.util.List;
@@ -19,9 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ReviewCommandService implements ReviewCommand {
   private final ReviewPersistencePort reviewPersistencePort;
+  private final ReviewLikePersistencePort reviewLikePersistencePort;
+  private final CommentCommandService commentCommandService;
   private final BookReviewStatsCommand bookReviewStatsCommand;
-
-  // private final BookReviewStatsCommand bookReviewStatsCommand;
 
   @Override
   @Transactional
@@ -58,6 +61,7 @@ public class ReviewCommandService implements ReviewCommand {
     List<Review> reviews = reviewPersistencePort.getByIdsIncludingDeleted(reviewIds);
 
     /*
+      10.28 일단 집계 반영안하고 나중에 생각해보기로 결정
        UUID bookId,
        int removedReviewCount,
        long removedRatingSum
@@ -65,5 +69,15 @@ public class ReviewCommandService implements ReviewCommand {
     */
 
     return reviewPersistencePort.deleteAllByIds(reviewIds);
+  }
+
+  @Override
+  public long deleteReviewsWithRelatedDataByBook(Book book) {
+
+    // commentCommandService
+
+    // reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
+    // return reviewPersistencePort.deleteAllByIds(reviewIds);
+    return 0L;
   }
 }

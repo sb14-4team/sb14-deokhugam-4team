@@ -2,6 +2,7 @@ package com.sprint.deokhugam.review.application.provided.query;
 
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,5 +25,12 @@ public class ReviewQueryService implements ReviewFinder {
   @Override
   public void requireActiveById(UUID reviewId) {
     reviewPersistencePort.requireActiveById(reviewId);
+  }
+
+  @Override
+  public List<UUID> getReviewIdsByDeleteUserIds(List<UUID> userIds) {
+    if (userIds.isEmpty()) return List.of();
+
+    return reviewPersistencePort.getIdsByUserIds(userIds);
   }
 }
