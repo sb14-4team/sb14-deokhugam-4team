@@ -1,43 +1,50 @@
+# 배포 흐름
+# 1. build-and-push - Docker 이미지 빌드 > Public ECR 업로드
+# 2. deploy - 태스크 정의 개정 등록 > ECS 배포 > 결과 확인 ( 컨테이너 구동 확인 )
+
 on:
   push:
     branches:
-      - chore/28-aws-deploy    # 테스트용
+      - chore/28-aws-deploy    # 배포 워크플로우 동작 브랜치
   workflow_dispatch:
-
 
 permissions:
   contents: read
 
 jobs:
   build-and-push:
+    name: Docker 이미지 빌드 및 ECR 푸쉬
     runs-on: ubuntu-latest
     outputs:
-      image_uri: ${{ steps.image.outputs.image_uri }}
+      image_uri: ${{ steps.image.outputs.image_uri }}   # ecr 주소 + 이미지이름 : 태그 // 다른 job 에서 접근가능
+
+    env:
+      ECR_PUBLIC_REGION: ${{ vars.ECR_PUBLIC_REGION }}
+      ECR_PUBLIC_ALIAS: ${{ vars.ECR_PUBLIC_ALIAS }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      IMAGE_TAG: ${{ github.sha }}        # 잡 시작 시 해시코드를 받아 지정
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials    # 자격증명
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.ECR_PUBLIC_REGION }}
+          aws-region: ${{ env.ECR_PUBLIC_REGION }}
 
-      - name: Login to Amazon ECR Public
+      - name: Login to Amazon ECR Public   # 여기서 나온 결과물 - 레지스트리 주소를 다음스텝에서 활용
         id: login-ecr-public
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: public
 
-      - name: Build and push image
+      - name: Build and push image    # 도커파일로 이미지 빌드 및 latest 태그를 붙여 이미지 푸쉬
         id: image
         env:
           REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-          ECR_PUBLIC_ALIAS: ${{ vars.ECR_PUBLIC_ALIAS }}
-          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
         run: |
           IMAGE_URI=$REGISTRY/$ECR_PUBLIC_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
 
@@ -50,8 +57,16 @@ jobs:
           echo "image_uri=$IMAGE_URI" >> "$GITHUB_OUTPUT"
 
   deploy:
+    name: ecs api 호출해서 머신에서 컨테이너 띄우고 배포 진행
     needs: build-and-push
     runs-on: ubuntu-latest
+
+    env:
+      ECS_REGION: ${{ vars.ECS_REGION }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+      ECS_TASK_DEFINITION: ${{ vars.ECS_TASK_DEFINITION }}
+      IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
 
     steps:
       - name: Configure AWS credentials
@@ -59,13 +74,9 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.ECS_REGION }}
+          aws-region: ${{ env.ECS_REGION }}
 
-      - name: Check ECS service desired count
-        env:
-          ECS_REGION: ${{ vars.ECS_REGION }}
-          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
-          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+      - name: Check ECS service desired count     # ECS 에서 관리하고자 하는 태스크 수 설정 - 태스크 ( 컨테이너의 묶음 ) / 태스크 수는 콘솔에서 조정 (스크립트로도 가능하지만 콘솔로 하는게 나을듯
         run: |
           DESIRED_COUNT=$(aws ecs describe-services \
             --cluster "$ECS_CLUSTER" \
@@ -79,12 +90,7 @@ jobs:
             exit 1
           fi
 
-      - name: Register a new task definition revision
-        env:
-          IMAGE_URI: ${{ needs.build-and-push.outputs.image_uri }}
-          ECS_REGION: ${{ vars.ECS_REGION }}
-          ECS_TASK_DEFINITION: ${{ vars.ECS_TASK_DEFINITION }}
-          ECS_CONTAINER_NAME: ${{ vars.ECS_CONTAINER_NAME }}
+      - name: Register a new task definition revision   # 콘솔에 정의된 태스크 개정을 불러와 새로운 태스크#버전 을 생성
         run: |
           aws ecs describe-task-definition \
             --task-definition "$ECS_TASK_DEFINITION" \
@@ -92,7 +98,9 @@ jobs:
             --query taskDefinition \
             --output json > current-task-definition.json
 
-          jq --arg image "$IMAGE_URI" --arg container "$ECS_CONTAINER_NAME" '
+          # 최신 태스크 개정을 json 으로 불러와 수정 작업 진행
+          jq --arg image "$IMAGE_URI" '
+            # 기존 개정의 관리 정보 같은 것을 지워야함. 새로운 등록 요청에 허용하지 않는 것들 정리
             del(
               .taskDefinitionArn,
               .revision,
@@ -103,15 +111,8 @@ jobs:
               .registeredBy,
               .deregisteredAt
             ) |
-            .containerDefinitions |= map(
-              if .name == $container then
-                .image = $image |
-                .environment = (
-                  ((.environment // []) | map(select(.name != "SPRING_PROFILES_ACTIVE"))) +
-                  [{"name": "SPRING_PROFILES_ACTIVE", "value": "prod"}]
-                )
-              else . end
-            )
+            # 태스크의 컨테이너 이름을 불러와 현재 덕후감-앱 이라는 컨테이너를 구동 시 ecr에 등록한 이미지를 풀받아서 구동하도록 설정 - 현재는 단일 스프링 컨테이너만 태스크에 존재
+            .containerDefinitions[0].image = $image
           ' current-task-definition.json > next-task-definition.json
 
           aws ecs register-task-definition \
@@ -121,18 +122,18 @@ jobs:
             --output text > task-definition-arn.txt
 
       - name: Deploy to ECS
-        env:
-          ECS_REGION: ${{ vars.ECS_REGION }}
-          ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
-          ECS_SERVICE: ${{ vars.ECS_SERVICE }}
-        run: |
+        run: |        # 앞서 만들어진 태스크 ARN(AWS 리소스) 에 접근
           TASK_DEFINITION_ARN=$(cat task-definition-arn.txt)
 
+          #   독립된 머신에 태스크를 구동하도록 제약 - ecs api
+          #   최대 2대 최소 1대(asg 공급자설정해놓음) - 새 태스크 띄우고 헬스체크 후 트래픽 종료되면 기존 태스크 내리도록
+          #   현재 AZ 를 확인해서 동일 태스크 (현재 태스크 수는 한개지만) 가 특정 az 에 몰릴 시 균형 맞추는 기능 off
           aws ecs update-service \
             --cluster "$ECS_CLUSTER" \
             --service "$ECS_SERVICE" \
             --task-definition "$TASK_DEFINITION_ARN" \
-            --deployment-configuration "minimumHealthyPercent=0,maximumPercent=100" \
+            --placement-constraints "type=distinctInstance" \
+            --deployment-configuration "minimumHealthyPercent=100,maximumPercent=200" \
             --availability-zone-rebalancing DISABLED \
             --region "$ECS_REGION"
 
