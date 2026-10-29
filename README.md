@@ -44,6 +44,7 @@ Batch Job 자동 실행은 기본적으로 비활성화했으며, 기능 구현 
 ## 로컬 모니터링 (실험용)
 
 Elasticsearch·Kibana·Filebeat·Prometheus·Grafana를 `monitoring` 프로필로 띄우고, 설정은 `monitoring/setup.sh`가 API로 넣습니다.
+API를 한 단계씩 직접 호출해 보는 안내는 [monitoring/README.md](monitoring/README.md)에 있습니다.
 
 ```sh
 docker compose --profile monitoring up -d
