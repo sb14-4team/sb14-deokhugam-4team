@@ -4,5 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ReviewLikeCommand {
-  long deleteLikesByUserIds(List<UUID> userIds); // 탈퇴 사용자가 누른 좋아요
+  // 사용자의 좋아요 물리삭제
+  long deleteLikesByUserIds(List<UUID> userIds, List<UUID> reviewIds);
 }

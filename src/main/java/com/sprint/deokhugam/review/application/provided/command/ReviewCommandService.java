@@ -26,8 +26,6 @@ public class ReviewCommandService implements ReviewCommand {
   private final CommentCommandService commentCommandService;
   private final BookReviewStatsCommand bookReviewStatsCommand;
 
-  // private final BookReviewStatsCommand bookReviewStatsCommand;
-
   @Override
   @Transactional
   public Review createReview(Review review) {
@@ -75,6 +73,7 @@ public class ReviewCommandService implements ReviewCommand {
 
   @Override
   public long deleteReviewsWithRelatedDataByBook(Book book) {
+
     // commentCommandService
 
     // reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
