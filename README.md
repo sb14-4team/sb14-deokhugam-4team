@@ -29,6 +29,9 @@ docker compose up -d --wait
 기본 프로필은 `dev`입니다. Spring Boot도 로컬 프로필에서 `.env`를 properties 형식으로 읽습니다.
 예제 비밀번호는 로컬 개발 전용이며 `.env`는 Git에 포함하지 않습니다.
 DB 포트가 이미 사용 중이면 `.env`의 `POSTGRES_PORT`를 변경합니다.
+ISBN 도서 정보 조회는 카카오 책 검색 API를 쓰므로 `.env`의 `KAKAO_REST_API_KEY`에 카카오 developers REST API 키를 넣습니다.
+이미지 ISBN 인식은 OCR Space API를 쓰므로 `.env`의 `OCR_SPACE_API_KEY`에 https://ocr.space/ocrapi/freekey 에서 받은 무료 키를 넣습니다.
+도서 썸네일은 S3에 저장하므로 `.env`의 `AWS_REGION`, `AWS_S3_BUCKET`을 채우고, 앱을 띄우기 전에 AWS CLI 2.32 이상으로 `aws login`을 합니다(액세스 키는 쓰지 않습니다).
 
 - 서버: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui.html

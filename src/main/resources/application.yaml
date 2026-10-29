@@ -18,6 +18,30 @@ spring:
   batch:
     job:
       enabled: false
+  # 기본 1MB라 5MB 썸네일이 막혀서 올린다
+  servlet:
+    multipart:
+      max-file-size: 5MB
+  # 스케줄러 스레드 (SchedulingConfig)
+  task:
+    scheduling:
+      pool:
+        size: 1 # 작업을 하나씩 차례로 실행
+      thread-name-prefix: scheduler-
+
+# 카카오 책 검색 API. 키는 .env의 KAKAO_REST_API_KEY (KakaoClientConfig)
+kakao:
+  rest-api-key: ${KAKAO_REST_API_KEY}
+
+# OCR Space API. 키는 .env의 OCR_SPACE_API_KEY (OcrSpaceClientConfig)
+ocr-space:
+  api-key: ${OCR_SPACE_API_KEY}
+
+# S3 썸네일 저장 (S3ClientConfig). 자격 증명은 .env에 없고 로컬은 aws login, 서버는 역할
+aws:
+  s3:
+    region: ${AWS_REGION}
+    bucket: ${AWS_S3_BUCKET}
 
 management:
   endpoints:

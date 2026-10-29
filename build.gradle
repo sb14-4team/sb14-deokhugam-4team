@@ -30,7 +30,6 @@ dependencies {
     annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
     annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
 
-
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
     implementation 'org.springframework.boot:spring-boot-h2console'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
@@ -53,6 +52,15 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
+
+    // 해싱
+    implementation 'org.springframework.security:spring-security-crypto'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.86'
+
+    // S3 썸네일 저장. signin은 aws login 자격 증명을 SDK가 읽게 한다
+    implementation platform('software.amazon.awssdk:bom:2.46.7')
+    implementation 'software.amazon.awssdk:s3'
+    implementation 'software.amazon.awssdk:signin'
 }
 
 tasks.named('test') {
