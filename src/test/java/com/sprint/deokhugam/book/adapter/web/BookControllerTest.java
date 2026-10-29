@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.book.adapter.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -11,6 +12,7 @@ import com.sprint.deokhugam.book.FakeBookProviderPort;
 import com.sprint.deokhugam.book.FakeBookRepositoryPort;
 import com.sprint.deokhugam.book.FakeBookSearchPort;
 import com.sprint.deokhugam.book.FakeOcrTextPort;
+import com.sprint.deokhugam.book.FakeReviewCommand;
 import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
 import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.BookQueryService;
@@ -36,12 +38,14 @@ class BookControllerTest {
   private final FakeBookProviderPort bookProviderPort = new FakeBookProviderPort();
   private final FakeOcrTextPort ocrTextPort = new FakeOcrTextPort();
   private final FakeThumbnailStoragePort thumbnailStoragePort = new FakeThumbnailStoragePort();
+  private final FakeReviewCommand reviewCommand = new FakeReviewCommand();
 
   private final MockMvc mockMvc =
       MockMvcBuilders.standaloneSetup(
               new BookController(
                   // 이벤트는 받는 사람 없이 버린다. 파일 뒷정리는 ThumbnailCleanupListenerTest에서 본다
-                  new BookCommandService(bookRepositoryPort, thumbnailStoragePort, event -> {}),
+                  new BookCommandService(
+                      bookRepositoryPort, thumbnailStoragePort, event -> {}, reviewCommand),
                   new BookQueryService(
                       bookRepositoryPort,
                       new FakeBookSearchPort(bookRepositoryPort),
@@ -605,5 +609,60 @@ class BookControllerTest {
   @DisplayName("image 파트가 없으면 400")
   void recognizeIsbnMissingPart() throws Exception {
     mockMvc.perform(multipart("/api/books/isbn/ocr")).andExpect(status().isBadRequest());
+  }
+
+  // ===== (6) DELETE /api/books/{bookId} : BookController.delete() =====
+  // (6-1)
+  @Test
+  @DisplayName("도서를 논리 삭제하면 204를 돌려주고 다시 조회하면 404다")
+  void deleteBook() throws Exception {
+    Book saved = savedBook();
+
+    mockMvc.perform(delete("/api/books/{bookId}", saved.getId())).andExpect(status().isNoContent());
+
+    assertThat(saved.isDeleted()).isTrue();
+    mockMvc.perform(get("/api/books/{bookId}", saved.getId())).andExpect(status().isNotFound());
+  }
+
+  // (6-2)
+  @Test
+  @DisplayName("없는 도서를 논리 삭제하면 404를 돌려준다")
+  void deleteNotFound() throws Exception {
+    mockMvc
+        .perform(delete("/api/books/{bookId}", UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
+  // (6-3)
+  @Test
+  @DisplayName("도서 id가 UUID 형식이 아니면 400을 돌려준다")
+  void deleteWithInvalidId() throws Exception {
+    mockMvc.perform(delete("/api/books/{bookId}", "not-a-uuid")).andExpect(status().isBadRequest());
+  }
+
+  // ===== (7) DELETE /api/books/{bookId}/hard : BookController.hardDelete() =====
+  // (7-1)
+  @Test
+  @DisplayName("도서를 물리 삭제하면 204를 돌려주고 리뷰 정리 명령이 불린다")
+  void hardDeleteBook() throws Exception {
+    Book saved = savedBook();
+
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", saved.getId()))
+        .andExpect(status().isNoContent());
+
+    assertThat(reviewCommand.cleanedBooks()).containsExactly(saved);
+    assertThat(bookRepositoryPort.count()).isZero();
+  }
+
+  // (7-2)
+  @Test
+  @DisplayName("없는 도서를 물리 삭제하면 404를 돌려준다")
+  void hardDeleteNotFound() throws Exception {
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
   }
 }

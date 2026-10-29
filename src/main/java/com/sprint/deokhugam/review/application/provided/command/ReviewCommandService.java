@@ -72,12 +72,14 @@ public class ReviewCommandService implements ReviewCommand {
   }
 
   @Override
+  @Transactional
   public long deleteReviewsWithRelatedDataByBook(Book book) {
+    List<UUID> reviewIds = reviewPersistencePort.getIdsByBookId(book.getId());
+    if (reviewIds.isEmpty()) return 0L;
 
-    // commentCommandService
-
-    // reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
-    // return reviewPersistencePort.deleteAllByIds(reviewIds);
-    return 0L;
+    // FK 자식부터 지운다: 좋아요, 댓글, 그다음 리뷰
+    reviewLikePersistencePort.deleteAllByReviewIds(reviewIds);
+    commentCommandService.deleteAllByReviewIds(reviewIds);
+    return reviewPersistencePort.deleteAllByIds(reviewIds);
   }
 }

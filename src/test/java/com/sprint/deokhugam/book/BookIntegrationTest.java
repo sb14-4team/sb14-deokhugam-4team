@@ -2,6 +2,7 @@ package com.sprint.deokhugam.book;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -15,9 +16,19 @@ import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.book.domain.Isbn;
+import com.sprint.deokhugam.comment.adapter.persistence.CommentJpaRepository;
+import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
+import com.sprint.deokhugam.review.adapter.persistence.ReviewJpaRepository;
+import com.sprint.deokhugam.review.adapter.persistence.ReviewLikeJpaRepository;
+import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.ReviewLike;
+import com.sprint.deokhugam.user.adapter.persistence.UserJpaRepository;
+import com.sprint.deokhugam.user.domain.Email;
+import com.sprint.deokhugam.user.domain.Password;
+import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.EntityManager;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -53,6 +64,10 @@ class BookIntegrationTest {
   @Autowired private BookJpaRepository bookJpaRepository;
   @Autowired private BookRepositoryPort bookRepositoryPort;
   @Autowired private BookFinder bookFinder;
+  @Autowired private UserJpaRepository userJpaRepository;
+  @Autowired private ReviewJpaRepository reviewJpaRepository;
+  @Autowired private ReviewLikeJpaRepository reviewLikeJpaRepository;
+  @Autowired private CommentJpaRepository commentJpaRepository;
 
   private static final String VALID_JSON =
       """
@@ -432,6 +447,94 @@ class BookIntegrationTest {
 
     Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
     assertThat(found.getTitle()).isEqualTo("제목");
+  }
+
+  // ===== (7) DELETE /api/books/{bookId} : BookController.delete() =====
+
+  // 리뷰, 댓글, 좋아요가 하나씩 달린 도서
+  private Book bookWithReview() {
+    User user =
+        userJpaRepository.save(
+            User.create("닉네임", Email.to("book-delete@example.com"), Password.to("abcd1234!")));
+    Book book = bookRepositoryPort.save(book(null));
+    Review review = reviewJpaRepository.save(Review.create(5, "리뷰", user, book));
+    commentJpaRepository.save(Comment.create(review, user, "댓글"));
+    reviewLikeJpaRepository.save(ReviewLike.init(review, user));
+    flushAndClear();
+    return book;
+  }
+
+  // (7-1)
+  @Test
+  @DisplayName("논리 삭제하면 204를 돌려주고 DB에 deletedAt이 찍히며 리뷰는 그대로다")
+  void deleteBook() throws Exception {
+    Book saved = bookWithReview();
+
+    mockMvc.perform(delete("/api/books/{bookId}", saved.getId())).andExpect(status().isNoContent());
+    flushAndClear();
+
+    Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
+    assertThat(found.isDeleted()).isTrue();
+    assertThat(reviewJpaRepository.count()).isEqualTo(1);
+    mockMvc.perform(get("/api/books/{bookId}", saved.getId())).andExpect(status().isNotFound());
+  }
+
+  // (7-2)
+  @Test
+  @DisplayName("이미 논리 삭제된 도서를 다시 논리 삭제하면 404를 돌려준다")
+  void deleteAlreadyDeleted() throws Exception {
+    Book saved = bookRepositoryPort.save(book(null));
+    saved.softDelete();
+    bookJpaRepository.flush();
+
+    mockMvc
+        .perform(delete("/api/books/{bookId}", saved.getId()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
+  }
+
+  // ===== (8) DELETE /api/books/{bookId}/hard : BookController.hardDelete() =====
+  // (8-1)
+  @Test
+  @DisplayName("물리 삭제하면 204를 돌려주고 도서, 리뷰, 댓글, 좋아요 행이 모두 사라진다")
+  void hardDeleteBook() throws Exception {
+    Book saved = bookWithReview();
+
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", saved.getId()))
+        .andExpect(status().isNoContent());
+    flushAndClear();
+
+    assertThat(bookJpaRepository.findById(saved.getId())).isEmpty();
+    assertThat(reviewJpaRepository.count()).isZero();
+    assertThat(commentJpaRepository.count()).isZero();
+    assertThat(reviewLikeJpaRepository.count()).isZero();
+  }
+
+  // (8-2)
+  @Test
+  @DisplayName("논리 삭제된 도서도 물리 삭제하면 204를 돌려주고 행이 사라진다")
+  void hardDeleteSoftDeletedBook() throws Exception {
+    Book saved = bookRepositoryPort.save(book(null));
+    saved.softDelete();
+    flushAndClear();
+
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", saved.getId()))
+        .andExpect(status().isNoContent());
+    flushAndClear();
+
+    assertThat(bookJpaRepository.findById(saved.getId())).isEmpty();
+  }
+
+  // (8-3)
+  @Test
+  @DisplayName("없는 도서를 물리 삭제하면 404를 돌려준다")
+  void hardDeleteNotFound() throws Exception {
+    mockMvc
+        .perform(delete("/api/books/{bookId}/hard", UUID.randomUUID()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("BOOK_NOT_FOUND"));
   }
 
   // ===== (6) GET /api/books : BookController.search() — 실제 SQL 검증 =====

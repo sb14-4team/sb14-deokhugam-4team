@@ -4,6 +4,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import com.sprint.deokhugam.book.application.required.ThumbnailStoragePort;
+import com.sprint.deokhugam.book.domain.BookDeletedEvent;
 import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,5 +49,28 @@ class ThumbnailCleanupListenerIntegrationTest {
 
     verify(thumbnailStoragePort).delete("books/new.png");
     verify(thumbnailStoragePort, never()).delete("books/old.png");
+  }
+
+  // (2-1)
+  @Test
+  @DisplayName("도서 삭제 이벤트는 커밋되면 썸네일을 지운다")
+  void bookDeletedAfterCommit() {
+    transactionTemplate.executeWithoutResult(
+        status -> eventPublisher.publishEvent(new BookDeletedEvent("books/gone.png")));
+
+    verify(thumbnailStoragePort).delete("books/gone.png");
+  }
+
+  // (2-2)
+  @Test
+  @DisplayName("도서 삭제 이벤트는 롤백되면 썸네일을 지우지 않는다")
+  void bookDeletedAfterRollback() {
+    transactionTemplate.executeWithoutResult(
+        status -> {
+          eventPublisher.publishEvent(new BookDeletedEvent("books/gone.png"));
+          status.setRollbackOnly();
+        });
+
+    verify(thumbnailStoragePort, never()).delete("books/gone.png");
   }
 }
