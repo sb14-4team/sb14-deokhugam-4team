@@ -2,6 +2,7 @@ package com.sprint.deokhugam.review.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -9,14 +10,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
+import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
+import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommandService;
+import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.springframework.context.ApplicationEventPublisher;
 
 // 단위테스트 용
 @Slf4j
@@ -34,6 +41,7 @@ class ReviewCommandServiceTest {
   private CommentCommandService commentCommandService;
   private BookReviewStatsCommand bookReviewStatsCommand;
   private ReviewCommandService reviewCommandService;
+  private ReviewApplicationService reviewApplicationService;
   private UUID userId;
   private UUID bookId;
   private Book book;
@@ -47,10 +55,19 @@ class ReviewCommandServiceTest {
     reviewLikePersistencePort = mock(ReviewLikePersistencePort.class);
     reviewCommandService =
         new ReviewCommandService(
-            reviewPersistencePort,
+            reviewPersistencePort, reviewLikePersistencePort, commentCommandService);
+
+    BookFinder bookFinder = mock(BookFinder.class);
+    UserFinder userFinder = mock(UserFinder.class);
+    reviewApplicationService =
+        new ReviewApplicationService(
+            mock(ReviewFinder.class),
             reviewLikePersistencePort,
-            commentCommandService,
-            bookReviewStatsCommand);
+            reviewPersistencePort,
+            bookReviewStatsCommand,
+            bookFinder,
+            userFinder,
+            mock(ApplicationEventPublisher.class));
 
     userId = UUID.randomUUID();
     bookId = UUID.randomUUID();
@@ -58,19 +75,23 @@ class ReviewCommandServiceTest {
     book = mock(Book.class);
     when(user.getId()).thenReturn(userId);
     when(book.getId()).thenReturn(bookId);
+    when(userFinder.findById(userId)).thenReturn(user);
+    when(bookFinder.findById(bookId)).thenReturn(book);
     review = Review.create(5, "굳", user, book);
   }
 
   @Test
   void 리뷰저장_호출확인() {
-    when(reviewPersistencePort.save(review)).thenReturn(review);
+    when(reviewPersistencePort.save(any(Review.class)))
+        .thenAnswer(invocation -> invocation.getArgument(0));
 
-    Review savedReview = reviewCommandService.createReview(review);
+    ReviewResponse savedReview =
+        reviewApplicationService.createReview(new CreateReviewCommand(userId, bookId, 5, "굳"));
 
-    assertThat(savedReview).isSameAs(review);
-    assertThat(savedReview.getRating()).isEqualTo(5);
+    assertThat(savedReview.content()).isEqualTo(review.getContent());
+    assertThat(savedReview.rating()).isEqualTo(5);
     verify(reviewPersistencePort).existsByUserIdAndBookId(userId, bookId);
-    verify(reviewPersistencePort).save(review);
+    verify(reviewPersistencePort).save(any(Review.class));
     verify(bookReviewStatsCommand).addReview(book, 5);
   }
 
@@ -79,10 +100,14 @@ class ReviewCommandServiceTest {
     when(reviewPersistencePort.existsByUserIdAndBookId(userId, bookId)).thenReturn(true);
 
     BusinessException exception =
-        assertThrows(BusinessException.class, () -> reviewCommandService.createReview(review));
+        assertThrows(
+            BusinessException.class,
+            () ->
+                reviewApplicationService.createReview(
+                    new CreateReviewCommand(userId, bookId, 5, "굳")));
 
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.ALREADY_EXISTS);
-    verify(reviewPersistencePort, never()).save(review);
+    verify(reviewPersistencePort, never()).save(any(Review.class));
     verify(bookReviewStatsCommand, never()).addReview(book, 5);
   }
 
@@ -92,11 +117,11 @@ class ReviewCommandServiceTest {
     when(reviewPersistencePort.getByIdOrThrow(reviewId)).thenReturn(review);
     log.info("리뷰 id - {}, 리뷰 내용 - {}", review.getId(), review.getContent());
 
-    Review updated = reviewCommandService.updateReview(reviewId, userId, "수정한 내용", 4);
+    ReviewResponse updated = reviewApplicationService.updateReview(userId, reviewId, "수정한 내용", 4);
 
-    assertThat(updated).isSameAs(review);
-    assertThat(updated.getContent()).isEqualTo("수정한 내용");
-    assertThat(updated.getRating()).isEqualTo(4);
+    assertThat(review.getContent()).isEqualTo("수정한 내용");
+    assertThat(updated.content()).isEqualTo("수정한 내용");
+    assertThat(updated.rating()).isEqualTo(4);
     verify(reviewPersistencePort).getByIdOrThrow(reviewId);
     verify(bookReviewStatsCommand).changeReviewRating(book, 5, 4);
   }
@@ -109,7 +134,7 @@ class ReviewCommandServiceTest {
     BusinessException exception =
         assertThrows(
             BusinessException.class,
-            () -> reviewCommandService.updateReview(reviewId, UUID.randomUUID(), "수정한 내용", 4));
+            () -> reviewApplicationService.updateReview(UUID.randomUUID(), reviewId, "수정한 내용", 4));
 
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.FORBIDDEN);
     assertThat(review.getContent()).isEqualTo("굳");

@@ -1,10 +1,7 @@
 package com.sprint.deokhugam.review.application.provided.command;
 
-import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
-import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
 import com.sprint.deokhugam.review.domain.Review;
@@ -24,35 +21,6 @@ public class ReviewCommandService implements ReviewCommand {
   private final ReviewPersistencePort reviewPersistencePort;
   private final ReviewLikePersistencePort reviewLikePersistencePort;
   private final CommentCommandService commentCommandService;
-  private final BookReviewStatsCommand bookReviewStatsCommand;
-
-  @Override
-  @Transactional
-  public Review createReview(Review review) {
-    if (reviewPersistencePort.existsByUserIdAndBookId(
-        review.getUser().getId(), review.getBook().getId())) {
-      throw new BusinessException(ReviewErrorCode.ALREADY_EXISTS);
-    }
-
-    Review saved = reviewPersistencePort.save(review);
-    bookReviewStatsCommand.addReview(saved.getBook(), saved.getRating());
-    return saved;
-  }
-
-  @Override
-  @Transactional
-  public Review updateReview(UUID reviewId, UUID userId, String newContent, int newRating) {
-    Review review = reviewPersistencePort.getByIdOrThrow(reviewId);
-
-    if (!review.verifyReviewUpdate(userId)) {
-      throw new BusinessException(ReviewErrorCode.FORBIDDEN);
-    }
-
-    int oldRating = review.getRating();
-    review.updateContentAndRating(newContent, newRating);
-    bookReviewStatsCommand.changeReviewRating(review.getBook(), oldRating, newRating);
-    return review;
-  }
 
   @Override
   @Transactional

@@ -1,6 +1,5 @@
 package com.sprint.deokhugam.review.application;
 
-import com.sprint.deokhugam.book.application.BookCommandService;
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
@@ -12,7 +11,6 @@ import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
 import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
@@ -32,8 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class ReviewApplicationService implements ReviewUseCase {
-
-  private final ReviewCommand reviewCommand;
   private final ReviewFinder reviewFinder;
 
   private final ReviewLikePersistencePort reviewLikePersistencePort;
@@ -42,7 +38,6 @@ public class ReviewApplicationService implements ReviewUseCase {
   private final BookReviewStatsCommand bookReviewStatsCommand;
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
-  private final BookCommandService bookCommandService;
 
   private final ApplicationEventPublisher eventPublisher;
 
@@ -53,9 +48,16 @@ public class ReviewApplicationService implements ReviewUseCase {
     Book book = bookFinder.findById(command.bookId());
 
     Review review = Review.create(command.rating(), command.content(), user, book);
-    Review savedReview = reviewCommand.createReview(review);
 
-    return ReviewResponse.of(savedReview, false);
+    if (reviewPersistencePort.existsByUserIdAndBookId(
+        review.getUser().getId(), review.getBook().getId())) {
+      throw new BusinessException(ReviewErrorCode.ALREADY_EXISTS);
+    }
+
+    Review saved = reviewPersistencePort.save(review);
+    bookReviewStatsCommand.addReview(saved.getBook(), saved.getRating());
+
+    return ReviewResponse.of(saved, false);
   }
 
   @Override
@@ -71,8 +73,16 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Transactional
   public ReviewResponse updateReview(UUID userId, UUID reviewId, String newContent, int newRating) {
     userFinder.findById(userId);
+    Review review = reviewPersistencePort.getByIdOrThrow(reviewId);
 
-    Review review = reviewCommand.updateReview(reviewId, userId, newContent, newRating);
+    if (!review.verifyReviewUpdate(userId)) {
+      throw new BusinessException(ReviewErrorCode.FORBIDDEN);
+    }
+
+    int oldRating = review.getRating();
+    review.updateContentAndRating(newContent, newRating);
+    bookReviewStatsCommand.changeReviewRating(review.getBook(), oldRating, newRating);
+
     boolean likedByMe = reviewLikePersistencePort.isLikedBy(reviewId, userId);
 
     return ReviewResponse.of(review, likedByMe);

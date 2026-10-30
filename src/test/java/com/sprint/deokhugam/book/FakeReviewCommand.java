@@ -2,7 +2,6 @@ package com.sprint.deokhugam.book;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
-import com.sprint.deokhugam.review.domain.Review;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -14,16 +13,6 @@ public class FakeReviewCommand implements ReviewCommand {
 
   public List<Book> cleanedBooks() {
     return cleanedBooks;
-  }
-
-  @Override
-  public Review createReview(Review review) {
-    throw new UnsupportedOperationException("도서 테스트에서는 쓰지 않는다");
-  }
-
-  @Override
-  public Review updateReview(UUID reviewId, UUID userId, String newContent, int newRating) {
-    throw new UnsupportedOperationException("도서 테스트에서는 쓰지 않는다");
   }
 
   @Override
