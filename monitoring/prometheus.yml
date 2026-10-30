@@ -3,7 +3,8 @@ global:
 
 scrape_configs:
   # 호스트에서 ./gradlew bootRun으로 띄운 앱(dev 프로필이 prometheus 엔드포인트를 연다)
-  - job_name: deokhugam
+  # 운영(준희 CD의 monitoring/prometheus.yml)과 같은 job 이름을 써서 대시보드 쿼리를 공유한다
+  - job_name: spring
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["host.docker.internal:8080"]

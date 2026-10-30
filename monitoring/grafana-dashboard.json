@@ -1,94 +1,2430 @@
 {
   "uid": "deokhugam-app",
   "title": "덕후감 앱",
+  "description": "덕후감 서비스 메트릭. 로그는 Kibana '덕후감 로그'에서 본다",
+  "tags": [
+    "deokhugam"
+  ],
   "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 41,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "refresh": "30s",
-  "time": { "from": "now-30m", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "데이터 소스",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "instance",
+        "label": "태스크",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(up{job=\"spring\"}, instance)",
+          "refId": "instance-var"
+        },
+        "definition": "label_values(up{job=\"spring\"}, instance)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "uri",
+        "label": "API",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "query": {
+          "query": "label_values(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\"}, uri)",
+          "refId": "uri-var"
+        },
+        "definition": "label_values(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\"}, uri)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        }
+      },
+      {
+        "name": "kibana_url",
+        "type": "constant",
+        "hide": 2,
+        "query": "http://localhost:5601",
+        "description": "Kibana 주소. 운영 Grafana에 올릴 때 이 값만 바꾼다"
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "name": "배포·재시작",
+        "enable": true,
+        "iconColor": "blue",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "expr": "changes(process_start_time_seconds{job=\"spring\"}[2m]) > 0",
+        "step": "30s",
+        "titleFormat": "배포·재시작",
+        "textFormat": "{{instance}}",
+        "useValueForTime": false
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Kibana 덕후감 로그",
+      "type": "link",
+      "targetBlank": true,
+      "icon": "doc",
+      "url": "${kibana_url}/app/dashboards#/view/deokhugam-logs"
+    }
+  ],
   "panels": [
     {
+      "id": 100,
+      "type": "row",
+      "title": "한눈에 (항상 서비스 전체)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
       "id": 1,
-      "type": "timeseries",
-      "title": "초당 HTTP 요청",
-      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
-      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "type": "stat",
+      "title": "실행 중 태스크",
+      "description": "떠 있는 앱 수. 평소 1, 배포 중에는 잠깐 2. 0이면 앱이 죽었거나 Prometheus가 앱을 못 찾는 것",
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
-          "expr": "sum by (method, uri, status) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\"}[1m]))",
-          "legendFormat": "{{method}} {{uri}} {{status}}"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "count(up{job=\"spring\"} == 1) or vector(0)",
+          "legendFormat": "__auto"
         }
-      ]
+      ],
+      "links": [],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "red"
+              },
+              {
+                "value": 1,
+                "color": "green"
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "0",
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value"
+      }
     },
     {
       "id": 2,
-      "type": "timeseries",
-      "title": "평균 응답 시간",
-      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
-      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "type": "stat",
+      "title": "분당 요청",
+      "description": "모든 API 요청 수(actuator 제외). 다른 숫자를 읽는 기준. 갑자기 0이 되면 접속 경로를 의심",
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
-          "expr": "sum by (uri) (rate(http_server_requests_seconds_sum{uri!~\"/actuator.*\"}[1m])) / sum by (uri) (rate(http_server_requests_seconds_count{uri!~\"/actuator.*\"}[1m]))",
-          "legendFormat": "{{uri}}"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\"}[2m])) * 60",
+          "legendFormat": "__auto"
         }
-      ]
+      ],
+      "links": [
+        {
+          "title": "API별 요청 보기",
+          "url": "/d/deokhugam-app/?viewPanel=panel-11&${__url_time_range}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: 건/분",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "0",
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value"
+      }
     },
     {
       "id": 3,
-      "type": "timeseries",
-      "title": "JVM 힙 사용량",
-      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
-      "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
-      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "type": "stat",
+      "title": "5xx 비율",
+      "description": "최근 5분 전체 요청 중 서버 오류(5xx) 비율. 1% 넘으면 주의, 5% 넘으면 장애",
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "prometheus", "uid": "deokhugam-prometheus" },
-          "expr": "sum(jvm_memory_used_bytes{area=\"heap\"})",
-          "legendFormat": "heap used"
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum(rate(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\",status=~\"5..\"}[5m])) or vector(0))\n  / sum(rate(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\"}[5m]))",
+          "legendFormat": "__auto"
         }
-      ]
+      ],
+      "links": [
+        {
+          "title": "API별 5xx 보기",
+          "url": "/d/deokhugam-app/?viewPanel=panel-12&${__url_time_range}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.01,
+                "color": "yellow"
+              },
+              {
+                "value": 0.05,
+                "color": "red"
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "-",
+          "links": [
+            {
+              "title": "Kibana에서 같은 시간대 에러 로그 보기",
+              "targetBlank": true,
+              "url": "${kibana_url}/app/discover#/view/deokhugam-recent-errors?_g=(time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
+            }
+          ],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value"
+      }
     },
     {
       "id": 4,
-      "type": "timeseries",
-      "title": "레벨별 로그 수",
-      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
-      "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
-      "fieldConfig": { "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 80 } }, "overrides": [] },
+      "type": "stat",
+      "title": "p95 응답 시간",
+      "description": "최근 5분 요청을 느린 순으로 세웠을 때 상위 5%의 시작점. 500ms 넘으면 주의, 1초 넘으면 사용자가 느리다고 느낌",
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
-          "query": "",
-          "timeField": "@timestamp",
-          "metrics": [{ "id": "1", "type": "count" }],
-          "bucketAggs": [
-            { "id": "2", "type": "terms", "field": "log.level",
-              "settings": { "min_doc_count": "1", "order": "desc", "orderBy": "_count", "size": "10" } },
-            { "id": "3", "type": "date_histogram", "field": "@timestamp", "settings": { "interval": "auto" } }
-          ]
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job=\"spring\",uri!~\"/actuator.*\"}[5m])))",
+          "legendFormat": "__auto"
         }
-      ]
+      ],
+      "links": [
+        {
+          "title": "API별 p95 보기",
+          "url": "/d/deokhugam-app/?viewPanel=panel-13&${__url_time_range}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.5,
+                "color": "yellow"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "-",
+          "links": [
+            {
+              "title": "Kibana에서 같은 시간대 에러 로그 보기",
+              "targetBlank": true,
+              "url": "${kibana_url}/app/discover#/view/deokhugam-recent-errors?_g=(time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
+            }
+          ]
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value"
+      }
     },
     {
       "id": 5,
-      "type": "logs",
-      "title": "최근 WARN·ERROR 로그",
-      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 10 },
-      "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
+      "type": "gauge",
+      "title": "힙 사용률",
+      "description": "자바 메모리(힙) 사용량 ÷ 최대. 태스크가 여럿이면 가장 높은 값. 85%가 계속되면 메모리 부족",
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
       "targets": [
         {
           "refId": "A",
-          "datasource": { "type": "elasticsearch", "uid": "deokhugam-es" },
-          "query": "log.level:(WARN OR ERROR)",
-          "timeField": "@timestamp",
-          "metrics": [{ "id": "1", "type": "logs" }],
-          "bucketAggs": []
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(\n  sum by (instance) (jvm_memory_used_bytes{job=\"spring\",area=\"heap\"})\n  / sum by (instance) (jvm_memory_max_bytes{job=\"spring\",area=\"heap\"} > 0)\n)",
+          "legendFormat": "__auto"
+        }
+      ],
+      "links": [
+        {
+          "title": "태스크별 힙 보기",
+          "url": "/d/deokhugam-app/?viewPanel=panel-22&${__url_time_range}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.7,
+                "color": "yellow"
+              },
+              {
+                "value": 0.85,
+                "color": "red"
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "-",
+          "links": [],
+          "decimals": 0,
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showThresholdMarkers": true,
+        "showThresholdLabels": false
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "DB 커넥션 대기",
+      "description": "커넥션 풀이 다 차서 줄 선 요청 수(가장 높은 태스크). 0이 아니면 DB가 병목",
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(hikaricp_connections_pending{job=\"spring\"})",
+          "legendFormat": "__auto"
+        }
+      ],
+      "links": [
+        {
+          "title": "커넥션 풀 보기",
+          "url": "/d/deokhugam-app/?viewPanel=panel-21&${__url_time_range}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "-",
+          "links": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 101,
+      "type": "row",
+      "title": "API (상단 태스크·API 변수 적용, 상위 5개)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "분당 요청 (API별)",
+      "description": "선택한 시간 범위에서 요청이 가장 많은 API 5개",
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (method, uri) (rate(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\"}[$__rate_interval])) * 60)\n  and on (method, uri)\n  topk(5, sum by (method, uri) (increase(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\"}[$__range])))",
+          "legendFormat": "{{method}} {{uri}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: 건/분",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/books"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 등록 (POST /api/books)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 목록 (GET /api/books)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books/info"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ISBN 도서 정보 조회 (GET /api/books/info)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/books/isbn/ocr"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ISBN OCR 인식 (POST /api/books/isbn/ocr)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 상세 (GET /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 수정 (PATCH /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 삭제 (DELETE /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/books/{bookId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 영구 삭제 (DELETE /api/books/{bookId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 작성 (POST /api/comments)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 목록 (GET /api/comments)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/comments/{commentId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 수정 (PATCH /api/comments/{commentId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/comments/{commentId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 삭제 (DELETE /api/comments/{commentId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/comments/{commentId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 영구 삭제 (DELETE /api/comments/{commentId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/notifications"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 목록 (GET /api/notifications)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/notifications/{notificationId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 읽음 (PATCH /api/notifications/{notificationId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/notifications/read-all"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 모두 읽음 (PATCH /api/notifications/read-all)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/reviews"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 작성 (POST /api/reviews)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/reviews"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 목록 (GET /api/reviews)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 상세 (GET /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 수정 (PATCH /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 삭제 (DELETE /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/reviews/{reviewId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 영구 삭제 (DELETE /api/reviews/{reviewId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/reviews/{reviewId}/like"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 좋아요 (POST /api/reviews/{reviewId}/like)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/users"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "회원가입 (POST /api/users)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/users/login"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "로그인 (POST /api/users/login)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "사용자 조회 (GET /api/users/{userId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "사용자 수정 (PATCH /api/users/{userId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "회원 탈퇴 (DELETE /api/users/{userId})"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "5xx 비율 (API별)",
+      "description": "5xx가 가장 많이 난 API 5개의 서버 오류 비율. 점선은 1%·5% 기준",
+      "gridPos": {
+        "x": 12,
+        "y": 7,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(sum by (method, uri) (rate(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\",status=~\"5..\"}[$__rate_interval]))\n  / sum by (method, uri) (rate(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\"}[$__rate_interval])))\n  and on (method, uri)\n  topk(5, sum by (method, uri) (increase(http_server_requests_seconds_count{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\",status=~\"5..\"}[$__range])) > 0)",
+          "legendFormat": "{{method}} {{uri}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "links": [
+            {
+              "title": "Kibana에서 같은 시간대 에러 로그 보기",
+              "targetBlank": true,
+              "url": "${kibana_url}/app/discover#/view/deokhugam-recent-errors?_g=(time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.01,
+                "color": "yellow"
+              },
+              {
+                "value": 0.05,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/books"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 등록 (POST /api/books)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 목록 (GET /api/books)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books/info"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ISBN 도서 정보 조회 (GET /api/books/info)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/books/isbn/ocr"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ISBN OCR 인식 (POST /api/books/isbn/ocr)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 상세 (GET /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 수정 (PATCH /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 삭제 (DELETE /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/books/{bookId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 영구 삭제 (DELETE /api/books/{bookId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 작성 (POST /api/comments)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 목록 (GET /api/comments)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/comments/{commentId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 수정 (PATCH /api/comments/{commentId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/comments/{commentId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 삭제 (DELETE /api/comments/{commentId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/comments/{commentId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 영구 삭제 (DELETE /api/comments/{commentId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/notifications"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 목록 (GET /api/notifications)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/notifications/{notificationId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 읽음 (PATCH /api/notifications/{notificationId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/notifications/read-all"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 모두 읽음 (PATCH /api/notifications/read-all)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/reviews"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 작성 (POST /api/reviews)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/reviews"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 목록 (GET /api/reviews)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 상세 (GET /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 수정 (PATCH /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 삭제 (DELETE /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/reviews/{reviewId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 영구 삭제 (DELETE /api/reviews/{reviewId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/reviews/{reviewId}/like"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 좋아요 (POST /api/reviews/{reviewId}/like)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/users"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "회원가입 (POST /api/users)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/users/login"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "로그인 (POST /api/users/login)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "사용자 조회 (GET /api/users/{userId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "사용자 수정 (PATCH /api/users/{userId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "회원 탈퇴 (DELETE /api/users/{userId})"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "p95 응답 시간 (API별)",
+      "description": "선택한 시간 범위에서 가장 느린 API 5개의 p95. 점선은 500ms·1초 기준",
+      "gridPos": {
+        "x": 0,
+        "y": 15,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(histogram_quantile(0.95, sum by (le, method, uri) (rate(http_server_requests_seconds_bucket{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\"}[$__rate_interval]))))\n  and on (method, uri)\n  topk(5, histogram_quantile(0.95, sum by (le, method, uri) (increase(http_server_requests_seconds_bucket{job=\"spring\",uri!~\"/actuator.*\",instance=~\"$instance\",uri=~\"$uri\"}[$__range]))))",
+          "legendFormat": "{{method}} {{uri}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "links": [
+            {
+              "title": "Kibana에서 같은 시간대 에러 로그 보기",
+              "targetBlank": true,
+              "url": "${kibana_url}/app/discover#/view/deokhugam-recent-errors?_g=(time:(from:'${__from:date:iso}',to:'${__to:date:iso}'))"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.5,
+                "color": "yellow"
+              },
+              {
+                "value": 1,
+                "color": "red"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/books"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 등록 (POST /api/books)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 목록 (GET /api/books)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books/info"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ISBN 도서 정보 조회 (GET /api/books/info)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/books/isbn/ocr"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ISBN OCR 인식 (POST /api/books/isbn/ocr)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 상세 (GET /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 수정 (PATCH /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/books/{bookId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 삭제 (DELETE /api/books/{bookId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/books/{bookId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "도서 영구 삭제 (DELETE /api/books/{bookId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 작성 (POST /api/comments)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/comments"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 목록 (GET /api/comments)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/comments/{commentId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 수정 (PATCH /api/comments/{commentId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/comments/{commentId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 삭제 (DELETE /api/comments/{commentId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/comments/{commentId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "댓글 영구 삭제 (DELETE /api/comments/{commentId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/notifications"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 목록 (GET /api/notifications)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/notifications/{notificationId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 읽음 (PATCH /api/notifications/{notificationId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/notifications/read-all"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "알림 모두 읽음 (PATCH /api/notifications/read-all)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/reviews"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 작성 (POST /api/reviews)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/reviews"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 목록 (GET /api/reviews)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 상세 (GET /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 수정 (PATCH /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/reviews/{reviewId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 삭제 (DELETE /api/reviews/{reviewId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/reviews/{reviewId}/hard"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 영구 삭제 (DELETE /api/reviews/{reviewId}/hard)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/reviews/{reviewId}/like"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "리뷰 좋아요 (POST /api/reviews/{reviewId}/like)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/users"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "회원가입 (POST /api/users)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "POST /api/users/login"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "로그인 (POST /api/users/login)"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "GET /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "사용자 조회 (GET /api/users/{userId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PATCH /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "사용자 수정 (PATCH /api/users/{userId})"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "DELETE /api/users/{userId}"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "회원 탈퇴 (DELETE /api/users/{userId})"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 102,
+      "type": "row",
+      "title": "DB · JVM (태스크 변수 적용)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "DB 커넥션 풀",
+      "description": "사용 중이 최대(점선)에 붙고 대기가 생기면 DB가 병목. 느린 쿼리나 커넥션 반납 누락을 의심",
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (hikaricp_connections_active{job=\"spring\",instance=~\"$instance\"})",
+          "legendFormat": "사용 중 {{instance}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (hikaricp_connections_pending{job=\"spring\",instance=~\"$instance\"})",
+          "legendFormat": "대기 {{instance}}"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (hikaricp_connections_max{job=\"spring\",instance=~\"$instance\"})",
+          "legendFormat": "최대 {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "최대.*"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "대기.*"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "힙 사용률",
+      "description": "태스크별 힙 사용률. GC 때마다 톱니처럼 내려가는 게 정상. 바닥이 계속 올라가면 메모리 누수 의심",
+      "gridPos": {
+        "x": 8,
+        "y": 24,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (jvm_memory_used_bytes{job=\"spring\",area=\"heap\",instance=~\"$instance\"})\n  / sum by (instance) (jvm_memory_max_bytes{job=\"spring\",area=\"heap\",instance=~\"$instance\"} > 0)",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "links": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.7,
+                "color": "yellow"
+              },
+              {
+                "value": 0.85,
+                "color": "red"
+              }
+            ]
+          },
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "CPU 사용률",
+      "description": "앱 프로세스가 쓰는 CPU 비율. 90%가 계속되면 서버 사양이 부족",
+      "gridPos": {
+        "x": 16,
+        "y": 24,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "process_cpu_usage{job=\"spring\",instance=~\"$instance\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "dashed"
+            }
+          },
+          "links": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 0.7,
+                "color": "yellow"
+              },
+              {
+                "value": 0.9,
+                "color": "red"
+              }
+            ]
+          },
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 24,
+      "type": "timeseries",
+      "title": "스레드 수",
+      "description": "바쁜 요청 스레드가 최대(점선)에 닿으면 새 요청이 줄을 선다. JVM 전체 스레드가 계속 늘면 스레드 누수 의심",
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (jvm_threads_live_threads{job=\"spring\",instance=~\"$instance\"})",
+          "legendFormat": "JVM 전체 {{instance}}"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (tomcat_threads_busy_threads{job=\"spring\",instance=~\"$instance\"})",
+          "legendFormat": "바쁜 요청 스레드 {{instance}}"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (instance) (tomcat_threads_config_max_threads{job=\"spring\",instance=~\"$instance\"})",
+          "legendFormat": "요청 스레드 최대 {{instance}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "links": [],
+          "min": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "요청 스레드 최대.*"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 103,
+      "type": "row",
+      "title": "외부 API (카카오, OCR, S3)",
+      "collapsed": true,
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 24,
+        "h": 1
+      },
+      "panels": [
+        {
+          "id": 31,
+          "type": "timeseries",
+          "title": "외부 API p95 응답 시간",
+          "description": "카카오 책 검색·OCR Space 호출의 p95. OCR은 10초에서 끊긴다. S3는 업로드 타이머가 생기면 추가",
+          "gridPos": {
+            "x": 0,
+            "y": 41,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "histogram_quantile(0.95, sum by (le, client_name) (rate(http_client_requests_seconds_bucket{job=\"spring\",instance=~\"$instance\"}[$__rate_interval])))",
+              "legendFormat": "{{client_name}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": true,
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "links": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "value": null,
+                    "color": "green"
+                  },
+                  {
+                    "value": 1,
+                    "color": "yellow"
+                  },
+                  {
+                    "value": 10,
+                    "color": "red"
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
+        },
+        {
+          "id": 32,
+          "type": "timeseries",
+          "title": "외부 API 실패율",
+          "description": "외부 호출 중 성공하지 못한 비율(타임아웃, 4xx·5xx 응답 포함)",
+          "gridPos": {
+            "x": 12,
+            "y": 41,
+            "w": 12,
+            "h": 8
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "sum by (client_name) (rate(http_client_requests_seconds_count{job=\"spring\",instance=~\"$instance\",outcome!=\"SUCCESS\"}[$__rate_interval]))\n  / sum by (client_name) (rate(http_client_requests_seconds_count{job=\"spring\",instance=~\"$instance\"}[$__rate_interval]))",
+              "legendFormat": "{{client_name}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percentunit",
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "drawStyle": "line",
+                "lineWidth": 2,
+                "fillOpacity": 10,
+                "showPoints": "never",
+                "spanNulls": true,
+                "thresholdsStyle": {
+                  "mode": "dashed"
+                }
+              },
+              "links": [],
+              "min": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "value": null,
+                    "color": "green"
+                  },
+                  {
+                    "value": 0.05,
+                    "color": "yellow"
+                  },
+                  {
+                    "value": 0.2,
+                    "color": "red"
+                  }
+                ]
+              },
+              "max": 1
+            },
+            "overrides": []
+          },
+          "options": {
+            "legend": {
+              "displayMode": "table",
+              "placement": "right",
+              "showLegend": true,
+              "calcs": [
+                "lastNotNull",
+                "max"
+              ]
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          }
         }
       ]
     }

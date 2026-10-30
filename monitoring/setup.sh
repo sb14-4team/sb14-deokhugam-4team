@@ -174,6 +174,14 @@ kb POST /api/data_views/data_view -d @- <<'JSON'
 JSON
 kb POST /api/data_views/default -d '{"data_view_id":"deokhugam-logs","force":true}'
 
+# 화면에서 만든 저장된 검색 4개·Lens·대시보드를 _export로 뽑아 둔 파일. id가 고정이라 덮어써도 하나만 남는다
+# (Grafana 패널의 Kibana 링크가 저장된 검색 id deokhugam-recent-errors를 가리킨다)
+step "Kibana: 로그 대시보드와 저장된 검색"
+curl -sS --fail-with-body -u "elastic:$ELASTIC_PASSWORD" -H 'kbn-xsrf: true' \
+  -X POST "$KIBANA_URL/api/saved_objects/_import?overwrite=true" \
+  -F file=@monitoring/kibana-objects.ndjson
+echo
+
 # ---------------------------------------------------------------- Grafana
 wait_for Grafana curl -sf "$GRAFANA_URL/api/health"
 
@@ -211,19 +219,9 @@ upsert_datasource deokhugam-prometheus '{
   "access": "proxy", "url": "http://prometheus:9090", "isDefault": true
 }'
 
-step "Grafana: Elasticsearch 데이터 소스 (앱 로그, 읽기 전용 사용자)"
-upsert_datasource deokhugam-es "{
-  \"uid\": \"deokhugam-es\", \"name\": \"Elasticsearch 로그\", \"type\": \"elasticsearch\",
-  \"access\": \"proxy\", \"url\": \"http://elasticsearch:9200\",
-  \"basicAuth\": true, \"basicAuthUser\": \"grafana_reader\",
-  \"secureJsonData\": { \"basicAuthPassword\": \"$GRAFANA_ES_PASSWORD\" },
-  \"jsonData\": { \"index\": \"deokhugam-logs*\", \"timeField\": \"@timestamp\",
-                  \"logMessageField\": \"message\", \"logLevelField\": \"log.level\" }
-}"
-
+# 로그는 Kibana에서만 본다(Grafana는 메트릭 전용). 그래서 Grafana에는 Elasticsearch 데이터 소스를 두지 않는다
 step "Grafana: 데이터 소스 연결 확인"
 gf GET /api/datasources/uid/deokhugam-prometheus/health
-gf GET /api/datasources/uid/deokhugam-es/health
 
 step "Grafana: 대시보드"
 { printf '{"dashboard": '; cat monitoring/grafana-dashboard.json; printf ', "overwrite": true}'; } \
@@ -232,6 +230,6 @@ step "Grafana: 대시보드"
 cat <<EOF
 
 완료
-  Kibana   $KIBANA_URL/app/discover   (elastic / ELASTIC_PASSWORD)
+  Kibana   $KIBANA_URL/app/dashboards#/view/deokhugam-logs   (elastic / ELASTIC_PASSWORD)
   Grafana  $GRAFANA_URL/d/deokhugam-app   (admin / GRAFANA_ADMIN_PASSWORD)
 EOF

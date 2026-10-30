@@ -10,8 +10,10 @@ flowchart LR
   es --> kb[Kibana]
   app -->|/actuator/prometheus| prom[Prometheus]
   prom --> gf[Grafana]
-  es -->|grafana_reader| gf
+  gf -.->|"패널 링크 (같은 시간대)"| kb
 ```
+
+Grafana는 **숫자(메트릭)**만, Kibana는 **로그**만 봅니다. Grafana에서 이상을 발견하면 패널의 링크로 같은 시간대의 Kibana "최근 에러"로 넘어가 원인을 찾습니다. 화면을 읽는 법은 맨 아래 [화면 보는 법](#화면-보는-법)에 있습니다.
 
 ## 0. 준비물
 
@@ -409,39 +411,22 @@ curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" localhost:$GRAFANA_PORT/api/or
 
 ---
 
-## 9단계. Grafana 데이터 소스 2개
+## 9단계. Grafana 데이터 소스
 
 **Prometheus** (앱 메트릭):
 ```bash
 curl -s -X POST localhost:$GRAFANA_PORT/api/datasources -H "Authorization: Bearer $GRAFANA_TOKEN" -H "Content-Type: application/json" -d '{"uid":"deokhugam-prometheus","name":"Prometheus","type":"prometheus","access":"proxy","url":"http://prometheus:9090","isDefault":true}'
 ```
 
-**Elasticsearch** (앱 로그, 6단계의 읽기 전용 사용자) — 이름에 한글이 있고 비밀번호 변수가 들어가므로, 따옴표 없는 heredoc(`<<JSON`)으로 보냅니다:
-```bash
-curl -s -X POST localhost:$GRAFANA_PORT/api/datasources -H "Authorization: Bearer $GRAFANA_TOKEN" -H "Content-Type: application/json" --data-binary @- <<JSON
-{
-  "uid": "deokhugam-es", "name": "Elasticsearch 로그", "type": "elasticsearch",
-  "access": "proxy", "url": "http://elasticsearch:9200",
-  "basicAuth": true, "basicAuthUser": "grafana_reader",
-  "secureJsonData": { "basicAuthPassword": "$GRAFANA_ES_PASSWORD" },
-  "jsonData": { "index": "deokhugam-logs*", "timeField": "@timestamp",
-                "logMessageField": "message", "logLevelField": "log.level" }
-}
-JSON
-```
-
 | 항목 | 이유 |
 |---|---|
-| 주소가 `localhost`가 아니라 `prometheus`, `elasticsearch` | `access: proxy`라서 브라우저가 아니라 Grafana 컨테이너가 요청합니다. 컨테이너끼리는 compose 서비스 이름으로 찾습니다 |
-| `uid` 고정 | 대시보드 JSON의 패널이 `"datasource": {"uid": "deokhugam-es"}`로 가리킵니다. uid가 바뀌면 대시보드가 끊깁니다 |
-| `secureJsonData` | 저장 후 다시 읽을 수 없게 암호화해 둡니다. 응답에는 `"secureJsonFields": {"basicAuthPassword": true}`만 보입니다 |
+| 주소가 `localhost`가 아니라 `prometheus` | `access: proxy`라서 브라우저가 아니라 Grafana 컨테이너가 요청합니다. 컨테이너끼리는 compose 서비스 이름으로 찾습니다 |
+| `uid` 고정 | 아래 확인 명령과 스크립트가 이 uid로 부릅니다. 대시보드는 uid 대신 `datasource` 변수로 고르므로 운영 Grafana에 올려도 끊기지 않습니다 |
+| Elasticsearch 데이터 소스는 없음 | 로그는 Kibana에서만 봅니다. 같은 로그 화면을 두 곳에서 관리하지 않기 위해서입니다 |
 
-**연결 확인** → 둘 다 `"status":"OK"`:
+**연결 확인** → `"status":"OK"`:
 ```bash
 curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" localhost:$GRAFANA_PORT/api/datasources/uid/deokhugam-prometheus/health
-```
-```bash
-curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" localhost:$GRAFANA_PORT/api/datasources/uid/deokhugam-es/health
 ```
 
 - 같은 POST를 다시 보내면 이름 중복으로 409가 납니다. 바꿀 때는 `PUT /api/datasources/uid/<uid>`에 같은 본문을 보냅니다(`setup.sh`는 있으면 PUT, 없으면 POST).
@@ -456,15 +441,25 @@ curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" localhost:$GRAFANA_PORT/api/da
 ```
 → `"status":"success"`, `"url":"/d/deokhugam-app/..."`. 브라우저에서 http://localhost:3001/d/deokhugam-app (admin 로그인).
 
-| 패널 | 데이터 소스 | 쿼리 |
+| 행 | 기본 | 패널 |
 |---|---|---|
-| 초당 HTTP 요청 | Prometheus | `sum by (method, uri, status) (rate(http_server_requests_seconds_count{uri!~"/actuator.*"}[1m]))` |
-| 평균 응답 시간 | Prometheus | 요청 시간 합의 증가율 ÷ 요청 수의 증가율 |
-| JVM 힙 사용량 | Prometheus | `sum(jvm_memory_used_bytes{area="heap"})` |
-| 레벨별 로그 수 | ES | `log.level` 별 개수, 시간 막대 |
-| 최근 WARN·ERROR 로그 | ES | `log.level:(WARN OR ERROR)` |
+| 한눈에 (항상 서비스 전체) | 펼침 | 실행 중 태스크 · 분당 요청 · 5xx 비율 · p95 응답 시간 · 힙 사용률 · DB 커넥션 대기 |
+| API (태스크·API 변수 적용) | 펼침 | 분당 요청 · 5xx 비율 · p95 응답 시간, 각각 상위 5개 API |
+| DB · JVM (태스크 변수 적용) | 펼침 | DB 커넥션 풀 · 힙 사용률 · CPU 사용률 · 스레드 수 |
+| 외부 API | 접힘 | 카카오·OCR p95 · 실패율 |
 
+- 모든 쿼리는 `job="spring"`(운영 Prometheus와 같은 job 이름)을 기준으로 합니다. 쿼리와 기준값(점선·색)은 각 패널의 ⓘ 설명과 JSON에 있습니다.
+- 한눈에 Stat은 상단 변수와 상관없이 항상 전체를 보여 줍니다. 트래픽·에러·지연은 합계, 힙·DB 대기는 가장 높은 태스크 값입니다.
+- 범례는 URI 대신 기능 이름(예: `리뷰 작성 (POST /api/reviews)`)으로 보입니다. API를 새로 만들면 JSON의 `displayName` 덮어쓰기에 한 줄 추가합니다.
+- 5xx·p95 패널의 링크를 누르면 같은 시간대의 Kibana "최근 에러"가 열립니다. Kibana 주소는 숨긴 변수 `kibana_url`(기본 `http://localhost:5601`)이라 운영에 올릴 때 이 값만 바꿉니다.
+- 화면 위 파란 세로선은 앱이 새로 뜬 시점(배포·재시작)입니다.
 - 대시보드 JSON에 `uid`(`deokhugam-app`)는 넣고 `id`는 넣지 않습니다. id는 Grafana마다 다른 내부 번호라 다른 곳에 올릴 때 꼬입니다.
+
+> p95 패널과 스레드 패널의 "바쁜 요청 스레드"는 앱 설정이 켜져야 값이 나옵니다(운영 설정은 인프라 담당 작업). 로컬에서는 앱을 이렇게 띄우면 바로 볼 수 있습니다:
+> ```bash
+> MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS=true SERVER_TOMCAT_MBEANREGISTRY_ENABLED=true ./gradlew bootRun
+> ```
+> 외부 API 행은 `KakaoClientConfig`·`OcrSpaceClientConfig`가 스프링의 `RestClient.Builder`를 쓰도록 바뀐 뒤에 값이 나옵니다.
 
 **패널 쿼리를 화면 없이 시험** — Grafana가 패널을 그릴 때 쓰는 API입니다:
 ```bash
@@ -479,9 +474,62 @@ curl -s -H "Authorization: Bearer $GRAFANA_TOKEN" localhost:$GRAFANA_PORT/api/da
 
 ---
 
+## 11단계. Kibana 로그 화면 올리기와 뽑기
+
+Kibana 화면(저장된 검색 4개, 막대 그래프, 대시보드)은 `monitoring/kibana-objects.ndjson` 한 파일에 들어 있습니다. 한 줄이 객체 하나입니다.
+
+| id | 종류 | 내용 |
+|---|---|---|
+| `deokhugam-logs` | 대시보드 "덕후감 로그" | 최근 24시간, 기본 검색 `NOT url.path : /actuator*`, 레벨·로거 드롭다운, 아래 두 패널 |
+| `deokhugam-error-loggers` | Lens 막대 | ERROR·WARN이 많이 나는 로거 Top 10 (ERROR 빨강, WARN 노랑) |
+| `deokhugam-recent-errors` | 저장된 검색 "최근 에러" | `log.level : (ERROR or WARN)`, 최신순. Grafana 링크가 이 id로 엽니다. 원인 예외가 있는 서버 실패(예: OCR 500)는 `GlobalExceptionHandler`가 WARN으로 남기므로 WARN도 함께 봅니다 |
+| `deokhugam-request-trace` | 저장된 검색 "요청 추적" | `http.request.id : "<값>"`, 오래된 순 |
+| `deokhugam-external-api-failures` | 저장된 검색 "외부 API 실패" | 카카오·OCR·S3 어댑터 로그와 에러 코드 `BOOK_OCR_UNAVAILABLE`·`BOOK_THUMBNAIL_UPLOAD_FAILED` |
+| `deokhugam-app-lifecycle` | 저장된 검색 "앱 시작·종료" | `Started DeokhugamApplication`, `Commencing graceful shutdown` |
+
+**올리기** — 파일 업로드(`-F`)라 `Content-Type`을 직접 적지 않습니다. 7단계 데이터 뷰가 먼저 있어야 합니다:
+```bash
+curl -s -u elastic:$ELASTIC_PASSWORD -H "kbn-xsrf: true" -X POST "localhost:5601/api/saved_objects/_import?overwrite=true" -F file=@monitoring/kibana-objects.ndjson
+```
+→ `"success":true,"successCount":6`. 브라우저에서 http://localhost:5601/app/dashboards#/view/deokhugam-logs
+
+**화면에서 고친 뒤 파일로 뽑기** — 대시보드·저장된 검색을 화면에서 고치고 저장한 뒤:
+```bash
+curl -s -u elastic:$ELASTIC_PASSWORD -H "kbn-xsrf: true" -H "Content-Type: application/json" -X POST localhost:5601/api/saved_objects/_export --data-binary @- <<'JSON' | jq -c 'select(.type != "index-pattern")' > monitoring/kibana-objects.ndjson
+{"objects":[{"type":"dashboard","id":"deokhugam-logs"},{"type":"search","id":"deokhugam-request-trace"},{"type":"search","id":"deokhugam-external-api-failures"},{"type":"search","id":"deokhugam-app-lifecycle"}],"includeReferencesDeep":true,"excludeExportDetails":true}
+JSON
+```
+- `includeReferencesDeep`가 대시보드 안의 막대 그래프와 "최근 에러"까지 함께 뽑습니다.
+- 데이터 뷰(`index-pattern`)는 7단계가 만들므로 파일에서 뺍니다.
+- 새 저장된 검색을 만들면 화면 기본값인 무작위 id가 붙습니다. 다른 곳에서 링크로 가리킬 거라면 위처럼 API로 고정 id를 정해 만듭니다.
+- Kibana 9.5의 저장된 검색은 실제 검색어·열을 `attributes.tabs[]` 안에 둡니다. 바깥의 `kibanaSavedObjectMeta`만 고쳐서는 화면에 반영되지 않으니, 검색어는 화면(Discover)에서 고치고 저장한 뒤 다시 뽑습니다.
+- 올린 뒤에도 Discover에 예전 검색어가 보이면, 그 브라우저 탭이 이전 상태를 기억하고 있는 것입니다. 새 탭에서 열면 저장된 내용이 보입니다.
+
+---
+
+## 화면 보는 법
+
+| 질문 | 어디서 |
+|---|---|
+| 지금 서비스가 정상인가? | Grafana 맨 위 "한눈에" 6개. 초록이면 정상, 노랑은 주의, 빨강은 문제 |
+| 어느 API가 문제인가? | Grafana "API" 행 (상위 5개). 다른 API는 상단 `API` 변수로 골라 봅니다 |
+| 서버 자원이 부족한가? | Grafana "DB · JVM" 행 |
+| 정확히 무슨 에러인가? | Kibana "최근 에러" (스택 트레이스 포함) |
+| 그 요청은 무엇을 했나? | Kibana "요청 추적" |
+
+장애 때 흐름:
+1. Grafana "5xx 비율"이 빨갛게 바뀝니다.
+2. "5xx 비율 (API별)"에서 어느 API인지 봅니다.
+3. 패널의 Kibana 링크를 누르면 같은 시간대의 "최근 에러"가 열립니다.
+4. 에러 한 줄을 펼쳐 `http.request.id` 옆 돋보기(+)를 누르면 그 요청의 로그만 시간 순으로 남습니다.
+
+> 알아 둘 한계: Prometheus는 새로 생긴 시계열(예: 앱이 뜬 뒤 처음 나는 `POST /api/books/isbn/ocr` 500)의 **첫 증가분을 세지 못합니다**. 처음 한두 건의 에러는 Grafana에 안 보이고 Kibana에만 남을 수 있습니다. 같은 에러가 이어지면 그때부터 그래프에 잡힙니다.
+
+---
+
 ## 한 번에 하기, 처음으로 되돌리기, 끄기
 
-- **한 번에**: `bash monitoring/setup.sh` — 2~10단계를 순서대로 실행합니다. 몇 번을 실행해도 결과가 같습니다.
+- **한 번에**: `bash monitoring/setup.sh` — 2~11단계를 순서대로 실행합니다. 몇 번을 실행해도 결과가 같습니다.
 - **ES·Kibana·Grafana를 빈 상태로 되돌려 다시 연습** (Postgres 데이터는 남김):
 ```bash
 docker compose --profile monitoring rm -sf elasticsearch kibana filebeat grafana
