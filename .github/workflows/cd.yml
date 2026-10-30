@@ -110,7 +110,13 @@ jobs:
               .deregisteredAt
             ) |
             # 태스크의 컨테이너 이름을 불러와 현재 덕후감-앱 이라는 컨테이너를 구동 시 ecr에 등록한 이미지를 풀받아서 구동하도록 설정 - 현재는 단일 스프링 컨테이너만 태스크에 존재
-            .containerDefinitions[0].image = $image
+            .containerDefinitions |= map(
+              if .name == "deokhugam-app" then
+                .image = $image
+              else
+                .
+              end
+            )
           ' current-task-definition.json > next-task-definition.json
 
           aws ecs register-task-definition \
