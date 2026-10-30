@@ -7,8 +7,8 @@ import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.domain.Book;
-import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
-import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
+import com.sprint.deokhugam.review.application.required.ReviewLikeRepositoryPort;
+import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
@@ -24,8 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ReviewApplicationServiceHardDeleteTest {
   @Mock UserFinder userFinder;
-  @Mock ReviewPersistencePort reviewPersistencePort;
-  @Mock ReviewLikePersistencePort reviewLikePersistencePort;
+  @Mock ReviewRepositoryPort reviewRepositoryPort;
+  @Mock ReviewLikeRepositoryPort reviewLikeRepositoryPort;
   @Mock BookReviewStatsCommand bookReviewStatsCommand;
   @InjectMocks ReviewApplicationService service;
 
@@ -43,7 +43,7 @@ class ReviewApplicationServiceHardDeleteTest {
     review = Review.create(3, "내용", user, book);
 
     when(user.getId()).thenReturn(userId);
-    when(reviewPersistencePort.getByIdIncludingDeleted(reviewId)).thenReturn(Optional.of(review));
+    when(reviewRepositoryPort.getByIdIncludingDeleted(reviewId)).thenReturn(Optional.of(review));
   }
 
   @Test
@@ -51,7 +51,7 @@ class ReviewApplicationServiceHardDeleteTest {
     service.hardDeleteReview(reviewId, userId);
 
     verify(bookReviewStatsCommand).removeReview(book, 3);
-    verify(reviewPersistencePort).delete(review);
+    verify(reviewRepositoryPort).delete(review);
   }
 
   @Test
@@ -61,6 +61,6 @@ class ReviewApplicationServiceHardDeleteTest {
     service.hardDeleteReview(reviewId, userId);
 
     verify(bookReviewStatsCommand, never()).removeReview(book, 3);
-    verify(reviewPersistencePort).delete(review);
+    verify(reviewRepositoryPort).delete(review);
   }
 }

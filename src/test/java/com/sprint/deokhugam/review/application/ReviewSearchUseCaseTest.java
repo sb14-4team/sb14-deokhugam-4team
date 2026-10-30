@@ -7,8 +7,8 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
-import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
-import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
+import com.sprint.deokhugam.review.application.required.ReviewLikeQueryPort;
+import com.sprint.deokhugam.review.application.required.ReviewQueryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
@@ -26,8 +26,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewSearchUseCaseTest {
-  @Mock ReviewLikePersistencePort reviewLikePersistencePort;
-  @Mock ReviewPersistencePort reviewPersistencePort;
+  @Mock ReviewLikeQueryPort reviewLikeQueryPort;
+  @Mock ReviewQueryPort reviewQueryPort;
   @InjectMocks ReviewApplicationService service;
 
   @Test
@@ -46,9 +46,9 @@ class ReviewSearchUseCaseTest {
     ReflectionTestUtils.setField(review, "id", reviewId);
     ReflectionTestUtils.setField(review, "createdAt", Instant.parse("2026-10-23T00:00:00Z"));
 
-    when(reviewPersistencePort.search(condition)).thenReturn(List.of(review));
-    when(reviewPersistencePort.count(condition)).thenReturn(1L);
-    when(reviewLikePersistencePort.findReviewLikeIdsByRequestId(List.of(reviewId), requestUserId))
+    when(reviewQueryPort.search(condition)).thenReturn(List.of(review));
+    when(reviewQueryPort.count(condition)).thenReturn(1L);
+    when(reviewLikeQueryPort.findReviewLikeIdsByRequestId(List.of(reviewId), requestUserId))
         .thenReturn(List.of(reviewId));
 
     // when

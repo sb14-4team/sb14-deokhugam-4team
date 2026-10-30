@@ -1,7 +1,8 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
-import com.sprint.deokhugam.review.application.required.ReviewPersistencePort;
+import com.sprint.deokhugam.review.application.required.ReviewQueryPort;
+import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import java.util.List;
 import java.util.Optional;
@@ -9,10 +10,14 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+/*
+ 구현체 분리 고려해보기
+ - 포트를 막상 나눴지만 구현체는 합쳐져있음. 현재 리뷰/좋아요 함께 묶여있어서 클래스파일 너무 많아짐. 이대로 진행
+*/
 // r2dbc redis
 @RequiredArgsConstructor
 @Repository
-public class ReviewJpaRepositoryAdapter implements ReviewPersistencePort {
+public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositoryPort {
   private final ReviewJpaRepository reviewJpaRepository;
   private final ReviewQuerydslRepository reviewQuerydslRepository;
 
