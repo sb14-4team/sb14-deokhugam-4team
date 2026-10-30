@@ -11,8 +11,8 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
-import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
-import com.sprint.deokhugam.review.application.required.ReviewLikePersistencePort;
+import com.sprint.deokhugam.review.application.required.ReviewLikeRepositoryPort;
+import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.review.domain.ReviewLike;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -31,8 +31,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewLikeUseCaseTest {
-  @Mock ReviewLikePersistencePort reviewLikePersistencePort;
-  @Mock ReviewFinder reviewFinder;
+  @Mock ReviewLikeRepositoryPort reviewLikeRepositoryPort;
+  @Mock ReviewRepositoryPort reviewRepositoryPort;
   @Mock UserFinder userFinder;
   @Mock org.springframework.context.ApplicationEventPublisher eventPublisher;
 
@@ -62,8 +62,8 @@ class ReviewLikeUseCaseTest {
   void 리뷰좋아요_새로_생성될경우() {
     // given
     when(userFinder.findById(userId)).thenReturn(user);
-    when(reviewFinder.getByIdOrThrow(reviewId)).thenReturn(review);
-    when(reviewLikePersistencePort.getByUserIdAndReviewId(userId, reviewId))
+    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
         .thenReturn(Optional.empty());
 
     // when
@@ -74,7 +74,7 @@ class ReviewLikeUseCaseTest {
     assertThat(response.reviewId()).isEqualTo(reviewId);
     assertThat(response.userId()).isEqualTo(userId);
     assertThat(review.getLikeCount()).isEqualTo(1);
-    verify(reviewLikePersistencePort).save(any(ReviewLike.class));
+    verify(reviewLikeRepositoryPort).save(any(ReviewLike.class));
   }
 
   @Test
@@ -84,8 +84,8 @@ class ReviewLikeUseCaseTest {
     review.increaseLikeCount();
 
     when(userFinder.findById(userId)).thenReturn(user);
-    when(reviewFinder.getByIdOrThrow(reviewId)).thenReturn(review);
-    when(reviewLikePersistencePort.getByUserIdAndReviewId(userId, reviewId))
+    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
         .thenReturn(Optional.of(existing));
 
     // when
@@ -95,7 +95,7 @@ class ReviewLikeUseCaseTest {
     assertThat(response.liked()).isFalse();
     assertThat(existing.isLiked()).isFalse();
     assertThat(review.getLikeCount()).isZero();
-    verify(reviewLikePersistencePort, never()).save(any(ReviewLike.class));
+    verify(reviewLikeRepositoryPort, never()).save(any(ReviewLike.class));
   }
 
   @Test

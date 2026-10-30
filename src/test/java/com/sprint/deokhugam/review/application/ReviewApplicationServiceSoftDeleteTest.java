@@ -11,7 +11,7 @@ import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCom
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
-import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
+import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
@@ -26,7 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class ReviewApplicationServiceSoftDeleteTest {
   @Mock UserFinder userFinder;
-  @Mock ReviewFinder reviewFinder;
+  @Mock ReviewRepositoryPort reviewRepositoryPort;
   @Mock BookReviewStatsCommand bookReviewStatsCommand;
   @InjectMocks ReviewApplicationService service;
 
@@ -53,7 +53,7 @@ public class ReviewApplicationServiceSoftDeleteTest {
   void 리뷰_논리삭제_작성자가아니면실패() {
     // given
     UUID requestUserId = UUID.randomUUID();
-    when(reviewFinder.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
 
     // when
     BusinessException exception =
@@ -70,7 +70,7 @@ public class ReviewApplicationServiceSoftDeleteTest {
   void 리뷰_논리삭제_성공() {
     // given
     when(userFinder.findById(userId)).thenReturn(user);
-    when(reviewFinder.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
 
     // when
     service.softDeleteReview(reviewId, userId);

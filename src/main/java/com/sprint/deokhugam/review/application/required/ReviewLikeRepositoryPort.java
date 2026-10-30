@@ -5,12 +5,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ReviewLikePersistencePort {
+public interface ReviewLikeRepositoryPort {
   ReviewLike save(ReviewLike reviewLike);
-
-  boolean isLikedBy(UUID reviewId, UUID userId);
-
-  List<UUID> findReviewLikeIdsByRequestId(List<UUID> reviewIds, UUID requestUserId);
 
   Optional<ReviewLike> getByUserIdAndReviewId(UUID userId, UUID reviewId);
 
