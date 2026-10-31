@@ -54,10 +54,6 @@ public class ReviewQuerydslRepository {
     return count == null ? 0L : count;
   }
 
-  public List<UUID> getIdsByUserIds(List<UUID> userIds) {
-    return queryFactory.select(review.id).from(review).where(review.user.id.in(userIds)).fetch();
-  }
-
   public List<UUID> getIdsByBookId(UUID bookId) {
     return queryFactory.select(review.id).from(review).where(review.book.id.eq(bookId)).fetch();
   }

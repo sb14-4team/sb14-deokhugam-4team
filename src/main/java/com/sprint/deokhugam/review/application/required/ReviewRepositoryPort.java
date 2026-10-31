@@ -22,8 +22,6 @@ public interface ReviewRepositoryPort {
 
   void decreaseLikeCountsByUserId(UUID userId);
 
-  List<UUID> getIdsByUserIds(List<UUID> userIds);
-
   // 논리 삭제된 리뷰도 포함 (도서 물리 삭제용)
   List<UUID> getIdsByBookId(UUID bookId);
 
