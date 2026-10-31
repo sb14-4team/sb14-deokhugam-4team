@@ -6,6 +6,7 @@
 
 | 파일 | 하는 일 |
 |---|---|
+| `seed.sh` | 시드를 넣는 스크립트. 없을 때만 넣고, `--force`면 다시 넣는다 |
 | `seed.sql` | 시드 데이터. 사용자 1,000 · 도서 3,000 · 리뷰 30,000 · 댓글 100,000 · 좋아요 200,000 · 알림 약 30만 |
 | `k6/scenario.js` | 사용자 흐름 부하. `PROFILE=smoke\|load\|stress\|soak` |
 | `k6/race.js` | 동시성. 50명이 같은 리뷰에 동시에 좋아요·댓글 → 카운터가 50인지 |
@@ -42,7 +43,7 @@ docker compose --profile monitoring --profile loadtest up -d --build
 docker compose logs -f app    # "Started DeokhugamApplication" 이 보이면 Ctrl+C (0.5 vCPU라 1분쯤 걸린다)
 ```
 
-- 처음이면 모니터링 설정과 시드를 한 번 넣는다: `bash monitoring/setup.sh` (자세한 건 `monitoring/README.md`)
+- 처음이면 모니터링 설정(`bash monitoring/setup.sh`)과 시드(`bash loadtest/seed.sh`)를 한 번 넣는다 (자세한 건 `monitoring/README.md`)
 - 앱 컨테이너는 k6 때만 쓴다. 끝나면 `docker compose stop app`으로 끄고 bootRun으로 돌아간다. 재시작 정책이 없어 PC를 켜도 다시 뜨지 않는다
 - 컨테이너 앱도 `host.docker.internal:8080`으로 열리므로 Prometheus 설정은 그대로 쓴다
 
@@ -55,22 +56,23 @@ docker compose logs -f app    # "Started DeokhugamApplication" 이 보이면 Ctr
 
 ## 2. 시드 넣기
 
-`bash monitoring/setup.sh`가 마지막 단계에서 자동으로 넣는다(시드가 없을 때만). 앱 컨테이너가 떠 있으면 테이블이 생길 때까지 기다린다.
-`SEED=force`면 지우고 다시, `SEED=skip`이면 건너뛴다. 손으로 넣으려면 아래처럼 한다.
-앱이 한 번 떠서 테이블을 만든 뒤에 넣어야 한다(테이블은 ddl-auto가 만든다).
+앱이 한 번 떠서 테이블을 만든 뒤에 넣는다(테이블은 ddl-auto가 만든다). 앱이 뜨는 중이면 테이블이 생길 때까지 기다린다.
 
 ```bash
-docker compose exec -T postgres psql -U deokhugam -d deokhugam -v ON_ERROR_STOP=1 < loadtest/seed.sql
+bash loadtest/seed.sh            # 없을 때만
+bash loadtest/seed.sh --force    # 지우고 다시 (seed.sql을 고친 뒤)
 ```
+
+엔티티가 바뀌면 `seed.sql`의 INSERT 컬럼도 같이 고친다. 안 맞으면 오류로 멈추고, 한 트랜잭션이라 DB는 그대로다.
 
 - 20초 안팎 걸린다. 끝에 테이블별 행 수가 나온다
 - 다시 돌리면 이전 시드와 거기에 k6가 붙인 데이터만 지우고 새로 넣는다. 직접 넣은 개발 데이터는 남는다
 - 시드 사용자는 `user1@loadtest.local` ~ `user1000@loadtest.local`, 비밀번호는 모두 `loadtest1!`
 - id는 `md5('user-5')::uuid`처럼 정해진다. k6가 같은 식으로 id를 계산해서 DB를 조회하지 않는다
 
-다른 규모로 넣으려면 `-v`로 바꾼다. k6에도 같은 값을 `-e USERS=... -e BOOKS=... -e REVIEWS_PER_USER=...`로 넘긴다.
+다른 규모로 넣으려면 `bash loadtest/seed.sh --force` 뒤에 `-v`를 붙인다. k6에도 같은 값을 `-e USERS=... -e BOOKS=... -e REVIEWS_PER_USER=...`로 넘긴다.
 
-| 규모 | psql에 붙일 값 |
+| 규모 | 붙일 값 |
 |---|---|
 | S | `-v users=100 -v books=300 -v reviews_per_user=10 -v comments=3000 -v likes=5000` |
 | M (기본) | 없음 |

@@ -1,6 +1,7 @@
 -- 부하 테스트용 시드. 기본값은 M 규모(사용자 1,000 · 도서 3,000 · 리뷰 30,000 · 댓글 100,000 · 좋아요 200,000)
--- 실행: docker compose exec -T postgres psql -U deokhugam -d deokhugam -v ON_ERROR_STOP=1 < loadtest/seed.sql
--- 규모 바꾸기: psql에 -v users=100 -v books=300 ... 를 붙인다 (S 규모 예시는 loadtest/README.md)
+-- 실행: bash loadtest/seed.sh (없을 때만) / bash loadtest/seed.sh --force (다시)
+-- 규모 바꾸기: seed.sh --force 뒤에 -v users=100 -v books=300 ... 를 붙인다 (S 규모 예시는 loadtest/README.md)
+-- 엔티티(테이블)가 바뀌면 아래 INSERT의 컬럼 목록을 같이 고친다
 --
 -- 테이블은 앱이 한 번 떠서 ddl-auto로 만든 뒤에 있다. 앱을 먼저 한 번 띄운다
 -- 다시 돌리면 이전 시드와 그 시드에 k6가 붙인 데이터만 지우고 새로 넣는다. 직접 넣은 개발 데이터는 남는다

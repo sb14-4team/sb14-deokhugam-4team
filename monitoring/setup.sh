@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# 모니터링 스택(Elasticsearch·Kibana·Grafana)을 API로 설정하고, 로컬 Postgres에 부하 테스트 시드를 넣는다.
-# 모든 호출이 PUT이거나 덮어쓰기라서 여러 번 실행해도 결과가 같다. 시드는 없을 때만 넣는다(SEED).
+# 모니터링 스택(Elasticsearch·Kibana·Grafana)을 API로 설정한다.
+# 모든 호출이 PUT이거나 덮어쓰기라서 여러 번 실행해도 결과가 같다.
+# 시드 데이터는 테이블이 바뀔 때마다 같이 바뀌어서 loadtest/seed.sh로 따로 둔다.
 #
 #   docker compose --profile monitoring up -d
-#   ./gradlew bootRun          # 다른 터미널. 앱이 테이블을 만들어야 시드가 들어간다
 #   bash monitoring/setup.sh
 #
 # 주소를 바꾸면(ES_URL, KIBANA_URL, GRAFANA_URL) EC2 같은 다른 곳에도 그대로 쓴다.
@@ -238,48 +238,10 @@ step "Grafana: 대시보드"
 step "Grafana: 첫 화면을 앱 대시보드로"
 gf PUT /api/org/preferences -d '{"homeDashboardUID":"deokhugam-app"}'
 
-# ---------------------------------------------------------------- Postgres 시드 (부하 테스트용)
-# SEED=auto(기본): 시드가 없을 때만 넣는다 / force: 지우고 다시 넣는다 / skip: 건너뛴다
-# 처음 설정 때 한 번 들어가고, 그 뒤로는 앱·DB를 껐다 켜도 볼륨에 남은 데이터를 그대로 쓴다
-# 이 compose의 postgres 컨테이너에만 넣는다. ES_URL 등을 바꿔 다른 서버를 설정할 때도 DB는 건드리지 않는다
-SEED=${SEED:-auto}
-APP_URL=${APP_URL:-http://localhost:8080}
-psql_local() {
-  docker compose exec -T postgres psql -U "${POSTGRES_USER:-deokhugam}" -d "${POSTGRES_DB:-deokhugam}" "$@"
-}
-# 테이블은 앱이 ddl-auto로 만든다. 6개가 다 있어야 시드를 넣을 수 있다
-tables_ready() {
-  [ "$(psql_local -Atc "select count(*) from information_schema.tables where table_schema = 'public'
-    and table_name in ('users','books','reviews','comments','review_likes','notifications')")" = 6 ]
-}
-
-step "Postgres: 부하 테스트 시드 (SEED=$SEED)"
-if [ "$SEED" = skip ]; then
-  echo "건너뜀"
-elif [ -z "$(docker compose ps -q postgres 2>/dev/null)" ]; then
-  echo "이 compose의 postgres가 떠 있지 않아 건너뜀"
-else
-  # 앱(bootRun·IDE·k6용 컨테이너)이 떠 있거나 뜨는 중이면 테이블이 생길 때까지 기다린다
-  if ! tables_ready && { [ -n "$(docker compose ps -q app 2>/dev/null)" ] \
-      || curl -s -o /dev/null --max-time 3 "$APP_URL/actuator/health"; }; then
-    wait_for "앱이 테이블 만들기" tables_ready
-  fi
-  if ! tables_ready; then
-    echo "테이블이 아직 없어 건너뜀. 앱(bootRun)을 한 번 띄운 뒤 setup.sh를 다시 실행한다"
-  else
-    seeded=$(psql_local -Atc "select count(*) from users where email like '%@loadtest.local'")
-    if [ "$SEED" = auto ] && [ "$seeded" -gt 0 ]; then
-      echo "이미 있음 (시드 사용자 ${seeded}명). 다시 넣으려면 SEED=force"
-    else
-      echo "… M 규모 시드를 넣는 중 (20초 안팎)"
-      psql_local -q -v ON_ERROR_STOP=1 < loadtest/seed.sql | grep -vE '^Time: '
-    fi
-  fi
-fi
-
 cat <<EOF
 
 완료
   Kibana   $KIBANA_URL/app/dashboards#/view/deokhugam-logs   (elastic / ELASTIC_PASSWORD)
   Grafana  $GRAFANA_URL/d/deokhugam-app   (admin / GRAFANA_ADMIN_PASSWORD)
+  시드 데이터는 앱(bootRun)을 띄운 뒤 bash loadtest/seed.sh
 EOF

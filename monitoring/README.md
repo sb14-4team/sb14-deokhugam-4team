@@ -1,7 +1,7 @@
 # 로컬 모니터링 (Grafana · Kibana)
 
 내 PC에서 앱을 띄우고, **Grafana(숫자)**와 **Kibana(로그)**로 바로 보는 방법입니다.
-설정은 `setup.sh`가 전부 자동으로 넣습니다. 각 설정이 무슨 API 호출인지 궁금하면 [API_GUIDE.md](API_GUIDE.md)를 봅니다.
+모니터링 설정은 `setup.sh`, 시드 데이터는 `loadtest/seed.sh`가 넣습니다. 각 설정이 무슨 API 호출인지 궁금하면 [API_GUIDE.md](API_GUIDE.md)를 봅니다.
 
 ## 준비물
 
@@ -21,27 +21,37 @@ cp .env.example .env
 docker compose --profile monitoring up -d
 ```
 
-**2. 앱 띄우기 (다른 터미널)** — 앱이 떠야 DB 테이블이 생기고, 그래야 시드 데이터가 들어갑니다.
-
-```bash
-MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS=true SERVER_TOMCAT_MBEANREGISTRY_ENABLED=true ./gradlew bootRun
-```
-
-**3. 설정 넣기** — 2의 터미널에 `Started DeokhugamApplication`이 보인 뒤 실행합니다.
+**2. 모니터링 설정 넣기** — 앱 없이 돌려도 됩니다.
 
 ```bash
 set -a; . ./.env; set +a; bash monitoring/setup.sh
 ```
 
-- `setup.sh`는 Elasticsearch가 뜰 때까지 기다렸다가 진행합니다(1~3분). 마지막에 `완료`가 나오면 끝입니다.
-- 마지막 단계에서 Postgres에 **시드 데이터(약 63만 행)**를 넣습니다(20초 안팎). 시드 사용자는 `user1@loadtest.local` ~ `user1000@loadtest.local`, 비밀번호 `loadtest1!`입니다.
-  - 앱이 아직 안 떴으면 "테이블이 아직 없어 건너뜀"이 나옵니다. 앱을 띄운 뒤 `setup.sh`를 다시 실행합니다.
-- 몇 번을 실행해도 결과가 같습니다. 시드는 **처음 한 번만** 들어가고, 이미 있으면 건너뜁니다. 새로 넣으려면 `SEED=force bash monitoring/setup.sh`, 아예 빼려면 `SEED=skip`.
+- Elasticsearch가 뜰 때까지 기다렸다가 진행합니다(1~3분). 마지막에 `완료`가 나오면 끝입니다.
+- 몇 번을 실행해도 결과가 같습니다. 이상하면 그냥 다시 실행합니다.
 - 포트가 겹치면 `.env`의 `POSTGRES_PORT`, `GRAFANA_PORT`를 바꿉니다.
+
+**3. 앱 띄우기 (다른 터미널)** — 앱이 떠야 DB 테이블이 생깁니다.
+
+```bash
+MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS=true SERVER_TOMCAT_MBEANREGISTRY_ENABLED=true ./gradlew bootRun
+```
+
+**4. 시드 데이터 넣기** — 3의 터미널에 `Started DeokhugamApplication`이 보인 뒤 실행합니다.
+
+```bash
+bash loadtest/seed.sh
+```
+
+- Postgres에 **약 63만 행**을 넣습니다(20초 안팎). 시드 사용자는 `user1@loadtest.local` ~ `user1000@loadtest.local`, 비밀번호 `loadtest1!`입니다.
+- **처음 한 번만** 들어가고, 이미 있으면 "이미 있음"으로 끝납니다.
+- 모니터링 설정(`setup.sh`)과 나눈 이유: 모니터링 설정은 거의 바뀌지 않지만, 시드(`loadtest/seed.sql`)는 엔티티가 바뀔 때마다 같이 고쳐야 합니다.
+- **엔티티(테이블)를 바꿨으면** `loadtest/seed.sql`을 맞춰 고친 뒤 `bash loadtest/seed.sh --force`로 다시 넣습니다. 이전 시드만 지우고 새로 넣으며, 직접 넣은 개발 데이터는 남습니다.
+- `seed.sql`이 테이블과 안 맞으면 오류를 내고 멈춥니다. 한 트랜잭션이라 DB는 넣기 전 그대로입니다.
 
 ## 그다음부터 (매번)
 
-**앱만 띄웁니다.** `setup.sh`는 다시 돌리지 않아도 됩니다.
+**앱만 띄웁니다.** `setup.sh`와 `seed.sh`는 다시 돌리지 않아도 됩니다.
 
 ```bash
 MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS=true SERVER_TOMCAT_MBEANREGISTRY_ENABLED=true ./gradlew bootRun
@@ -95,7 +105,7 @@ Grafana 패널의 Kibana 링크를 누르면 같은 시간대의 "최근 에러"
 ## 끄기 · 초기화
 
 - 끄기(데이터 유지): `docker compose --profile monitoring --profile loadtest down` — 컨테이너를 지워도 볼륨은 남아서 `up -d`하면 그대로 이어집니다
-- `-v`를 붙이면 **Postgres 데이터(시드 포함)까지** 지워집니다. 다시 `setup.sh`를 돌리면 시드가 새로 들어갑니다. 모니터링만 처음 상태로 되돌리는 방법은 [API_GUIDE.md](API_GUIDE.md#한-번에-하기-처음으로-되돌리기-끄기)에 있습니다.
+- `-v`를 붙이면 **Postgres 데이터(시드 포함)까지** 지워집니다. 다시 `setup.sh`와 `loadtest/seed.sh`를 돌리면 처음 상태로 돌아갑니다. 모니터링만 처음 상태로 되돌리는 방법은 [API_GUIDE.md](API_GUIDE.md#한-번에-하기-처음으로-되돌리기-끄기)에 있습니다.
 
 ## 막히면
 
@@ -105,6 +115,7 @@ Grafana 패널의 Kibana 링크를 누르면 같은 시간대의 "최근 에러"
 | `setup.sh`가 401 | `.env`를 안 읽음 → `set -a; . ./.env; set +a` 후 다시 |
 | Kibana에 로그가 없음 | 앱이 안 떠 있음, 또는 시간 범위가 짧음 → 오른쪽 위 시간을 Last 1 hour로 |
 | Grafana 그래프가 비어 있음 | 앱이 8080에 안 떠 있음 → http://localhost:9090/targets 확인 |
-| `setup.sh`가 "테이블이 아직 없어 건너뜀" | 앱이 안 떠 있었음 → bootRun 뒤 `setup.sh` 다시 |
+| `seed.sh`가 "테이블이 아직 없다" | 앱이 안 떠 있었음 → bootRun 뒤 `seed.sh` 다시 |
+| `seed.sh`가 `ERROR: column ... does not exist` 등 | 엔티티가 바뀌었는데 `seed.sql`이 그대로 → `seed.sql`을 고친 뒤 `--force` |
 | 앱 컨테이너 `ports are not available ... 8080` | bootRun·IDE 앱이 8080을 씀 → 그쪽을 끄거나 `docker compose stop app` |
 | Kibana가 `exit 134`로 꺼짐 | 힙 부족 → Docker Desktop 메모리를 늘린다 (compose는 768MB로 잡아 둠) |
