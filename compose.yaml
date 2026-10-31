@@ -10,6 +10,8 @@ services:
       TZ: Asia/Seoul
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    # 운영 RDS(db.t4g.micro)는 1GB. 4GB로 묶은 Docker 안에 다 넣으려고 조금 줄였다
+    mem_limit: 768m
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -29,7 +31,9 @@ services:
       # 로컬 실험이라 HTTP TLS는 끈다. 인증은 켜 두어 EC2로 옮길 때 API 호출이 그대로 쓰이게 한다
       xpack.security.http.ssl.enabled: "false"
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-elastic-local}
-      ES_JAVA_OPTS: -Xms1g -Xmx1g
+      # 힙 1GB면 실제 사용량이 1.5GB를 넘는다. 8GB 노트북(Docker 4GB)에 맞춰 줄였다
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    mem_limit: 1g
     volumes:
       - es-data:/usr/share/elasticsearch/data
     healthcheck:
@@ -48,6 +52,8 @@ services:
       # kibana_system 비밀번호는 setup.sh가 ES API로 정한다. 그 전까지 Kibana는 연결을 재시도한다
       ELASTICSEARCH_USERNAME: kibana_system
       ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-kibana-local}
+      # 512면 9.5가 시작 중에 힙 부족(exit 134)으로 죽는다. 768에서 뜨는 걸 확인했다
+      NODE_OPTIONS: --max-old-space-size=768
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -89,6 +95,29 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-grafana-local}
     volumes:
       - grafana-data:/var/lib/grafana
+
+  # 부하 테스트용 앱. 운영 태스크(Fargate 0.5 vCPU / 1GB)와 같은 울타리에 가둔다
+  # `docker compose --profile monitoring --profile loadtest up -d --build` (절차는 loadtest/README.md)
+  app:
+    profiles: [loadtest]
+    build: .
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file: .env
+    environment:
+      # prometheus 엔드포인트와 .logs 파일 로그(Filebeat가 읽는다)가 dev 프로필에만 있다
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-deokhugam}
+      # Grafana의 p95 패널과 Tomcat 스레드 패널에 필요하다
+      MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS: "true"
+      SERVER_TOMCAT_MBEANREGISTRY_ENABLED: "true"
+    volumes:
+      - ./.logs:/app/.logs
+    mem_limit: 1g
+    cpus: "0.5"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres-data:

@@ -16,23 +16,34 @@
 cp .env.example .env
 ```
 ```bash
-docker compose --profile monitoring up -d
+docker compose --profile monitoring --profile loadtest up -d --build
 ```
 ```bash
 set -a; . ./.env; set +a; bash monitoring/setup.sh
 ```
 
+- `--profile loadtest`는 앱도 컨테이너로 띄웁니다(운영과 같은 0.5 vCPU / 1GB). 처음 `--build`는 Gradle 빌드라 3~5분 걸립니다.
 - `setup.sh`는 Elasticsearch가 뜰 때까지 기다렸다가 진행합니다(1~3분). 마지막에 `완료`가 나오면 끝입니다.
-- 몇 번을 실행해도 결과가 같습니다. 이상하면 그냥 다시 실행합니다.
+- 마지막 단계에서 앱이 테이블을 만들 때까지 기다렸다가 **부하 테스트용 시드 데이터(M 규모, 약 63만 행)**를 Postgres에 넣습니다(20초 안팎). 시드 사용자는 `user1@loadtest.local` ~ `user1000@loadtest.local`, 비밀번호 `loadtest1!`입니다.
+- 몇 번을 실행해도 결과가 같습니다. 시드는 이미 있으면 건너뜁니다. 새로 넣으려면 `SEED=force bash monitoring/setup.sh`, 빼려면 `SEED=skip`.
 - 포트가 겹치면 `.env`의 `POSTGRES_PORT`, `GRAFANA_PORT`를 바꿉니다.
 
 ## 앱 띄우기 (매번)
 
+위처럼 `--profile loadtest`로 띄웠으면 앱이 이미 컨테이너로 떠 있습니다(8080). 코드를 고쳤으면 `docker compose --profile loadtest up -d --build app`으로 다시 빌드합니다.
+
+IDE·bootRun으로 띄우고 싶으면 앱 컨테이너를 먼저 끕니다(8080이 겹칩니다).
+
+```bash
+docker compose stop app
+```
 ```bash
 MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS=true SERVER_TOMCAT_MBEANREGISTRY_ENABLED=true ./gradlew bootRun
 ```
 
-앞의 두 환경변수가 없으면 Grafana의 p95 응답시간·스레드 패널이 비어 있습니다. 앱이 뜨고 1분쯤 지나면 그래프와 로그가 들어옵니다.
+앞의 두 환경변수가 없으면 Grafana의 p95 응답시간·스레드 패널이 비어 있습니다(앱 컨테이너에는 이미 들어 있습니다). 앱이 뜨고 1분쯤 지나면 그래프와 로그가 들어옵니다.
+
+부하 테스트(k6) 돌리는 법과 결과는 [loadtest/README.md](../loadtest/README.md)에 있습니다.
 
 ## 로그인
 
@@ -59,8 +70,8 @@ Grafana 패널의 Kibana 링크를 누르면 같은 시간대의 "최근 에러"
 
 ## 끄기 · 초기화
 
-- 끄기(데이터 유지): `docker compose --profile monitoring down`
-- `-v`를 붙이면 **Postgres 데이터까지** 지워집니다. 모니터링만 처음 상태로 되돌리는 방법은 [API_GUIDE.md](API_GUIDE.md#한-번에-하기-처음으로-되돌리기-끄기)에 있습니다.
+- 끄기(데이터 유지): `docker compose --profile monitoring --profile loadtest down`
+- `-v`를 붙이면 **Postgres 데이터(시드 포함)까지** 지워집니다. 다시 `setup.sh`를 돌리면 시드가 새로 들어갑니다. 모니터링만 처음 상태로 되돌리는 방법은 [API_GUIDE.md](API_GUIDE.md#한-번에-하기-처음으로-되돌리기-끄기)에 있습니다.
 
 ## 막히면
 
@@ -70,3 +81,6 @@ Grafana 패널의 Kibana 링크를 누르면 같은 시간대의 "최근 에러"
 | `setup.sh`가 401 | `.env`를 안 읽음 → `set -a; . ./.env; set +a` 후 다시 |
 | Kibana에 로그가 없음 | 앱이 안 떠 있음, 또는 시간 범위가 짧음 → 오른쪽 위 시간을 Last 1 hour로 |
 | Grafana 그래프가 비어 있음 | 앱이 8080에 안 떠 있음 → http://localhost:9090/targets 확인 |
+| `setup.sh`가 "테이블이 아직 없어 건너뜀" | 앱 없이 띄웠음 → 앱을 한 번 띄운 뒤 `setup.sh` 다시 |
+| 앱 컨테이너 `ports are not available ... 8080` | bootRun·IDE 앱이 8080을 씀 → 그쪽을 끄거나 `docker compose stop app` |
+| Kibana가 `exit 134`로 꺼짐 | 힙 부족 → Docker Desktop 메모리를 늘린다 (compose는 768MB로 잡아 둠) |
