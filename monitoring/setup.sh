@@ -182,6 +182,10 @@ curl -sS --fail-with-body -u "elastic:$ELASTIC_PASSWORD" -H 'kbn-xsrf: true' \
   -F file=@monitoring/kibana-objects.ndjson
 echo
 
+# 로그인하면 바로 로그 대시보드가 뜨게 한다 (Kibana 기본 홈 대신)
+step "Kibana: 첫 화면을 로그 대시보드로"
+kb POST /api/kibana/settings -d '{"changes":{"defaultRoute":"/app/dashboards#/view/deokhugam-logs"}}'
+
 # ---------------------------------------------------------------- Grafana
 wait_for Grafana curl -sf "$GRAFANA_URL/api/health"
 
@@ -226,6 +230,10 @@ gf GET /api/datasources/uid/deokhugam-prometheus/health
 step "Grafana: 대시보드"
 { printf '{"dashboard": '; cat monitoring/grafana-dashboard.json; printf ', "overwrite": true}'; } \
   | gf POST /api/dashboards/db --data-binary @-
+
+# 로그인하면 바로 앱 대시보드가 뜨게 한다 (조직 전체의 홈 대시보드)
+step "Grafana: 첫 화면을 앱 대시보드로"
+gf PUT /api/org/preferences -d '{"homeDashboardUID":"deokhugam-app"}'
 
 cat <<EOF
 
