@@ -70,6 +70,10 @@ public class ReviewQuerydslRepository {
     return queryFactory.delete(review).where(review.id.in(reviewIds)).execute();
   }
 
+  public List<UUID> getIdsByUserIdIncludingDeleted(UUID userId) {
+    return queryFactory.select(review.id).from(review).where(review.user.id.eq(userId)).fetch();
+  }
+
   /*
      like -> eq : equals  contains -> contains
      결과 :   like 검색조건   like %{검색 조건}%

@@ -23,14 +23,6 @@ public class ReviewCommandService implements ReviewCommand {
     if (reviewIds.isEmpty()) return 0L;
     List<Review> reviews = reviewRepositoryPort.getByIdsIncludingDeleted(reviewIds);
 
-    /*
-      10.28 일단 집계 반영안하고 나중에 생각해보기로 결정
-       UUID bookId,
-       int removedReviewCount,
-       long removedRatingSum
-       형태로 리스트<dto> 로 전달
-    */
-
     return reviewRepositoryPort.deleteAllByIds(reviewIds);
   }
 }

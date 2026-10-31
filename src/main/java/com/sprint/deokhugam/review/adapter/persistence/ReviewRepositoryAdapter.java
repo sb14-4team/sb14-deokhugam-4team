@@ -85,4 +85,9 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   public List<UUID> getIdsByBookId(UUID bookId) {
     return reviewQuerydslRepository.getIdsByBookId(bookId);
   }
+
+  @Override
+  public List<UUID> getIdsByUserIdIncludingDeleted(UUID userId) {
+    return reviewQuerydslRepository.getIdsByUserIdIncludingDeleted(userId);
+  }
 }
