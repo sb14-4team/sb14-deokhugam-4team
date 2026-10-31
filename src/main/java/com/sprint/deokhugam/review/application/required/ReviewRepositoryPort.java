@@ -12,8 +12,6 @@ public interface ReviewRepositoryPort {
 
   Optional<Review> getByIdIncludingDeleted(UUID reviewId);
 
-  List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds);
-
   void requireActiveById(UUID reviewId);
 
   boolean existsByUserIdAndBookId(UUID userId, UUID bookId);
@@ -22,10 +20,10 @@ public interface ReviewRepositoryPort {
 
   long deleteAllByIds(List<UUID> reviewIds);
 
-  void decreaseLikeCountsByUserIds(List<UUID> userIds);
-
-  List<UUID> getIdsByUserIds(List<UUID> userIds);
+  void decreaseLikeCountsByUserId(UUID userId);
 
   // 논리 삭제된 리뷰도 포함 (도서 물리 삭제용)
   List<UUID> getIdsByBookId(UUID bookId);
+
+  List<UUID> getIdsByUserIdIncludingDeleted(UUID userId);
 }

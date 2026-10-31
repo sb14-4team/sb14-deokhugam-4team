@@ -4,6 +4,7 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.review.application.ReviewCleanupUseCase;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 // 도서 테스트에서 리뷰 도메인 대신 쓴다. 물리 삭제 때 어떤 도서가 넘어왔는지만 기록한다
 public class FakeReviewCommand implements ReviewCleanupUseCase {
@@ -18,5 +19,10 @@ public class FakeReviewCommand implements ReviewCleanupUseCase {
   public long deleteReviewsWithRelatedDataByBook(Book book) {
     cleanedBooks.add(book);
     return 0L;
+  }
+
+  @Override
+  public long deleteReviewsWithRelatedDataByUserId(UUID userId) {
+    throw new UnsupportedOperationException("도서 테스트에서는 쓰지 않는다");
   }
 }

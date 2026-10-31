@@ -1,7 +1,6 @@
 package com.sprint.deokhugam.review.application.provided.query;
 
 import com.sprint.deokhugam.review.domain.Review;
-import java.util.List;
 import java.util.UUID;
 
 /*
@@ -13,7 +12,4 @@ public interface ReviewFinder {
 
   // 존재 검증만 필요하다면 - 논리삭제 되어있지 않아야함
   void requireActiveById(UUID reviewId);
-
-  // 삭제할 유저들이 작성한 리뷰반환
-  List<UUID> getReviewIdsByDeleteUserIds(List<UUID> userIds);
 }

@@ -37,11 +37,6 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   }
 
   @Override
-  public List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds) {
-    return reviewQuerydslRepository.getByIdsIncludingDeleted(reviewIds);
-  }
-
-  @Override
   public void requireActiveById(UUID reviewId) {
     reviewJpaRepository.requireActiveById(reviewId);
   }
@@ -72,17 +67,17 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   }
 
   @Override
-  public void decreaseLikeCountsByUserIds(List<UUID> userIds) {
-    reviewJpaRepository.decreaseLikeCountsByUserIds(userIds);
-  }
-
-  @Override
-  public List<UUID> getIdsByUserIds(List<UUID> userIds) {
-    return reviewQuerydslRepository.getIdsByUserIds(userIds);
+  public void decreaseLikeCountsByUserId(UUID userId) {
+    reviewJpaRepository.decreaseLikeCountsByUserId(userId);
   }
 
   @Override
   public List<UUID> getIdsByBookId(UUID bookId) {
     return reviewQuerydslRepository.getIdsByBookId(bookId);
+  }
+
+  @Override
+  public List<UUID> getIdsByUserIdIncludingDeleted(UUID userId) {
+    return reviewQuerydslRepository.getIdsByUserIdIncludingDeleted(userId);
   }
 }
