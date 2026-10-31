@@ -2,7 +2,8 @@
 # 모니터링 스택(Elasticsearch·Kibana·Grafana)을 API로 설정하고, 로컬 Postgres에 부하 테스트 시드를 넣는다.
 # 모든 호출이 PUT이거나 덮어쓰기라서 여러 번 실행해도 결과가 같다. 시드는 없을 때만 넣는다(SEED).
 #
-#   docker compose --profile monitoring --profile loadtest up -d --build
+#   docker compose --profile monitoring up -d
+#   ./gradlew bootRun          # 다른 터미널. 앱이 테이블을 만들어야 시드가 들어간다
 #   bash monitoring/setup.sh
 #
 # 주소를 바꾸면(ES_URL, KIBANA_URL, GRAFANA_URL) EC2 같은 다른 곳에도 그대로 쓴다.
@@ -239,8 +240,10 @@ gf PUT /api/org/preferences -d '{"homeDashboardUID":"deokhugam-app"}'
 
 # ---------------------------------------------------------------- Postgres 시드 (부하 테스트용)
 # SEED=auto(기본): 시드가 없을 때만 넣는다 / force: 지우고 다시 넣는다 / skip: 건너뛴다
+# 처음 설정 때 한 번 들어가고, 그 뒤로는 앱·DB를 껐다 켜도 볼륨에 남은 데이터를 그대로 쓴다
 # 이 compose의 postgres 컨테이너에만 넣는다. ES_URL 등을 바꿔 다른 서버를 설정할 때도 DB는 건드리지 않는다
 SEED=${SEED:-auto}
+APP_URL=${APP_URL:-http://localhost:8080}
 psql_local() {
   docker compose exec -T postgres psql -U "${POSTGRES_USER:-deokhugam}" -d "${POSTGRES_DB:-deokhugam}" "$@"
 }
@@ -256,11 +259,13 @@ if [ "$SEED" = skip ]; then
 elif [ -z "$(docker compose ps -q postgres 2>/dev/null)" ]; then
   echo "이 compose의 postgres가 떠 있지 않아 건너뜀"
 else
-  if ! tables_ready && [ -n "$(docker compose ps -q app 2>/dev/null)" ]; then
+  # 앱(bootRun·IDE·k6용 컨테이너)이 떠 있거나 뜨는 중이면 테이블이 생길 때까지 기다린다
+  if ! tables_ready && { [ -n "$(docker compose ps -q app 2>/dev/null)" ] \
+      || curl -s -o /dev/null --max-time 3 "$APP_URL/actuator/health"; }; then
     wait_for "앱이 테이블 만들기" tables_ready
   fi
   if ! tables_ready; then
-    echo "테이블이 아직 없어 건너뜀. 앱을 한 번 띄운 뒤(--profile loadtest 또는 bootRun) 다시 실행한다"
+    echo "테이블이 아직 없어 건너뜀. 앱(bootRun)을 한 번 띄운 뒤 setup.sh를 다시 실행한다"
   else
     seeded=$(psql_local -Atc "select count(*) from users where email like '%@loadtest.local'")
     if [ "$SEED" = auto ] && [ "$seeded" -gt 0 ]; then

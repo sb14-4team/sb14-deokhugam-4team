@@ -1,6 +1,9 @@
 services:
+  # restart: unless-stopped라 PC를 껐다 켜도 Docker Desktop이 켜지면 다시 뜬다. 데이터는 볼륨에 남는다
+  # (직접 `docker compose stop`으로 끈 컨테이너는 그대로 꺼져 있다)
   postgres:
     image: postgres:15-alpine
+    restart: unless-stopped
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     environment:
@@ -23,6 +26,7 @@ services:
   elasticsearch:
     profiles: [monitoring]
     image: elasticsearch:9.5.3
+    restart: unless-stopped
     ports:
       - "127.0.0.1:9200:9200"
     environment:
@@ -45,6 +49,7 @@ services:
   kibana:
     profiles: [monitoring]
     image: kibana:9.5.3
+    restart: unless-stopped
     ports:
       - "127.0.0.1:5601:5601"
     environment:
@@ -61,6 +66,7 @@ services:
   filebeat:
     profiles: [monitoring]
     image: docker.elastic.co/beats/filebeat:9.5.3
+    restart: unless-stopped
     # --environment container는 이미지 기본값(로그를 stdout으로). command를 바꾸면 사라져서 다시 적는다
     # Windows 바인드 마운트는 파일 권한이 넓게 보여서 권한 검사를 끈다
     command: ["--environment", "container", "--strict.perms=false"]
@@ -77,6 +83,7 @@ services:
   prometheus:
     profiles: [monitoring]
     image: prom/prometheus:v3.15.0
+    restart: unless-stopped
     ports:
       - "127.0.0.1:9090:9090"
     volumes:
@@ -88,6 +95,7 @@ services:
   grafana:
     profiles: [monitoring]
     image: grafana/grafana:13.2.5
+    restart: unless-stopped
     ports:
       # 3000은 PC에 설치된 Grafana 서비스와 겹치기 쉬워 3001을 기본으로 쓴다
       - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
@@ -96,7 +104,8 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
 
-  # 부하 테스트용 앱. 운영 태스크(Fargate 0.5 vCPU / 1GB)와 같은 울타리에 가둔다
+  # 부하 테스트(k6) 때만 띄우는 앱. 운영 태스크(Fargate 0.5 vCPU / 1GB)와 같은 울타리에 가둔다
+  # 평소 개발은 bootRun·IDE로 띄운다. 재시작 정책을 두지 않아 재부팅 뒤에는 뜨지 않는다
   # `docker compose --profile monitoring --profile loadtest up -d --build` (절차는 loadtest/README.md)
   app:
     profiles: [loadtest]

@@ -42,7 +42,8 @@ docker compose --profile monitoring --profile loadtest up -d --build
 docker compose logs -f app    # "Started DeokhugamApplication" 이 보이면 Ctrl+C (0.5 vCPU라 1분쯤 걸린다)
 ```
 
-- 처음이면 모니터링 설정을 한 번 넣는다: `bash monitoring/setup.sh` (자세한 건 `monitoring/README.md`)
+- 처음이면 모니터링 설정과 시드를 한 번 넣는다: `bash monitoring/setup.sh` (자세한 건 `monitoring/README.md`)
+- 앱 컨테이너는 k6 때만 쓴다. 끝나면 `docker compose stop app`으로 끄고 bootRun으로 돌아간다. 재시작 정책이 없어 PC를 켜도 다시 뜨지 않는다
 - 컨테이너 앱도 `host.docker.internal:8080`으로 열리므로 Prometheus 설정은 그대로 쓴다
 
 | 컨테이너 | 울타리 | 이유 |
