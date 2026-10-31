@@ -22,7 +22,7 @@ public interface ReviewRepositoryPort {
 
   long deleteAllByIds(List<UUID> reviewIds);
 
-  void decreaseLikeCountsByUserIds(List<UUID> userIds);
+  void decreaseLikeCountsByUserId(UUID userId);
 
   List<UUID> getIdsByUserIds(List<UUID> userIds);
 

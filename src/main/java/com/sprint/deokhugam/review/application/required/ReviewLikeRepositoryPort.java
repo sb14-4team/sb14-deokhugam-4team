@@ -12,7 +12,7 @@ public interface ReviewLikeRepositoryPort {
 
   void deleteAllByReviewId(UUID reviewId);
 
-  long deleteAllByUserIds(List<UUID> userIds);
+  long deleteAllByUserId(UUID userId);
 
   void deleteAllByReviewIds(List<UUID> reviewIds);
 

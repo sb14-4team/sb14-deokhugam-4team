@@ -72,8 +72,8 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   }
 
   @Override
-  public void decreaseLikeCountsByUserIds(List<UUID> userIds) {
-    reviewJpaRepository.decreaseLikeCountsByUserIds(userIds);
+  public void decreaseLikeCountsByUserId(UUID userId) {
+    reviewJpaRepository.decreaseLikeCountsByUserId(userId);
   }
 
   @Override

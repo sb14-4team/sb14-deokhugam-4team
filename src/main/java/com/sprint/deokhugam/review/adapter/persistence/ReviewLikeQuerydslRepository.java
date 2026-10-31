@@ -20,8 +20,8 @@ public class ReviewLikeQuerydslRepository {
     queryFactory.delete(reviewLike).where(reviewLike.review.id.eq(reviewId)).execute();
   }
 
-  public long deleteAllByUserIds(List<UUID> userIds) {
-    return queryFactory.delete(reviewLike).where(reviewLike.user.id.in(userIds)).execute();
+  public long deleteAllByUserId(UUID userId) {
+    return queryFactory.delete(reviewLike).where(reviewLike.user.id.eq(userId)).execute();
   }
 
   public void deleteAllByReviewIds(List<UUID> reviewIds) {
