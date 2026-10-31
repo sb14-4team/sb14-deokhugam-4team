@@ -54,10 +54,6 @@ public class ReviewQuerydslRepository {
     return count == null ? 0L : count;
   }
 
-  public List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds) {
-    return queryFactory.selectFrom(review).where(review.id.in(reviewIds)).fetch();
-  }
-
   public List<UUID> getIdsByUserIds(List<UUID> userIds) {
     return queryFactory.select(review.id).from(review).where(review.user.id.in(userIds)).fetch();
   }

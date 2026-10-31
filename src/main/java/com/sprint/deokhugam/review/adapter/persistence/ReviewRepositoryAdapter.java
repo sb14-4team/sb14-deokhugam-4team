@@ -37,11 +37,6 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   }
 
   @Override
-  public List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds) {
-    return reviewQuerydslRepository.getByIdsIncludingDeleted(reviewIds);
-  }
-
-  @Override
   public void requireActiveById(UUID reviewId) {
     reviewJpaRepository.requireActiveById(reviewId);
   }

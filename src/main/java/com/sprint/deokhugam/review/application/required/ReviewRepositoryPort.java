@@ -12,8 +12,6 @@ public interface ReviewRepositoryPort {
 
   Optional<Review> getByIdIncludingDeleted(UUID reviewId);
 
-  List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds);
-
   void requireActiveById(UUID reviewId);
 
   boolean existsByUserIdAndBookId(UUID userId, UUID bookId);
