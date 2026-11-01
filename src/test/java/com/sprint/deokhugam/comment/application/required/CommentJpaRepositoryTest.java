@@ -83,7 +83,7 @@ public class CommentJpaRepositoryTest {
     Comment savedComment = commentJpaRepository.save(comment);
 
     // When
-    Comment foundComment = commentJpaRepository.getByIdOrThrow(savedComment.getId());
+    Comment foundComment = commentJpaRepository.findByIdOrThrow(savedComment.getId());
 
     // Then
     assertThat(foundComment).isNotNull();
@@ -97,7 +97,7 @@ public class CommentJpaRepositoryTest {
     UUID nonExistentId = UUID.randomUUID();
 
     // When & Then
-    assertThatThrownBy(() -> commentJpaRepository.getByIdOrThrow(nonExistentId))
+    assertThatThrownBy(() -> commentJpaRepository.findByIdOrThrow(nonExistentId))
         .isInstanceOf(BusinessException.class)
         .satisfies(
             exception -> {
@@ -114,11 +114,11 @@ public class CommentJpaRepositoryTest {
     Comment savedComment = commentJpaRepository.save(comment);
 
     // When
-    Comment foundComment = commentJpaRepository.getByIdOrThrow(savedComment.getId());
+    Comment foundComment = commentJpaRepository.findByIdOrThrow(savedComment.getId());
     foundComment.update("testUpdatedContent");
 
     // Then
-    Comment updatedComment = commentJpaRepository.getByIdOrThrow(savedComment.getId());
+    Comment updatedComment = commentJpaRepository.findByIdOrThrow(savedComment.getId());
     assertThat(updatedComment.getContent()).isEqualTo("testUpdatedContent");
   }
 

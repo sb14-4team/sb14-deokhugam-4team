@@ -2,7 +2,7 @@ package com.sprint.deokhugam.comment.domain;
 
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
+import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Column;
@@ -22,7 +22,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-@NoArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "comments")
 public class Comment extends BaseSoftDeletableEntity {
 
@@ -43,12 +43,12 @@ public class Comment extends BaseSoftDeletableEntity {
 
   public void update(String newContent) {
     if (newContent == null || newContent.trim().isEmpty()) {
-      throw new BusinessException(CommentErrorCode.NOT_FOUND);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
     this.content = newContent;
   }
 
-  public boolean verifyCommentId(UUID userId) {
+  public boolean isWrittenBy(UUID userId) {
     return this.getUser().getId().equals(userId);
   }
 }

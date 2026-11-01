@@ -17,6 +17,7 @@ import com.sprint.deokhugam.user.adapter.persistence.UserJpaRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +45,7 @@ public class CommentIntegrationTest {
   @Autowired private ReviewJpaRepository reviewJpaRepository;
   @Autowired private UserJpaRepository userJpaRepository;
   @Autowired private CommentJpaRepository commentJpaRepository;
+  @Autowired private EntityManager entityManager;
 
   private Review savedReview;
   private Book savedBook;
@@ -93,7 +95,7 @@ public class CommentIntegrationTest {
             post("/api/comments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(request)))
-        .andExpect(status().isOk())
+        .andExpect(status().isCreated())
         .andExpect(jsonPath("$.content").value("testCreateContent"));
   }
 

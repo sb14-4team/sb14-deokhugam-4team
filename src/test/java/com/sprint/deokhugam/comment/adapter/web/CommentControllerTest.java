@@ -83,7 +83,7 @@ public class CommentControllerTest {
             post("/api/comments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(createRequest)))
-        .andExpect(status().isOk())
+        .andExpect(status().isCreated())
         .andExpect(jsonPath("$.content").value("testCreateContent"));
   }
 
