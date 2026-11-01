@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.book.application;
 
 import com.sprint.deokhugam.book.application.required.ThumbnailStoragePort;
+import com.sprint.deokhugam.book.domain.BookDeletedEvent;
 import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -25,6 +26,13 @@ public class ThumbnailCleanupListener {
   public void deleteNewOnRollback(ThumbnailChangedEvent event) {
     if (event.newKey() != null) {
       thumbnailStoragePort.delete(event.newKey());
+    }
+  }
+
+  @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+  public void deleteThumbnailOnBookDeleted(BookDeletedEvent event) {
+    if (event.thumbnailKey() != null) {
+      thumbnailStoragePort.delete(event.thumbnailKey());
     }
   }
 }

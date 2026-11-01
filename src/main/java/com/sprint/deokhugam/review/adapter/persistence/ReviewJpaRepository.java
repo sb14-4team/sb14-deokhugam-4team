@@ -3,12 +3,12 @@ package com.sprint.deokhugam.review.adapter.persistence;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.domain.Review;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 // 포트가 spring data jpa 에 의존하게 되니까 유연성이 떨어진다. 다른 구현체에서 다른 필드를 리턴하고 싶을 때 문제가 발생한다 - 안봐도됨
 public interface ReviewJpaRepository extends JpaRepository<Review, UUID> {
@@ -38,14 +38,14 @@ public interface ReviewJpaRepository extends JpaRepository<Review, UUID> {
           from (
             select rl.review_id, count(*) as cnt
             from review_likes rl
-            where rl.user_id in (:userIds)
+            where rl.user_id = :userId
               and rl.liked = true
             group by rl.review_id
           ) counts
           where r.id = counts.review_id
           """,
       nativeQuery = true)
-  void decreaseLikeCountsByUserIds(List<UUID> userIds);
+  void decreaseLikeCountsByUserId(@Param("userId") UUID userId);
 
   default Review getByIdOrThrow(UUID reviewId) {
     return findByIdAndDeletedAtIsNull(reviewId)
