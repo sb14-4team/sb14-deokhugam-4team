@@ -106,4 +106,7 @@ public class NotificationCommandService implements NotificationCommand, Notifica
   public void deleteByReview(UUID reviewId) {
     notificationPersistencePort.deleteByReview(reviewId);
   }
+
+  @Override
+  public void deleteByReviewIds(List<UUID> reviewIds) {}
 }
