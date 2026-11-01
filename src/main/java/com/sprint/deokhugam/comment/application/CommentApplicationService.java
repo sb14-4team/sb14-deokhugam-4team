@@ -15,7 +15,6 @@ import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.notification.domain.NotifyEvent;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -38,9 +37,7 @@ public class CommentApplicationService implements CommentUseCase {
   private final UserFinder userFinder;
 
   private final CommentSearchPort commentSearchPort;
-
   private final NotificationCommand notificationCommand;
-  private final ReviewCommand reviewCommand;
   private final ApplicationEventPublisher eventPublisher;
 
   @Override

@@ -6,7 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
+import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
+import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.domain.Email;
@@ -25,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 class ReviewApplicationServiceTest {
-  @Autowired ReviewCommand reviewCommand;
+  @Autowired ReviewUseCase reviewUseCase;
   @Autowired ReviewFinder reviewFinder;
   @Autowired EntityManager em;
 
@@ -46,11 +47,12 @@ class ReviewApplicationServiceTest {
 
   @Test
   void 리뷰_디비_정상저장확인() {
-    Review saved = reviewCommand.createReview(Review.create(3, "성공", user, book));
+    ReviewResponse saved =
+        reviewUseCase.createReview(new CreateReviewCommand(user.getId(), book.getId(), 3, "성공"));
     em.flush();
     em.clear();
 
-    Review found = reviewFinder.getByIdOrThrow(saved.getId());
+    Review found = reviewFinder.getByIdOrThrow(saved.id());
 
     assertThat(found.getRating()).isEqualTo(3);
     assertThat(found.getContent()).isEqualTo("성공");
@@ -65,26 +67,30 @@ class ReviewApplicationServiceTest {
 
   @Test
   void 리뷰_디비_중복저장_실패확인() {
-    Review saved = reviewCommand.createReview(Review.create(3, "성공", user, book));
+    ReviewResponse saved =
+        reviewUseCase.createReview(new CreateReviewCommand(user.getId(), book.getId(), 3, "성공"));
     em.flush();
     em.clear();
 
     assertThat(
             assertThrows(
                     BusinessException.class,
-                    () -> reviewCommand.createReview(Review.create(4, "중복 리뷰", user, book)))
+                    () ->
+                        reviewUseCase.createReview(
+                            new CreateReviewCommand(user.getId(), book.getId(), 4, "중복 리뷰")))
                 .getErrorCode())
         .isEqualTo(ReviewErrorCode.ALREADY_EXISTS);
   }
 
   @Test
   void 리뷰_디비_정상업데이트확인() {
-    Review saved = reviewCommand.createReview(Review.create(3, "성공", user, book));
+    ReviewResponse saved =
+        reviewUseCase.createReview(new CreateReviewCommand(user.getId(), book.getId(), 3, "성공"));
     em.flush();
-    UUID reviewId = saved.getId();
+    UUID reviewId = saved.id();
     em.clear();
 
-    reviewCommand.updateReview(reviewId, user.getId(), "", 1);
+    reviewUseCase.updateReview(user.getId(), reviewId, "", 1);
     em.flush();
     em.clear();
 

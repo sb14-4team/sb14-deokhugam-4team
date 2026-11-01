@@ -5,20 +5,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface ReviewLikePersistencePort {
+public interface ReviewLikeRepositoryPort {
   ReviewLike save(ReviewLike reviewLike);
-
-  boolean isLikedBy(UUID reviewId, UUID userId);
-
-  List<UUID> findReviewLikeIdsByRequestId(List<UUID> reviewIds, UUID requestUserId);
 
   Optional<ReviewLike> getByUserIdAndReviewId(UUID userId, UUID reviewId);
 
   void deleteAllByReviewId(UUID reviewId);
 
-  long deleteAllByUserIds(List<UUID> userIds);
+  long deleteAllByUserId(UUID userId);
 
   void deleteAllByReviewIds(List<UUID> reviewIds);
-
-  long deleteAllByUserIdsOrReviewIds(List<UUID> userIds, List<UUID> reviewIds);
 }
