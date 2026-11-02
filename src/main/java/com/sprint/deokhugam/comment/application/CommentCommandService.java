@@ -24,8 +24,7 @@ public class CommentCommandService implements CommentCommand {
 
   @Override
   @Transactional
-  public Comment updateComment(
-      UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
+  public Comment updateComment(UUID commentId, CommentUpdateRequest updateRequest) {
     Comment comment = commentPersistencePort.findById(commentId);
     comment.update(updateRequest.content());
     return comment;
@@ -34,7 +33,7 @@ public class CommentCommandService implements CommentCommand {
   @Override
   @Transactional
   public void hardDelete(UUID commentId) {
-    Comment comment = commentPersistencePort.findById(commentId);
+    Comment comment = commentPersistencePort.findByIdIncludingDeleted(commentId);
     commentPersistencePort.delete(comment);
   }
 

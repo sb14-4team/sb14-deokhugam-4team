@@ -23,6 +23,7 @@ import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -133,7 +134,7 @@ public class CommentCommandServiceTest {
     given(spyComment.getId()).willReturn(commentId);
 
     given(commentFinder.findById(commentId)).willReturn(spyComment);
-    given(commentCommand.updateComment(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
+    given(commentCommand.updateComment(eq(commentId), any(CommentUpdateRequest.class)))
         .willReturn(comment);
 
     // When
@@ -143,8 +144,7 @@ public class CommentCommandServiceTest {
     assertThat(result).isNotNull();
     assertThat(result.content()).isEqualTo("testUpdatedContent");
     verify(commentFinder).findById(commentId);
-    verify(commentCommand)
-        .updateComment(eq(commentId), eq(userId), any(CommentUpdateRequest.class));
+    verify(commentCommand).updateComment(eq(commentId), any(CommentUpdateRequest.class));
   }
 
   @Test
@@ -237,14 +237,14 @@ public class CommentCommandServiceTest {
     Comment spyComment = spy(comment);
     given(spyComment.getId()).willReturn(commentId);
 
-    given(commentFinder.findById(commentId)).willReturn(spyComment);
+    given(commentFinder.findByIdIncludingDeleted(commentId)).willReturn(spyComment);
     willDoNothing().given(commentCommand).hardDelete(commentId);
 
     // When
     commentApplicationService.hardDelete(commentId, userId);
 
     // Then
-    verify(commentFinder).findById(commentId);
+    verify(commentFinder).findByIdIncludingDeleted(commentId);
     verify(commentCommand).hardDelete(commentId);
   }
 
@@ -256,7 +256,7 @@ public class CommentCommandServiceTest {
     given(user.getId()).willReturn(userId);
 
     Comment comment = Comment.create(review, user, "testCreateContent");
-    given(commentFinder.findById(commentId)).willReturn(comment);
+    given(commentFinder.findByIdIncludingDeleted(commentId)).willReturn(comment);
 
     // When & Then
     assertThatThrownBy(() -> commentApplicationService.hardDelete(commentId, otherUserId))
@@ -266,5 +266,20 @@ public class CommentCommandServiceTest {
               BusinessException businessException = (BusinessException) exception;
               assertThat(businessException.getErrorCode()).isEqualTo(CommentErrorCode.FORBIDDEN);
             });
+  }
+
+  @Test
+  @DisplayName("유저 ID로 댓글 일괄 삭제 성공")
+  void deleteCommentsByUser_success() {
+    // Given
+    Comment comment = Comment.create(review, user, "testCreateContent");
+    given(commentFinder.findAllByUserId(userId)).willReturn(List.of(comment));
+
+    // When
+    commentApplicationService.deleteCommentsByUser(userId);
+
+    // Then
+    verify(commentFinder).findAllByUserId(userId);
+    verify(commentCommand).deleteAllByUserId(userId);
   }
 }
