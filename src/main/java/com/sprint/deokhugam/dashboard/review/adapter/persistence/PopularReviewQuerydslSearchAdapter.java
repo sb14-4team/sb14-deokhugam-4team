@@ -85,7 +85,7 @@ public class PopularReviewQuerydslSearchAdapter implements PopularReviewSearchPo
 
   // 인기 리뷰는 순위로만 정렬
   private OrderSpecifier<?> orderSpecifier(PopularReviewSearchCondition condition) {
-    return condition.isDescending() ? popularReview.rank.desc() : popularReview.rank.asc();
+    return condition.isDescending() ? popularReview.rank.asc() : popularReview.rank.desc();
   }
 
   // cursor에는 이전 페이지 마지막 항목의 순위
@@ -96,8 +96,8 @@ public class PopularReviewQuerydslSearchAdapter implements PopularReviewSearchPo
 
     return condition.isDescending()
         // ls(less then, <), gt(greater then, >)
-        ? popularReview.rank.lt(condition.cursor())
-        : popularReview.rank.gt(condition.cursor());
+        ? popularReview.rank.gt(condition.cursor())
+        : popularReview.rank.lt(condition.cursor());
   }
 
   // 리뷰마다 기간 안에 받은 좋아요 수, 댓글 수를 한 번의 쿼리로 센다
