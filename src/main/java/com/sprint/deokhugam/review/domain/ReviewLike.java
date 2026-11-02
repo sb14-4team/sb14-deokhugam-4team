@@ -1,6 +1,6 @@
 package com.sprint.deokhugam.review.domain;
 
-import com.sprint.deokhugam.common.entity.BaseEntity;
+import com.sprint.deokhugam.common.entity.BaseUpdatableEntity;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -24,7 +24,7 @@ import lombok.experimental.FieldDefaults;
 @Table(
     name = "review_likes",
     uniqueConstraints = @UniqueConstraint(columnNames = {"review_id", "user_id"}))
-public class ReviewLike extends BaseEntity {
+public class ReviewLike extends BaseUpdatableEntity {
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "review_id", nullable = false)
