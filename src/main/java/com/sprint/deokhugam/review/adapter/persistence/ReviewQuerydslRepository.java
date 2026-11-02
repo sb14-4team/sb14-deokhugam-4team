@@ -76,18 +76,19 @@ public class ReviewQuerydslRepository {
     }
     return queryFactory
         .select(
-            Projections.constructor(BookReviewStatsResponse.class,
-                book.id, review.id.count(), review.rating.avg()))
+            Projections.constructor(
+                BookReviewStatsResponse.class, book, review.id.count(), review.rating.avg()))
         .from(review)
         .join(review.book, book)
         .where(review.deletedAt.isNull(), book.deletedAt.isNull(), createdInRange(range))
-        .groupBy(book.id)
+        .groupBy(book)
         .fetch();
   }
 
   private BooleanExpression createdInRange(ReviewAggregationRange range) {
     return switch (range) {
-      case ReviewAggregationRange.Between r -> review.createdAt.goe(r.startAt()).and(review.createdAt.lt(r.endAt()));
+      case ReviewAggregationRange.Between r ->
+          review.createdAt.goe(r.startAt()).and(review.createdAt.lt(r.endAt()));
       case ReviewAggregationRange.AllTime ignored -> null;
     };
   }

@@ -1,5 +1,5 @@
 package com.sprint.deokhugam.review.application.dto.res;
 
-import java.util.UUID;
+import com.sprint.deokhugam.book.domain.Book;
 
-public record BookReviewStatsResponse(UUID bookId, long reviewCount, double averageRating) {}
+public record BookReviewStatsResponse(Book book, long reviewCount, double averageRating) {}
