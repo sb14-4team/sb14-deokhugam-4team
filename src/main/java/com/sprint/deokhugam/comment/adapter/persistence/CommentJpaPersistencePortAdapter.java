@@ -25,6 +25,11 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
   }
 
   @Override
+  public Comment findByIdIncludingDeleted(UUID commentId) {
+    return jpaRepository.findByIdIncludingDeletedOrThrow(commentId);
+  }
+
+  @Override
   public void delete(Comment comment) {
     jpaRepository.delete(comment);
   }

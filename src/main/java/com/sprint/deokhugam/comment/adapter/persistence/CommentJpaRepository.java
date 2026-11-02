@@ -15,4 +15,9 @@ public interface CommentJpaRepository extends JpaRepository<Comment, UUID> {
     return findByIdAndDeletedAtIsNull(commentId)
         .orElseThrow(() -> new BusinessException(CommentErrorCode.NOT_FOUND));
   }
+
+  // 물리 삭제용: 논리 삭제된 댓글도 찾는다
+  default Comment findByIdIncludingDeletedOrThrow(UUID commentId) {
+    return findById(commentId).orElseThrow(() -> new BusinessException(CommentErrorCode.NOT_FOUND));
+  }
 }

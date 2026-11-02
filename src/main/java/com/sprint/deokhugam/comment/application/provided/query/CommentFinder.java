@@ -9,5 +9,7 @@ public interface CommentFinder {
 
   Comment findById(UUID commentId);
 
+  Comment findByIdIncludingDeleted(UUID commentId);
+
   List<Comment> findAllByUserId(UUID userId);
 }
