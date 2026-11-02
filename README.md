@@ -43,14 +43,21 @@ Batch Job 자동 실행은 기본적으로 비활성화했으며, 기능 구현 
 
 ## 로컬 모니터링 (실험용)
 
-Elasticsearch·Kibana·Filebeat·Prometheus·Grafana를 `monitoring` 프로필로 띄우고, 설정은 `monitoring/setup.sh`가 API로 넣습니다.
-실행·로그인 방법은 [monitoring/README.md](monitoring/README.md), API를 한 단계씩 직접 호출해 보는 안내는 [monitoring/API_GUIDE.md](monitoring/API_GUIDE.md)에 있습니다.
+Elasticsearch·Kibana·Filebeat·Prometheus·Grafana를 `monitoring` 프로필로 띄우고, 설정은 `monitoring/setup.sh`가 API로 넣습니다. 부하 테스트용 시드 데이터는 `loadtest/seed.sh`가 따로 넣습니다.
+실행·로그인 방법은 [monitoring/README.md](monitoring/README.md), API를 한 단계씩 직접 호출해 보는 안내는 [monitoring/API_GUIDE.md](monitoring/API_GUIDE.md), k6 부하 테스트는 [loadtest/README.md](loadtest/README.md)에 있습니다.
+
+처음 한 번:
 
 ```sh
 docker compose --profile monitoring up -d
 bash monitoring/setup.sh
-./gradlew bootRun
+# p95 패널·Tomcat 스레드 패널에 필요한 메트릭을 켜고 띄운다
+MANAGEMENT_METRICS_DISTRIBUTION_PERCENTILESHISTOGRAM_HTTP_SERVER_REQUESTS=true SERVER_TOMCAT_MBEANREGISTRY_ENABLED=true ./gradlew bootRun
+# 다른 터미널에서, 앱이 테이블을 만든 뒤 ("Started DeokhugamApplication")
+bash loadtest/seed.sh
 ```
+
+그다음부터는 위 bootRun 줄만 실행합니다. 컨테이너는 PC를 껐다 켜도 다시 뜨고, 데이터는 볼륨에 남습니다.
 
 - 로그: 앱(dev) → `.logs/app.log` → Filebeat → ES 데이터 스트림 `deokhugam-logs`(인제스트 파이프라인이 레벨·로거·스레드로 나눔, 7일 보관)
 - 메트릭: Prometheus가 `host.docker.internal:8080/actuator/prometheus`를 15초마다 수집
