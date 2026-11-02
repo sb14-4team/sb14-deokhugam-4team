@@ -22,12 +22,12 @@ public class CommentQueryService implements CommentFinder {
   }
 
   @Override
-  public List<Comment> findAllByUserId(UUID userId) {
-    return commentPersistencePort.findAllByUserId(userId);
+  public Comment findByIdIncludingDeleted(UUID commentId) {
+    return commentPersistencePort.findByIdIncludingDeleted(commentId);
   }
 
   @Override
-  public List<Comment> findAllByReviewIds(List<UUID> reviewIds) {
-    return commentPersistencePort.findAllByReviewIds(reviewIds);
+  public List<Comment> findAllByUserId(UUID userId) {
+    return commentPersistencePort.findAllByUserId(userId);
   }
 }
