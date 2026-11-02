@@ -39,6 +39,7 @@ public class CommentApplicationService implements CommentUseCase {
   private final UserFinder userFinder;
 
   private final CommentSearchPort commentSearchPort;
+
   private final NotificationCommand notificationCommand;
   private final ApplicationEventPublisher eventPublisher;
 
