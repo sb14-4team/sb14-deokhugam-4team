@@ -6,11 +6,12 @@ import com.sprint.deokhugam.review.domain.Review;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(propagation = Propagation.REQUIRES_NEW)
 public class NotificationApplicationService {
 
   private final ReviewFinder reviewFinder;

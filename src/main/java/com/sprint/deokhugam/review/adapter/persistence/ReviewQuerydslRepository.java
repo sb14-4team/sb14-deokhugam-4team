@@ -54,20 +54,16 @@ public class ReviewQuerydslRepository {
     return count == null ? 0L : count;
   }
 
-  public List<Review> getByIdsIncludingDeleted(List<UUID> reviewIds) {
-    return queryFactory.selectFrom(review).where(review.id.in(reviewIds)).fetch();
-  }
-
-  public List<UUID> getIdsByUserIds(List<UUID> userIds) {
-    return queryFactory.select(review.id).from(review).where(review.user.id.in(userIds)).fetch();
-  }
-
   public List<UUID> getIdsByBookId(UUID bookId) {
     return queryFactory.select(review.id).from(review).where(review.book.id.eq(bookId)).fetch();
   }
 
   public long deleteAllByIds(List<UUID> reviewIds) {
     return queryFactory.delete(review).where(review.id.in(reviewIds)).execute();
+  }
+
+  public List<UUID> getIdsByUserIdIncludingDeleted(UUID userId) {
+    return queryFactory.select(review.id).from(review).where(review.user.id.eq(userId)).fetch();
   }
 
   /*

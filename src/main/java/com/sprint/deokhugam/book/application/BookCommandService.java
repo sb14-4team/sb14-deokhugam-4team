@@ -12,7 +12,7 @@ import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
+import com.sprint.deokhugam.review.application.ReviewCleanupUseCase;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Set;
@@ -32,7 +32,7 @@ public class BookCommandService implements BookCommand {
   private final BookRepositoryPort bookRepositoryPort;
   private final ThumbnailStoragePort thumbnailStoragePort;
   private final ApplicationEventPublisher eventPublisher;
-  private final ReviewCommand reviewCommand;
+  private final ReviewCleanupUseCase reviewCleanupUseCase;
 
   private static final long MAX_THUMBNAIL_BYTES = 5_000_000;
   private static final Set<String> IMAGE_TYPES = Set.of("image/jpeg", "image/png");
@@ -97,7 +97,7 @@ public class BookCommandService implements BookCommand {
             .orElseThrow(() -> new BusinessException(BookErrorCode.NOT_FOUND, "bookId=" + bookId));
 
     // 리뷰 아래 데이터(좋아요, 댓글)는 리뷰 쪽이 책임진다. 리뷰가 없어도 그대로 부른다
-    reviewCommand.deleteReviewsWithRelatedDataByBook(book);
+    reviewCleanupUseCase.deleteReviewsWithRelatedDataByBook(book);
 
     // 행이 사라지기 전에 썸네일 키를 뽑아 둔다
     String thumbnailKey = book.getThumbnailUrl() == null ? null : keyOf(book.getThumbnailUrl());

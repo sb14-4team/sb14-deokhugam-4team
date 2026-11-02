@@ -13,18 +13,16 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.notification.domain.NotifyEvent;
-import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.ranking.ActivityEvent;
+import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -41,9 +39,7 @@ public class CommentApplicationService implements CommentUseCase {
   private final UserFinder userFinder;
 
   private final CommentSearchPort commentSearchPort;
-
   private final NotificationCommand notificationCommand;
-  private final ReviewCommand reviewCommand;
   private final ApplicationEventPublisher eventPublisher;
 
   @Override
@@ -54,10 +50,20 @@ public class CommentApplicationService implements CommentUseCase {
 
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
+    review.increaseCommentCount();
 
     eventPublisher.publishEvent(
         NotifyEvent.comment(
             createRequest.reviewId(), review.getUser().getId(), user.getNickname()));
+
+    eventPublisher.publishEvent(
+        ActivityEvent.CommentAdded(
+            UUID.randomUUID(),
+            createRequest.reviewId(),
+            review.getUser().getId(),
+            user.getId(),
+            review.getCreatedAt(),
+            Instant.now()));
 
     return CommentDto.from(savedComment);
   }
@@ -66,8 +72,7 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public CommentDto update(UUID commentId, UUID requestUserId, CommentUpdateRequest updateRequest) {
     Comment comment = getVerifiedComment(commentId, requestUserId);
-    Comment updatedComment =
-        commentCommand.updateComment(comment.getId(), comment.getUser().getId(), updateRequest);
+    Comment updatedComment = commentCommand.updateComment(comment.getId(), updateRequest);
 
     return CommentDto.from(updatedComment);
   }
@@ -76,35 +81,40 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public void softDelete(UUID commentId, UUID userId) {
     Comment comment = getVerifiedComment(commentId, userId);
-    decreaseCommentCountIfDeleted(comment);
 
     comment.softDelete();
+    decreaseCommentCount(comment.getReview());
   }
 
   @Override
   @Transactional
   public void hardDelete(UUID commentId, UUID userId) {
-    Comment comment = getVerifiedComment(commentId, userId);
-    decreaseCommentCountIfDeleted(comment);
+    // 논리 삭제된 댓글까지 찾는다
+    Comment comment = commentFinder.findByIdIncludingDeleted(commentId);
+    verifyWriter(comment, userId);
+
+    if (!comment.isDeleted()) {
+      decreaseCommentCount(comment.getReview());
+    }
 
     commentCommand.hardDelete(comment.getId());
   }
 
   private Comment getVerifiedComment(UUID commentId, UUID userId) {
     Comment comment = commentFinder.findById(commentId);
-    if (!comment.verifyCommentId(userId)) {
-      throw new BusinessException(CommentErrorCode.FORBIDDEN);
-    }
+    verifyWriter(comment, userId);
     return comment;
   }
 
-  private void decreaseCommentCountIfDeleted(Comment comment) {
-    boolean isDeleted = comment.isDeleted();
+  private void verifyWriter(Comment comment, UUID userId) {
+    if (!comment.isWrittenBy(userId)) {
+      throw new BusinessException(CommentErrorCode.FORBIDDEN);
+    }
+  }
 
-    if (!isDeleted) {
-      comment.getReview().decreaseCommentCount();
-    } else {
-      throw new BusinessException(CommonErrorCode.INTERNAL_ERROR);
+  private void decreaseCommentCount(Review review) {
+    if (review.getCommentCount() > 0) {
+      review.decreaseCommentCount();
     }
   }
 
@@ -117,13 +127,11 @@ public class CommentApplicationService implements CommentUseCase {
 
     List<Comment> comments = commentFinder.findAllByUserId(userId);
     if (!comments.isEmpty()) {
-      Map<UUID, Long> reviewDecrementMap =
-          comments.stream()
-              .collect(
-                  Collectors.groupingBy(
-                      comment -> comment.getReview().getId(), Collectors.counting()));
-
-      // reviewCommand.decreaseCommentCounts(reviewDecrementMap);
+      for (Comment comment : comments) {
+        if (!comment.isDeleted()) {
+          decreaseCommentCount(comment.getReview());
+        }
+      }
 
       commentCommand.deleteAllByUserId(userId);
     }
@@ -133,13 +141,9 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public void deleteCommentsByReviews(List<UUID> reviewIds) {
     if (reviewIds == null || reviewIds.isEmpty()) {
-      throw new BusinessException(ReviewErrorCode.NOT_FOUND);
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT);
     }
-
-    List<Comment> comments = commentFinder.findAllByReviewIds(reviewIds);
-    if (!comments.isEmpty()) {
-      commentCommand.deleteAllByReviewIds(reviewIds);
-    }
+    commentCommand.deleteAllByReviewIds(reviewIds);
   }
 
   @Override
