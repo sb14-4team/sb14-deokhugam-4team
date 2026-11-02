@@ -1,9 +1,12 @@
 package com.sprint.deokhugam.user.adapter.persistence;
 
+import com.sprint.deokhugam.user.application.dto.PowerUserCursor;
+import com.sprint.deokhugam.user.application.dto.PowerUserSearchCond;
 import com.sprint.deokhugam.user.application.required.UserRepository;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.User;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,5 +51,25 @@ public class UserRepositoryAdapter implements UserRepository {
   @Override
   public void remove(UUID userId) {
     userJpaRepository.deleteById(userId);
+  }
+
+  @Override
+  public List<UUID> findRankingTargetIds() {
+    return userJpaRepository.findRankingTargetIds();
+  }
+
+  @Override
+  public List<User> findPowerUsers(PowerUserSearchCond condition, LocalDate publishedOn) {
+    return querydslRepository.findPowerUsers(condition, publishedOn);
+  }
+
+  @Override
+  public long countPowerUsers(LocalDate publishedOn) {
+    return querydslRepository.countPowerUsers(publishedOn);
+  }
+
+  @Override
+  public long countPowerUsersAhead(PowerUserCursor point, Instant createdAt) {
+    return querydslRepository.countPowerUserAhead(point, createdAt);
   }
 }
