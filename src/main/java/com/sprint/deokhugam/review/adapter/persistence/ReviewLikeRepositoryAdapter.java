@@ -41,17 +41,12 @@ public class ReviewLikeRepositoryAdapter implements ReviewLikeQueryPort, ReviewL
   }
 
   @Override
-  public long deleteAllByUserIds(List<UUID> userIds) {
-    return reviewLikeQuerydslRepository.deleteAllByUserIds(userIds);
+  public long deleteAllByUserId(UUID userId) {
+    return reviewLikeQuerydslRepository.deleteAllByUserId(userId);
   }
 
   @Override
   public void deleteAllByReviewIds(List<UUID> reviewIds) {
     reviewLikeQuerydslRepository.deleteAllByReviewIds(reviewIds);
-  }
-
-  @Override
-  public long deleteAllByUserIdsOrReviewIds(List<UUID> userIds, List<UUID> reviewIds) {
-    return reviewLikeQuerydslRepository.deleteAllByUserIdsOrReviewIds(userIds, reviewIds);
   }
 }
