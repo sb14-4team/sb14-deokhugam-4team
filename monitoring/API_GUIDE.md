@@ -1,6 +1,6 @@
 # 모니터링 설정을 API로 한 단계씩 (학습용 문서)
 
-> 그냥 쓰기만 할 거면 [README.md](README.md)만 보면 됩니다. 이 문서는 `setup.sh`가 하는 일을 API 호출 하나씩 풀어 쓴 기록입니다.
+> 그냥 쓰기만 할 거면 [README_Monitoring.md](../README_Monitoring.md)만 보면 됩니다. 이 문서는 `setup.sh`가 하는 일을 API 호출 하나씩 풀어 쓴 기록입니다.
 
 새 PC(노트북)에서 저장소를 받는 것부터 시작해, Elasticsearch·Kibana·Grafana 설정을 **HTTP API를 직접 호출해서** 넣는 순서입니다.
 `monitoring/setup.sh`는 아래 2~10단계를 한 번에 실행하는 스크립트(정답지)입니다. 따라 하다 막히면 같은 부분을 열어 비교합니다.
