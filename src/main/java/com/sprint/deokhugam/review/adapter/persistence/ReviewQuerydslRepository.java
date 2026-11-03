@@ -32,6 +32,10 @@ public class ReviewQuerydslRepository {
   public List<Review> search(ReviewSearchCondition condition) {
     return queryFactory
         .selectFrom(review)
+        .join(review.book)
+        .fetchJoin()
+        .join(review.user)
+        .fetchJoin()
         .where(
             review.deletedAt.isNull(),
             keywordCondition(condition.keyword()),
