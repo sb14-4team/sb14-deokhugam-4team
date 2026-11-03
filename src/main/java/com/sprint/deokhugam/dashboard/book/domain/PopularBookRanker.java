@@ -9,7 +9,7 @@ import java.util.List;
 */
 public class PopularBookRanker {
 
-  public static List<BookRankingCandidate> rank(List<BookRankingCandidate> candidates) {
+  public static List<BookRankingCandidate> sortRank(List<BookRankingCandidate> candidates) {
     return candidates.stream()
         .sorted(
             Comparator.comparingDouble(BookRankingCandidate::score)
