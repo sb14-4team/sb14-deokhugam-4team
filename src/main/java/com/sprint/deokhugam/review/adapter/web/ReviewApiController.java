@@ -99,7 +99,7 @@ public class ReviewApiController {
   @DeleteMapping("/{reviewId}/hard")
   public ResponseEntity<Void> hardDeleteReview(
       @PathVariable UUID reviewId, @RequestHeader("Deokhugam-Request-User-ID") UUID requestUserId) {
-    reviewUseCase.softDeleteReview(reviewId, requestUserId);
+    reviewUseCase.hardDeleteReview(reviewId, requestUserId);
     return ResponseEntity.noContent().build();
   }
 }

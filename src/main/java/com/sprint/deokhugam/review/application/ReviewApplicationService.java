@@ -3,6 +3,7 @@ package com.sprint.deokhugam.review.application;
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
@@ -41,6 +42,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   private final ReviewQueryPort reviewQueryPort;
   private final ReviewRepositoryPort reviewRepositoryPort;
 
+  private final CommentUseCase commentUseCase;
   private final BookReviewStatsCommand bookReviewStatsCommand;
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
@@ -179,8 +181,8 @@ public class ReviewApplicationService implements ReviewUseCase {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
     }
 
+    commentUseCase.deleteCommentsByReviews(List.of(reviewId));
     reviewLikeRepositoryPort.deleteAllByReviewId(reviewId);
-    // 댓글 삭제 호출 - 아직 미구현
 
     // 논리 삭제를 거친 리뷰는 이미 집계에서 빠져 있다
     if (!review.isDeleted()) {

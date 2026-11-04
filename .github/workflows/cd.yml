@@ -4,8 +4,7 @@
 
 on:
   push:
-    branches:
-      - chore/28-aws-deploy    # 배포 워크플로우 동작 브랜치
+    branches: [main]
   workflow_dispatch:
 
 permissions:
