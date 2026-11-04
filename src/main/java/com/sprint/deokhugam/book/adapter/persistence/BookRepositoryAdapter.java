@@ -1,0 +1,41 @@
+package com.sprint.deokhugam.book.adapter.persistence;
+
+import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
+import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.book.domain.Isbn;
+import java.util.Optional;
+import java.util.UUID;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@RequiredArgsConstructor
+public class BookRepositoryAdapter implements BookRepositoryPort {
+
+  private final BookJpaRepository bookJpaRepository;
+
+  @Override
+  public Book save(Book book) {
+    return bookJpaRepository.save(book);
+  }
+
+  @Override
+  public Optional<Book> findActiveById(UUID bookId) {
+    return bookJpaRepository.findByIdAndDeletedAtIsNull(bookId);
+  }
+
+  @Override
+  public Optional<Book> findById(UUID bookId) {
+    return bookJpaRepository.findById(bookId);
+  }
+
+  @Override
+  public boolean existsByIsbn(Isbn isbn) {
+    return bookJpaRepository.existsByIsbn(isbn);
+  }
+
+  @Override
+  public void delete(Book book) {
+    bookJpaRepository.delete(book);
+  }
+}
