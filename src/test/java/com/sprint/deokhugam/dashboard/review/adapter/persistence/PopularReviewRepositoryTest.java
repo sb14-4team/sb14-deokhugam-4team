@@ -35,7 +35,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Sort;
 import org.springframework.test.context.ActiveProfiles;
 
-// H2 대신 PostgreSQL를 쓴다
 // H2는 기간 검사 조건이 있는 popular_reviews 저장에서 오류가 난다
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -271,7 +270,7 @@ public class PopularReviewRepositoryTest {
   @Test
   @DisplayName("활동 집계 - 기간 밖에서 생긴 좋아요와 댓글은 세지 않는다")
   void findReviewActivities_outOfRange() {
-    // Given: 지금 생긴 활동
+    // Given
     Review review = persistReview("testReview");
     persistLikes(review, 1);
     persistComments(review, 1);

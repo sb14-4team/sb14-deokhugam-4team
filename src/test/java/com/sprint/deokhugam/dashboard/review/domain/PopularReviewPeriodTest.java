@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 
 class PopularReviewPeriodTest {
 
-  // 2026-10-29 (목) 0시에 배치가 돈다고 가정
   private final LocalDate baseDate = LocalDate.of(2026, 10, 29);
 
   @Test
@@ -26,7 +25,6 @@ class PopularReviewPeriodTest {
   void rangeOf_weekly_lastMondayToSunday() {
     PopularReviewPeriod.Range range = PopularReviewPeriod.WEEKLY.rangeOf(baseDate);
 
-    // 2026-10-19(월) 00:00 KST ~ 2026-10-26(월) 00:00 KST
     assertThat(range.startAt()).isEqualTo(Instant.parse("2026-10-18T15:00:00Z"));
     assertThat(range.endAt()).isEqualTo(Instant.parse("2026-10-25T15:00:00Z"));
   }
