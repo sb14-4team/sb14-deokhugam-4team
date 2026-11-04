@@ -86,7 +86,7 @@ public class Notification extends BaseSoftDeletableEntity {
         };
     String description = "%s 인기 리뷰 %d위".formatted(periodName, rank);
 
-    return new Notification(user, review, reviewContent, NotificationType.Ranked, description);
+    return new Notification(user, review, reviewContent, NotificationType.RANKED, description);
   }
 
   public void confirm() {
