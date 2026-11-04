@@ -1,6 +1,8 @@
 package com.sprint.deokhugam.review.application.required;
 
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
+import com.sprint.deokhugam.review.application.dto.res.BookReviewStatsResponse;
+import com.sprint.deokhugam.review.application.provided.query.ReviewAggregationRange;
 import com.sprint.deokhugam.review.domain.Review;
 import java.util.List;
 import java.util.UUID;
@@ -14,4 +16,6 @@ public interface ReviewQueryPort {
   List<Review> search(ReviewSearchCondition condition);
 
   long count(ReviewSearchCondition condition);
+
+  List<BookReviewStatsResponse> aggregateByBook(ReviewAggregationRange range);
 }
