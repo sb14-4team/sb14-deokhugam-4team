@@ -3,10 +3,10 @@ package com.sprint.deokhugam.user.application;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.user.application.dto.PowerUserCursor;
-import com.sprint.deokhugam.user.application.dto.req.PowerUserSearchCond;
-import com.sprint.deokhugam.user.application.dto.req.UserLoginRequest;
-import com.sprint.deokhugam.user.application.dto.res.PowerUserDto;
-import com.sprint.deokhugam.user.application.dto.res.UserDto;
+import com.sprint.deokhugam.user.application.dto.query.LoginUserQuery;
+import com.sprint.deokhugam.user.application.dto.query.PowerUserSearchCond;
+import com.sprint.deokhugam.user.application.dto.result.PowerUserResult;
+import com.sprint.deokhugam.user.application.dto.result.UserResult;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.application.provided.query.UserLogin;
 import com.sprint.deokhugam.user.application.required.PasswordHasher;
@@ -47,22 +47,20 @@ public class UserQueryService implements UserFinder, UserLogin {
   }
 
   @Override
-  public UserDto getUserDetail(UUID userId) {
+  public UserResult getUserDetail(UUID userId) {
     User user = findByIdOrThrow(userId);
-    return UserDto.to(
-        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+    return UserResult.from(user);
   }
 
   @Override
-  public UserDto login(UserLoginRequest request) {
-    Email email = Email.to(request.email());
+  public UserResult login(LoginUserQuery query) {
+    Email email = Email.to(query.email());
     User user = findByEmail(email);
-    boolean matches = passwordHasher.matches(request.password(), user.getPassword().password());
+    boolean matches = passwordHasher.matches(query.password(), user.getPassword().password());
     if (!matches) {
       throw new BusinessException(UserErrorCode.LOGIN_FAILED);
     }
-    return UserDto.to(
-        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+    return UserResult.from(user);
   }
 
   @Override
@@ -77,7 +75,7 @@ public class UserQueryService implements UserFinder, UserLogin {
 
   @Override
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
-  public CursorPageResponse<PowerUserDto> findPowerUsers(PowerUserSearchCond cond) {
+  public CursorPageResponse<PowerUserResult> findPowerUsers(PowerUserSearchCond cond) {
     LocalDate publishedOn = LocalDate.now(ZoneId.of("Asia/Seoul"));
     List<User> rows = userRepositoryPort.findPowerUsers(cond, publishedOn);
     long totalElements = userRepositoryPort.countPowerUsers(publishedOn);
@@ -98,7 +96,7 @@ public class UserQueryService implements UserFinder, UserLogin {
                 cursorOf(first, cond.period(), publishedOn), first.getCreatedAt())
             + 1;
 
-    List<PowerUserDto> content = new ArrayList<>(pageResponse.size());
+    List<PowerUserResult> content = new ArrayList<>(pageResponse.size());
 
     for (int i = 0; i < pageResponse.size(); i++) {
       long rank = cond.direction() == Direction.ASC ? firstRank + i : firstRank - i;
@@ -117,7 +115,7 @@ public class UserQueryService implements UserFinder, UserLogin {
     return new PowerUserCursor(period, publishedOn, scoreUnits(user, period), user.getId());
   }
 
-  private PowerUserDto toPowerUserDto(User user, RankingPeriod period, long rank) {
+  private PowerUserResult toPowerUserDto(User user, RankingPeriod period, long rank) {
     PeriodStats published = user.getRankingStats().published();
 
     Period selected =
@@ -133,7 +131,7 @@ public class UserQueryService implements UserFinder, UserLogin {
     double reviewScoreSum =
         (metrics.reviewLikeCount() * 3L + metrics.reviewCommentCount() * 7L) / 10.0;
 
-    return new PowerUserDto(
+    return new PowerUserResult(
         user.getId(),
         user.getNickname(),
         period,

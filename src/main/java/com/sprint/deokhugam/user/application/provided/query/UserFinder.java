@@ -1,9 +1,9 @@
 package com.sprint.deokhugam.user.application.provided.query;
 
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
-import com.sprint.deokhugam.user.application.dto.req.PowerUserSearchCond;
-import com.sprint.deokhugam.user.application.dto.res.PowerUserDto;
-import com.sprint.deokhugam.user.application.dto.res.UserDto;
+import com.sprint.deokhugam.user.application.dto.query.PowerUserSearchCond;
+import com.sprint.deokhugam.user.application.dto.result.PowerUserResult;
+import com.sprint.deokhugam.user.application.dto.result.UserResult;
 import com.sprint.deokhugam.user.domain.User;
 import java.time.Instant;
 import java.util.List;
@@ -13,11 +13,11 @@ public interface UserFinder {
 
   User findByIdOrThrow(UUID userId);
 
-  UserDto getUserDetail(UUID userId);
+  UserResult getUserDetail(UUID userId);
 
   List<UUID> findCleanupIds(Instant cutoff, int limit);
 
   List<UUID> findRankingTargetIds();
 
-  CursorPageResponse<PowerUserDto> findPowerUsers(PowerUserSearchCond cond);
+  CursorPageResponse<PowerUserResult> findPowerUsers(PowerUserSearchCond cond);
 }
