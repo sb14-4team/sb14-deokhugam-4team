@@ -19,6 +19,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Sort;
@@ -28,7 +29,12 @@ import org.springframework.test.context.ActiveProfiles;
 @DataJpaTest // JPA 관련 빈만 띄우는 가벼운 테스트. 각 테스트는 트랜잭션 안에서 돌고 끝나면 롤백된다
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // H2로 바꾸지 않는다
 @ActiveProfiles("test") // application-test.yaml의 PostgreSQL(deokhugam_test)을 쓴다
-@Import({QuerydslConfig.class, JpaConfig.class, BookSearchAdapter.class}) // 자동으로 안 띄우는 빈
+@Import({
+  QuerydslConfig.class,
+  JpaConfig.class,
+  BookSearchAdapter.class,
+  JacksonAutoConfiguration.class
+}) // 자동으로 안 띄우는 빈
 class BookSearchAdapterTest {
 
   @Autowired private EntityManager entityManager;
