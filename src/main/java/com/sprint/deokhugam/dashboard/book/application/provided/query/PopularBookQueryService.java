@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.dashboard.book.application;
+package com.sprint.deokhugam.dashboard.book.application.provided.query;
 
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.dashboard.book.application.required.PopularBookQueryPort;
@@ -7,14 +7,16 @@ import com.sprint.deokhugam.dashboard.book.domain.PopularBook;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @RequiredArgsConstructor
 @Service
-public class PopularBookApplicationService implements PopularBookUseCase {
+public class PopularBookQueryService implements PopularBookQuery {
   private final PopularBookQueryPort popularBookQueryPort;
 
   @Override
-  public CursorPageResponse<PopularBookResponse> searchPopularBooks(
+  @Transactional
+  public CursorPageResponse<PopularBookResponse> searchPopularBooksByPagination(
       PopularBookSearchCondition condition) {
     List<PopularBook> popularBookList = popularBookQueryPort.search(condition);
     List<PopularBookResponse> responses =

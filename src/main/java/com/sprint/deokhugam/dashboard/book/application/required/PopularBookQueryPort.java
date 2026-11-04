@@ -1,6 +1,6 @@
 package com.sprint.deokhugam.dashboard.book.application.required;
 
-import com.sprint.deokhugam.dashboard.book.application.PopularBookSearchCondition;
+import com.sprint.deokhugam.dashboard.book.application.provided.query.PopularBookSearchCondition;
 import com.sprint.deokhugam.dashboard.book.domain.PopularBook;
 import java.util.List;
 

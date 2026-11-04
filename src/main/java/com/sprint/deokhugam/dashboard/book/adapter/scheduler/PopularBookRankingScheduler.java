@@ -50,20 +50,12 @@ public class PopularBookRankingScheduler {
       try {
         JobExecution execution = jobOperator.start(popularBookRankingJob, parameters);
         if (execution.getStatus() == BatchStatus.COMPLETED) {
-          log.info(
-              "인기도서 집계 성공 --- period = {}, baseDate = {}, executionId = {}",
-              period,
-              baseDate,
-              execution.getId());
+          log.info("인기도서 집계 성공 --- period = {}, baseDate = {}", period, baseDate);
         }
 
         // 배치 중 실패
         if (execution.getStatus() == BatchStatus.FAILED) {
-          log.error(
-              "인기도서 집계 실패 --- period = {}, baseDate = {}, executionId = {}",
-              period,
-              baseDate,
-              execution.getId());
+          log.error("인기도서 집계 실패 --- period = {}, baseDate = {}", period, baseDate);
         }
       } catch (Exception e) {
         // 배치 호출 중 실패

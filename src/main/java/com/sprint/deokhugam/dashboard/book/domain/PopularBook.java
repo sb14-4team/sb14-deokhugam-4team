@@ -27,7 +27,9 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder(access = AccessLevel.PRIVATE)
 @Entity
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"period", "base_date", "book_id"}))
+@Table(
+    name = "popular_books",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"period", "base_date", "book_id"}))
 public class PopularBook extends BaseEntity {
 
   private static final double REVIEW_COUNT_WEIGHT = 0.4;

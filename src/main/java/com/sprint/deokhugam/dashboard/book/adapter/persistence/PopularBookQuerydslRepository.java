@@ -4,11 +4,12 @@ import static com.sprint.deokhugam.dashboard.book.domain.QPopularBook.popularBoo
 
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-import com.sprint.deokhugam.dashboard.book.application.PopularBookSearchCondition;
+import com.sprint.deokhugam.dashboard.book.application.provided.query.PopularBookSearchCondition;
 import com.sprint.deokhugam.dashboard.book.domain.PopularBook;
 import com.sprint.deokhugam.dashboard.book.domain.RankingPeriod;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -53,5 +54,9 @@ public class PopularBookQuerydslRepository {
     return condition.isDescending()
         ? popularBook.rank.lt(condition.cursor())
         : popularBook.rank.gt(condition.cursor());
+  }
+
+  public void deleteByBookId(UUID bookId) {
+    queryFactory.delete(popularBook).where(popularBook.book.id.eq(bookId)).execute();
   }
 }

@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.dashboard.book.application;
+package com.sprint.deokhugam.dashboard.book.application.provided.query;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;

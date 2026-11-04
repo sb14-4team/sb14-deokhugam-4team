@@ -1,8 +1,8 @@
 package com.sprint.deokhugam.dashboard.book.adapter.web;
 
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
-import com.sprint.deokhugam.dashboard.book.application.PopularBookSearchCondition;
-import com.sprint.deokhugam.dashboard.book.application.PopularBookUseCase;
+import com.sprint.deokhugam.dashboard.book.application.provided.query.PopularBookQuery;
+import com.sprint.deokhugam.dashboard.book.application.provided.query.PopularBookSearchCondition;
 import com.sprint.deokhugam.dashboard.book.application.res.PopularBookResponse;
 import com.sprint.deokhugam.dashboard.book.domain.RankingPeriod;
 import jakarta.validation.constraints.Min;
@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/books")
 public class PopularBookController {
-  private final PopularBookUseCase popularBookUseCase;
+  private final PopularBookQuery popularBookQuery;
 
   @GetMapping("/popular")
   public ResponseEntity<CursorPageResponse<PopularBookResponse>> getPopularBooks(
@@ -34,7 +34,7 @@ public class PopularBookController {
     PopularBookSearchCondition condition =
         PopularBookSearchCondition.toCondition(period, direction, cursor, after, limit);
     CursorPageResponse<PopularBookResponse> response =
-        popularBookUseCase.searchPopularBooks(condition);
+        popularBookQuery.searchPopularBooksByPagination(condition);
 
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
