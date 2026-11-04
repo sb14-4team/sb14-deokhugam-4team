@@ -2,7 +2,7 @@ package com.sprint.deokhugam.user.application.provided.command;
 
 import java.util.UUID;
 
-public interface UserCleaner {
+public interface UserCleanupUseCase {
 
-  void cleanup(UUID targetId);
+  void cleanupUserWithRelatedData(UUID targetId);
 }
