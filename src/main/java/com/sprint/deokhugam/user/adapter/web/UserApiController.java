@@ -1,6 +1,9 @@
 package com.sprint.deokhugam.user.adapter.web;
 
+import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.common.web.annotation.RequestHeader;
+import com.sprint.deokhugam.user.application.dto.PowerUserDto;
+import com.sprint.deokhugam.user.application.dto.PowerUserSearchCond;
 import com.sprint.deokhugam.user.application.dto.UserDto;
 import com.sprint.deokhugam.user.application.dto.UserLoginRequest;
 import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
@@ -8,9 +11,13 @@ import com.sprint.deokhugam.user.application.dto.UserUpdateRequest;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.application.provided.query.UserLogin;
+import com.sprint.deokhugam.user.domain.ranking.RankingPeriod;
 import jakarta.validation.Valid;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -65,5 +73,21 @@ public class UserApiController {
     userCommand.withdraw(userId, headerId);
 
     return ResponseEntity.noContent().build();
+  }
+
+  @GetMapping("/power")
+  public ResponseEntity<CursorPageResponse<PowerUserDto>> getPowerUsers(
+      @RequestParam(defaultValue = "ALL_TIME") RankingPeriod period,
+      @RequestParam(defaultValue = "ASC") Direction direction,
+      @RequestParam(required = false) String cursor,
+      @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+          Instant after,
+      @RequestParam(defaultValue = "20") int limit) {
+    PowerUserSearchCond condition =
+        new PowerUserSearchCond(period, direction, cursor, after, limit);
+
+    CursorPageResponse<PowerUserDto> response = userFinder.findPowerUsers(condition);
+
+    return ResponseEntity.ok(response);
   }
 }

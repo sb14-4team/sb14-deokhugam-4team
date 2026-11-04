@@ -19,10 +19,13 @@ import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.review.domain.ReviewLike;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.ranking.ActivityEvent;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +33,9 @@ import org.springframework.transaction.annotation.Transactional;
 // api 전용 어플리케이션 서비스
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReviewApplicationService implements ReviewUseCase {
+
   private final ReviewLikeQueryPort reviewLikeQueryPort;
   private final ReviewLikeRepositoryPort reviewLikeRepositoryPort;
   private final ReviewQueryPort reviewQueryPort;
@@ -127,6 +132,15 @@ public class ReviewApplicationService implements ReviewUseCase {
     if (reviewLike.isLiked()) {
       eventPublisher.publishEvent(
           NotifyEvent.like(reviewId, review.getUser().getId(), user.getNickname()));
+
+      eventPublisher.publishEvent(
+          ActivityEvent.LikeAdded(
+              UUID.randomUUID(),
+              reviewId,
+              review.getUser().getId(),
+              user.getId(),
+              review.getCreatedAt(),
+              Instant.now()));
     }
 
     return ReviewLikeResponse.from(reviewLike);

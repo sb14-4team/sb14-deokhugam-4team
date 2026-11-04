@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.review.application;
 
 import com.sprint.deokhugam.book.domain.Book;
+import java.util.UUID;
 
 public interface ReviewCleanupUseCase {
   /*
@@ -9,4 +10,6 @@ public interface ReviewCleanupUseCase {
    리턴값 : 삭제 완료된 리뷰 수. 리뷰가 없으면 0
   */
   long deleteReviewsWithRelatedDataByBook(Book book);
+
+  long deleteReviewsWithRelatedDataByUserId(UUID userId);
 }

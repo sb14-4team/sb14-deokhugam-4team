@@ -21,7 +21,12 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
 
   @Override
   public Comment findById(UUID commentId) {
-    return jpaRepository.getByIdOrThrow(commentId);
+    return jpaRepository.findByIdOrThrow(commentId);
+  }
+
+  @Override
+  public Comment findByIdIncludingDeleted(UUID commentId) {
+    return jpaRepository.findByIdIncludingDeletedOrThrow(commentId);
   }
 
   @Override
@@ -42,10 +47,5 @@ public class CommentJpaPersistencePortAdapter implements CommentPersistencePort 
   @Override
   public List<Comment> findAllByUserId(UUID userId) {
     return commentQuerydslRepository.findByUser_Id(userId);
-  }
-
-  @Override
-  public List<Comment> findAllByReviewIds(List<UUID> reviewIds) {
-    return jpaRepository.findByReview_IdIn(reviewIds);
   }
 }
