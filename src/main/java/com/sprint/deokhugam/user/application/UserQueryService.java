@@ -100,7 +100,7 @@ public class UserQueryService implements UserFinder, UserLogin {
 
     for (int i = 0; i < pageResponse.size(); i++) {
       long rank = cond.direction() == Direction.ASC ? firstRank + i : firstRank - i;
-      content.add(toPowerUserDto(pageResponse.content().get(i), cond.period(), rank));
+      content.add(toPowerUserResult(pageResponse.content().get(i), cond.period(), rank));
     }
     return new CursorPageResponse<>(
         content,
@@ -115,7 +115,7 @@ public class UserQueryService implements UserFinder, UserLogin {
     return new PowerUserCursor(period, publishedOn, scoreUnits(user, period), user.getId());
   }
 
-  private PowerUserResult toPowerUserDto(User user, RankingPeriod period, long rank) {
+  private PowerUserResult toPowerUserResult(User user, RankingPeriod period, long rank) {
     PeriodStats published = user.getRankingStats().published();
 
     Period selected =
