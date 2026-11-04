@@ -1,6 +1,6 @@
-package com.sprint.deokhugam.user.adapter;
+package com.sprint.deokhugam.user.adapter.batch;
 
-import com.sprint.deokhugam.user.application.provided.command.UserCleaner;
+import com.sprint.deokhugam.user.application.provided.command.UserCleanupUseCase;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import java.time.Duration;
 import java.time.Instant;
@@ -33,7 +33,7 @@ public class UserBatchConfig {
       JobRepository jonRepository,
       PlatformTransactionManager tm,
       ItemReader<UUID> userCleanupReader,
-      UserCleaner userCleaner) {
+      UserCleanupUseCase userCleanupUseCase) {
     return new StepBuilder("userCleanupStep", jonRepository)
         .<UUID, UUID>chunk(1)
         .transactionManager(tm)
@@ -42,9 +42,10 @@ public class UserBatchConfig {
             chunk -> {
               for (UUID userId : chunk.getItems()) {
                 try {
-                  userCleaner.cleanup(userId);
+                  userCleanupUseCase.cleanupUserWithRelatedData(userId);
                 } catch (RuntimeException e) {
                   log.error("삭제 실패 유저 id = {}", userId, e);
+                  throw e;
                 }
               }
             })
