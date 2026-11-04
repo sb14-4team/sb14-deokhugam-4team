@@ -1,4 +1,4 @@
-package com.sprint.deokhugam.user.application.dto.req;
+package com.sprint.deokhugam.user.application.dto.query;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;

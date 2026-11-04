@@ -2,8 +2,8 @@ package com.sprint.deokhugam.user.application;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;
-import com.sprint.deokhugam.user.application.dto.req.UserRegisterRequest;
-import com.sprint.deokhugam.user.application.dto.res.UserDto;
+import com.sprint.deokhugam.user.application.dto.command.RegisterUserCommand;
+import com.sprint.deokhugam.user.application.dto.result.UserResult;
 import com.sprint.deokhugam.user.application.provided.command.UserActivityCommand;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
 import com.sprint.deokhugam.user.application.required.PasswordHasher;
@@ -40,7 +40,7 @@ public class UserCommandService implements UserCommand, UserActivityCommand {
   private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 
   @Override
-  public UserDto save(UserRegisterRequest request) {
+  public UserResult registerUser(RegisterUserCommand request) {
     Email email = Email.to(request.email());
 
     if (userRepositoryPort.existsByEmail(email)) {
@@ -52,9 +52,8 @@ public class UserCommandService implements UserCommand, UserActivityCommand {
     String nickname = request.nickname();
     User user = User.create(nickname, email, password);
     user.initializeRankingStats(LocalDate.now(SEOUL));
-    userRepositoryPort.save(user);
-    return UserDto.to(
-        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+    User saved = userRepositoryPort.save(user);
+    return UserResult.from(saved);
   }
 
   @Override
@@ -73,15 +72,14 @@ public class UserCommandService implements UserCommand, UserActivityCommand {
   }
 
   @Override
-  public UserDto update(UUID userId, UUID headerId, String nickname) {
+  public UserResult update(UUID userId, UUID headerId, String nickname) {
     if (!userId.equals(headerId)) {
       throw new BusinessException(UserErrorCode.FORBIDDEN);
     }
     User user = getUser(userId);
     user.updateNickname(nickname);
 
-    return UserDto.to(
-        user.getId(), user.getEmail().value(), user.getNickname(), user.getCreatedAt());
+    return UserResult.from(user);
   }
 
   private @NonNull User getUser(UUID userId) {

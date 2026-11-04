@@ -1,10 +1,10 @@
-package com.sprint.deokhugam.user.application.dto.res;
+package com.sprint.deokhugam.user.application.dto.result;
 
 import com.sprint.deokhugam.user.domain.ranking.RankingPeriod;
 import java.time.Instant;
 import java.util.UUID;
 
-public record PowerUserDto(
+public record PowerUserResult(
     UUID userId,
     String nickname,
     RankingPeriod period,

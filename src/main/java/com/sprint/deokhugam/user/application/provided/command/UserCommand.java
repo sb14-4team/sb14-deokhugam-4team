@@ -1,16 +1,16 @@
 package com.sprint.deokhugam.user.application.provided.command;
 
-import com.sprint.deokhugam.user.application.dto.req.UserRegisterRequest;
-import com.sprint.deokhugam.user.application.dto.res.UserDto;
+import com.sprint.deokhugam.user.application.dto.command.RegisterUserCommand;
+import com.sprint.deokhugam.user.application.dto.result.UserResult;
 import java.util.UUID;
 
 public interface UserCommand {
 
-  UserDto save(UserRegisterRequest request);
+  UserResult registerUser(RegisterUserCommand command);
 
   void withdraw(UUID userId, UUID headerId);
 
   void delete(UUID userId);
 
-  UserDto update(UUID userId, UUID headerId, String nickname);
+  UserResult update(UUID userId, UUID headerId, String nickname);
 }
