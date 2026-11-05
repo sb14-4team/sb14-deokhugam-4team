@@ -55,6 +55,18 @@ public class NotificationQRepository {
         .fetch();
   }
 
+  public void deleteByUser(UUID userId) {
+    jpaQueryFactory.delete(notification).where(notification.user.id.eq(userId)).execute();
+  }
+
+  public void deleteByReview(UUID reviewId) {
+    jpaQueryFactory.delete(notification).where(notification.review.id.eq(reviewId)).execute();
+  }
+
+  public void deleteByReviewIds(List<UUID> reviewIds) {
+    jpaQueryFactory.delete(notification).where(notification.review.id.in(reviewIds)).execute();
+  }
+
   public long countByUser(UUID userId) {
     Long count =
         jpaQueryFactory

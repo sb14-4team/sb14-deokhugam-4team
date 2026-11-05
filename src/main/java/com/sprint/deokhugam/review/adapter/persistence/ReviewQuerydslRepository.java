@@ -1,14 +1,18 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
+import static com.sprint.deokhugam.book.domain.QBook.book;
 import static com.sprint.deokhugam.review.domain.QReview.review;
 
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
+import com.sprint.deokhugam.review.application.dto.res.BookReviewStatsResponse;
+import com.sprint.deokhugam.review.application.provided.query.ReviewAggregationRange;
 import com.sprint.deokhugam.review.domain.Review;
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +32,10 @@ public class ReviewQuerydslRepository {
   public List<Review> search(ReviewSearchCondition condition) {
     return queryFactory
         .selectFrom(review)
+        .join(review.book)
+        .fetchJoin()
+        .join(review.user)
+        .fetchJoin()
         .where(
             review.deletedAt.isNull(),
             keywordCondition(condition.keyword()),
@@ -64,6 +72,29 @@ public class ReviewQuerydslRepository {
 
   public List<UUID> getIdsByUserIdIncludingDeleted(UUID userId) {
     return queryFactory.select(review.id).from(review).where(review.user.id.eq(userId)).fetch();
+  }
+
+  public List<BookReviewStatsResponse> aggregateByBook(ReviewAggregationRange range) {
+    if (range == null) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT);
+    }
+    return queryFactory
+        .select(
+            Projections.constructor(
+                BookReviewStatsResponse.class, book, review.id.count(), review.rating.avg()))
+        .from(review)
+        .join(review.book, book)
+        .where(review.deletedAt.isNull(), book.deletedAt.isNull(), createdInRange(range))
+        .groupBy(book)
+        .fetch();
+  }
+
+  private BooleanExpression createdInRange(ReviewAggregationRange range) {
+    return switch (range) {
+      case ReviewAggregationRange.Between r ->
+          review.createdAt.goe(r.startAt()).and(review.createdAt.lt(r.endAt()));
+      case ReviewAggregationRange.AllTime ignored -> null;
+    };
   }
 
   /*

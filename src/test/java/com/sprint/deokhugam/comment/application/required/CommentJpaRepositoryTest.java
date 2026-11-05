@@ -24,6 +24,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
@@ -34,7 +35,7 @@ import org.springframework.test.context.DynamicPropertySource;
 @DataJpaTest
 @EnableJpaAuditing
 @ActiveProfiles("test")
-@Import({CommentQuerydslRepository.class, QuerydslConfig.class})
+@Import({CommentQuerydslRepository.class, QuerydslConfig.class, JacksonAutoConfiguration.class})
 public class CommentJpaRepositoryTest {
 
   @Autowired private CommentJpaRepository commentJpaRepository;

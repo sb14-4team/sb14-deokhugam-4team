@@ -1,9 +1,9 @@
 package com.sprint.deokhugam.user.application.provided.query;
 
-import com.sprint.deokhugam.user.application.dto.UserDto;
-import com.sprint.deokhugam.user.application.dto.UserLoginRequest;
+import com.sprint.deokhugam.user.application.dto.query.LoginUserQuery;
+import com.sprint.deokhugam.user.application.dto.result.UserResult;
 
 public interface UserLogin {
 
-  UserDto login(UserLoginRequest request);
+  UserResult login(LoginUserQuery query);
 }

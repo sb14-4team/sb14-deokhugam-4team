@@ -4,9 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.user.application.dto.UserDto;
-import com.sprint.deokhugam.user.application.dto.UserLoginRequest;
-import com.sprint.deokhugam.user.application.dto.UserRegisterRequest;
+import com.sprint.deokhugam.user.adapter.dto.req.UserLoginRequest;
+import com.sprint.deokhugam.user.adapter.dto.req.UserRegisterRequest;
+import com.sprint.deokhugam.user.adapter.dto.res.UserResponse;
+import com.sprint.deokhugam.user.application.dto.command.RegisterUserCommand;
+import com.sprint.deokhugam.user.application.dto.query.LoginUserQuery;
+import com.sprint.deokhugam.user.application.dto.result.UserResult;
 import com.sprint.deokhugam.user.application.provided.command.UserCommand;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.application.provided.query.UserLogin;
@@ -31,12 +34,15 @@ class UserServiceTest {
   private final UserCommand userCommand;
   private final UserLogin userLogin;
   private final EntityManager em;
-  private UserDto user;
+  private UserResponse user;
 
   @BeforeEach
   void given() {
     UserRegisterRequest request = new UserRegisterRequest("tester@test.com", "test1", "password!");
-    user = userCommand.save(request);
+    RegisterUserCommand command = request.toCommand();
+    UserResult result = userCommand.registerUser(command);
+    user = UserResponse.from(result);
+
     em.flush();
     em.clear();
   }
@@ -46,13 +52,15 @@ class UserServiceTest {
     UserRegisterRequest request = new UserRegisterRequest("tester@test.com", "test1", "password!");
     UserRegisterRequest request2 =
         new UserRegisterRequest("tester@test.com", "test12", "password!");
-    assertThatThrownBy(() -> userCommand.save(request)).isInstanceOf(BusinessException.class);
+    RegisterUserCommand command2 = request2.toCommand();
+    assertThatThrownBy(() -> userCommand.registerUser(command2))
+        .isInstanceOf(BusinessException.class);
   }
 
   @Test
   void findById() {
     // when
-    User finderById = userFinder.findById(user.id());
+    User finderById = userFinder.findByIdOrThrow(user.id());
 
     // then
     assertThat(finderById).isNotNull();
@@ -69,8 +77,10 @@ class UserServiceTest {
   void login() {
     // when
     UserLoginRequest request = new UserLoginRequest("tester@test.com", "password!");
-    UserDto userDto = userLogin.login(request);
+    LoginUserQuery query = request.toQuery();
+    UserResult result = userLogin.login(query);
+    UserResponse userResponse = UserResponse.from(result);
     // then
-    assertThat(userDto.id()).isEqualTo(user.id());
+    assertThat(userResponse.id()).isEqualTo(user.id());
   }
 }
