@@ -28,6 +28,7 @@ import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +43,8 @@ public class PopularReviewApplicationServiceTest {
 
   @Mock private PopularReviewSearchPort searchPort;
   @Mock private PopularReviewPersistencePort persistencePort;
+  // 알림 기능이 추가됨
+  @Mock private ApplicationEventPublisher eventPublisher;
 
   @InjectMocks private PopularReviewApplicationService popularReviewApplicationService;
 

@@ -29,6 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
@@ -43,7 +44,9 @@ import org.springframework.test.context.ActiveProfiles;
   PopularReviewQuerydslSearchAdapter.class,
   PopularReviewJpaPersistencePortAdapter.class,
   QuerydslConfig.class,
-  JpaConfig.class
+  JpaConfig.class,
+  // 파워 유저 기능에서 UserRankingStatsConverter는 엔티티의 값을 JSON으로 바꿔 DB에 저장하는 변환기.
+  JacksonAutoConfiguration.class
 })
 public class PopularReviewRepositoryTest {
 
