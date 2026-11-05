@@ -1,6 +1,8 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
+import com.sprint.deokhugam.review.application.dto.res.BookReviewStatsResponse;
+import com.sprint.deokhugam.review.application.provided.query.ReviewAggregationRange;
 import com.sprint.deokhugam.review.application.required.ReviewQueryPort;
 import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
@@ -79,5 +81,10 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   @Override
   public List<UUID> getIdsByUserIdIncludingDeleted(UUID userId) {
     return reviewQuerydslRepository.getIdsByUserIdIncludingDeleted(userId);
+  }
+
+  @Override
+  public List<BookReviewStatsResponse> aggregateByBook(ReviewAggregationRange range) {
+    return reviewQuerydslRepository.aggregateByBook(range);
   }
 }

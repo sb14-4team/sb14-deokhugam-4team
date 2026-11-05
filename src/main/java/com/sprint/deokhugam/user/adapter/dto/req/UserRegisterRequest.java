@@ -1,5 +1,6 @@
-package com.sprint.deokhugam.user.application.dto;
+package com.sprint.deokhugam.user.adapter.dto.req;
 
+import com.sprint.deokhugam.user.application.dto.command.RegisterUserCommand;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -13,4 +14,9 @@ public record UserRegisterRequest(
         @Pattern(
             regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@$!%*#?&])[A-Za-z\\d@$!%*#?&]{8,20}$",
             message = "영문, 숫자 , 특수문자를 포함해주세요.")
-        String password) {}
+        String password) {
+
+  public RegisterUserCommand toCommand() {
+    return new RegisterUserCommand(email, nickname, password);
+  }
+}

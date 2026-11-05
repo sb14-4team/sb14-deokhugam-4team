@@ -1,6 +1,7 @@
 package com.sprint.deokhugam.notification.application;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.dashboard.review.domain.PopularReviewPeriod;
 import com.sprint.deokhugam.notification.application.dto.NotificationDto;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCleaner;
 import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
@@ -60,6 +61,14 @@ public class NotificationCommandService implements NotificationCommand, Notifica
   }
 
   @Override
+  public void createRank(Review review, User user, PopularReviewPeriod period, long rank) {
+    Notification notification =
+        Notification.createRanked(user, review, review.getContent(), period, rank);
+
+    notificationPersistencePort.save(notification);
+  }
+
+  @Override
   public NotificationDto confirm(UUID notificationId, UUID userId) {
     Notification find =
         notificationPersistencePort
@@ -96,4 +105,17 @@ public class NotificationCommandService implements NotificationCommand, Notifica
   public void deleteConfirmed(Instant cutoff) {
     notificationPersistencePort.deleteConfirmed(cutoff);
   }
+
+  @Override
+  public void deleteByUser(UUID userId) {
+    notificationPersistencePort.deleteByUser(userId);
+  }
+
+  @Override
+  public void deleteByReview(UUID reviewId) {
+    notificationPersistencePort.deleteByReview(reviewId);
+  }
+
+  @Override
+  public void deleteByReviewIds(List<UUID> reviewIds) {}
 }

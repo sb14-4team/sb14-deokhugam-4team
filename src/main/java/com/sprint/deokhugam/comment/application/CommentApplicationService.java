@@ -19,6 +19,8 @@ import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.ranking.ActivityEvent;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -45,7 +47,7 @@ public class CommentApplicationService implements CommentUseCase {
   @Transactional
   public CommentDto create(CommentCreateRequest createRequest) {
     Review review = reviewFinder.getByIdOrThrow(createRequest.reviewId());
-    User user = userFinder.findById(createRequest.userId());
+    User user = userFinder.findByIdOrThrow(createRequest.userId());
 
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
@@ -54,6 +56,15 @@ public class CommentApplicationService implements CommentUseCase {
     eventPublisher.publishEvent(
         NotifyEvent.comment(
             createRequest.reviewId(), review.getUser().getId(), user.getNickname()));
+
+    eventPublisher.publishEvent(
+        ActivityEvent.CommentAdded(
+            UUID.randomUUID(),
+            createRequest.reviewId(),
+            review.getUser().getId(),
+            user.getId(),
+            review.getCreatedAt(),
+            Instant.now()));
 
     return CommentDto.from(savedComment);
   }

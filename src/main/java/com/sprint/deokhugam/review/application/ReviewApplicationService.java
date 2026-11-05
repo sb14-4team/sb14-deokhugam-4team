@@ -3,6 +3,7 @@ package com.sprint.deokhugam.review.application;
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
@@ -19,10 +20,13 @@ import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.review.domain.ReviewLike;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
+import com.sprint.deokhugam.user.domain.ranking.ActivityEvent;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,12 +34,15 @@ import org.springframework.transaction.annotation.Transactional;
 // api 전용 어플리케이션 서비스
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ReviewApplicationService implements ReviewUseCase {
+
   private final ReviewLikeQueryPort reviewLikeQueryPort;
   private final ReviewLikeRepositoryPort reviewLikeRepositoryPort;
   private final ReviewQueryPort reviewQueryPort;
   private final ReviewRepositoryPort reviewRepositoryPort;
 
+  private final CommentUseCase commentUseCase;
   private final BookReviewStatsCommand bookReviewStatsCommand;
   private final BookFinder bookFinder;
   private final UserFinder userFinder;
@@ -45,7 +52,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Override
   @Transactional
   public ReviewResponse createReview(CreateReviewCommand command) {
-    User user = userFinder.findById(command.userId());
+    User user = userFinder.findByIdOrThrow(command.userId());
     Book book = bookFinder.findById(command.bookId());
 
     Review review = Review.create(command.rating(), command.content(), user, book);
@@ -73,7 +80,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Override
   @Transactional
   public ReviewResponse updateReview(UUID userId, UUID reviewId, String newContent, int newRating) {
-    userFinder.findById(userId);
+    userFinder.findByIdOrThrow(userId);
     Review review = reviewRepositoryPort.getByIdOrThrow(reviewId);
 
     if (!review.verifyReviewUpdate(userId)) {
@@ -115,7 +122,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Override
   @Transactional
   public ReviewLikeResponse toggleLike(UUID reviewId, UUID requestUserId) {
-    User user = userFinder.findById(requestUserId);
+    User user = userFinder.findByIdOrThrow(requestUserId);
     Review review = reviewRepositoryPort.getByIdOrThrow(reviewId);
 
     Optional<ReviewLike> foundReviewLike =
@@ -127,6 +134,15 @@ public class ReviewApplicationService implements ReviewUseCase {
     if (reviewLike.isLiked()) {
       eventPublisher.publishEvent(
           NotifyEvent.like(reviewId, review.getUser().getId(), user.getNickname()));
+
+      eventPublisher.publishEvent(
+          ActivityEvent.LikeAdded(
+              UUID.randomUUID(),
+              reviewId,
+              review.getUser().getId(),
+              user.getId(),
+              review.getCreatedAt(),
+              Instant.now()));
     }
 
     return ReviewLikeResponse.from(reviewLike);
@@ -135,7 +151,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Override
   @Transactional
   public void softDeleteReview(UUID reviewId, UUID requestUserId) {
-    userFinder.findById(requestUserId);
+    userFinder.findByIdOrThrow(requestUserId);
     Review review = reviewRepositoryPort.getByIdOrThrow(reviewId);
 
     if (!review.verifyReviewUpdate(requestUserId)) {
@@ -155,7 +171,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Override
   @Transactional
   public void hardDeleteReview(UUID reviewId, UUID requestUserId) {
-    userFinder.findById(requestUserId);
+    userFinder.findByIdOrThrow(requestUserId);
     Review review =
         reviewRepositoryPort
             .getByIdIncludingDeleted(reviewId)
@@ -165,8 +181,8 @@ public class ReviewApplicationService implements ReviewUseCase {
       throw new BusinessException(ReviewErrorCode.FORBIDDEN);
     }
 
+    commentUseCase.deleteCommentsByReviews(List.of(reviewId));
     reviewLikeRepositoryPort.deleteAllByReviewId(reviewId);
-    // 댓글 삭제 호출 - 아직 미구현
 
     // 논리 삭제를 거친 리뷰는 이미 집계에서 빠져 있다
     if (!review.isDeleted()) {
