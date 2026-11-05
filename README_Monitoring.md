@@ -1,7 +1,7 @@
 # 로컬 모니터링 (Grafana · Kibana)
 
 내 PC에서 앱을 띄우고, **Grafana(숫자)**와 **Kibana(로그)**로 바로 보는 방법입니다.
-모니터링 설정은 `setup.sh`, 시드 데이터는 `loadtest/seed.sh`가 넣습니다. 각 설정이 무슨 API 호출인지 궁금하면 [API_GUIDE.md](monitoring/API_GUIDE.md)를 봅니다.
+모니터링 설정은 `setup.sh`, 시드 데이터는 `loadtest/seed.sh`가 넣습니다. 각 설정이 무슨 API 호출인지 궁금하면 [API_GUIDE.md](local-monitoring/API_GUIDE.md)를 봅니다.
 
 ## 준비물
 
@@ -105,7 +105,7 @@ Grafana 패널의 Kibana 링크를 누르면 같은 시간대의 "최근 에러"
 ## 끄기 · 초기화
 
 - 끄기(데이터 유지): `docker compose --profile monitoring --profile loadtest down` — 컨테이너를 지워도 볼륨은 남아서 `up -d`하면 그대로 이어집니다
-- `-v`를 붙이면 **Postgres 데이터(시드 포함)까지** 지워집니다. 다시 `setup.sh`와 `loadtest/seed.sh`를 돌리면 처음 상태로 돌아갑니다. 모니터링만 처음 상태로 되돌리는 방법은 [API_GUIDE.md](monitoring/API_GUIDE.md#한-번에-하기-처음으로-되돌리기-끄기)에 있습니다.
+- `-v`를 붙이면 **Postgres 데이터(시드 포함)까지** 지워집니다. 다시 `setup.sh`와 `loadtest/seed.sh`를 돌리면 처음 상태로 돌아갑니다. 모니터링만 처음 상태로 되돌리는 방법은 [API_GUIDE.md](local-monitoring/API_GUIDE.md#한-번에-하기-처음으로-되돌리기-끄기)에 있습니다.
 
 ## 막히면
 
