@@ -17,9 +17,10 @@ import com.sprint.deokhugam.comment.application.provided.query.CommentFinder;
 import com.sprint.deokhugam.comment.domain.Comment;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import com.sprint.deokhugam.user.domain.exception.UserErrorCode;
@@ -41,6 +42,7 @@ public class CommentCommandServiceTest {
   @Mock private CommentFinder commentFinder;
   @Mock private UserFinder userFinder;
   @Mock private ReviewFinder reviewFinder;
+  @Mock private ReviewCommand reviewCommand;
   @Mock private Review review;
   @Mock private User user;
   @Mock private ApplicationEventPublisher eventPublisher;
@@ -65,7 +67,8 @@ public class CommentCommandServiceTest {
     CommentCreateRequest createRequest =
         new CommentCreateRequest(reviewId, userId, "testCreateContent");
 
-    given(reviewFinder.getByIdOrThrow(reviewId)).willReturn(review);
+    given(reviewFinder.getByIdForUpdateOrThrow(reviewId)).willReturn(review);
+    given(review.getId()).willReturn(reviewId);
     given(userFinder.findByIdOrThrow(userId)).willReturn(user);
     given(review.getUser()).willReturn(user);
 
@@ -79,6 +82,7 @@ public class CommentCommandServiceTest {
     assertThat(result).isNotNull();
     assertThat(result.content()).isEqualTo("testCreateContent");
     verify(commentCommand).createComment(any(Comment.class));
+    verify(reviewCommand).increaseReviewCommentCount(reviewId);
   }
 
   @Test
@@ -88,6 +92,7 @@ public class CommentCommandServiceTest {
     CommentCreateRequest createRequest =
         new CommentCreateRequest(reviewId, userId, "testCreateContent");
 
+    given(reviewFinder.getByIdForUpdateOrThrow(reviewId)).willReturn(review);
     given(userFinder.findByIdOrThrow(userId))
         .willThrow(new BusinessException(UserErrorCode.NOT_FOUND));
 
@@ -108,7 +113,7 @@ public class CommentCommandServiceTest {
     CommentCreateRequest createRequest =
         new CommentCreateRequest(reviewId, userId, "testCreateContent");
 
-    given(reviewFinder.getByIdOrThrow(reviewId))
+    given(reviewFinder.getByIdForUpdateOrThrow(reviewId))
         .willThrow(new BusinessException(ReviewErrorCode.NOT_FOUND));
 
     // When & Then

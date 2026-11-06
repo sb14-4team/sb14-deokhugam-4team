@@ -3,18 +3,20 @@ package com.sprint.deokhugam.review.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.application.provided.command.BookReviewStatsCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
+import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.required.ReviewLikeQueryPort;
@@ -22,6 +24,7 @@ import com.sprint.deokhugam.review.application.required.ReviewLikeRepositoryPort
 import com.sprint.deokhugam.review.application.required.ReviewQueryPort;
 import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import java.util.List;
@@ -65,6 +68,7 @@ class ReviewCommandServiceTest {
             reviewLikeRepositoryPort,
             mock(ReviewQueryPort.class),
             reviewRepositoryPort,
+            mock(CommentUseCase.class),
             bookReviewStatsCommand,
             bookFinder,
             userFinder,
@@ -83,12 +87,15 @@ class ReviewCommandServiceTest {
 
   @Test
   void 리뷰저장_호출확인() {
+    // given
     when(reviewRepositoryPort.save(any(Review.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
+    // when
     ReviewResponse savedReview =
         reviewApplicationService.createReview(new CreateReviewCommand(userId, bookId, 5, "굳"));
 
+    // then
     assertThat(savedReview.content()).isEqualTo(review.getContent());
     assertThat(savedReview.rating()).isEqualTo(5);
     verify(reviewRepositoryPort).existsByUserIdAndBookId(userId, bookId);
@@ -98,8 +105,10 @@ class ReviewCommandServiceTest {
 
   @Test
   void 유저와도서가_중복된아이가있으면_실행안함() {
+    // given
     when(reviewRepositoryPort.existsByUserIdAndBookId(userId, bookId)).thenReturn(true);
 
+    // when
     BusinessException exception =
         assertThrows(
             BusinessException.class,
@@ -107,6 +116,7 @@ class ReviewCommandServiceTest {
                 reviewApplicationService.createReview(
                     new CreateReviewCommand(userId, bookId, 5, "굳")));
 
+    // then
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.ALREADY_EXISTS);
     verify(reviewRepositoryPort, never()).save(any(Review.class));
     verify(bookReviewStatsCommand, never()).addReview(book, 5);
@@ -114,29 +124,35 @@ class ReviewCommandServiceTest {
 
   @Test
   void 리뷰_수정_정상동작확인() {
+    // given
     UUID reviewId = UUID.randomUUID();
-    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
     log.info("리뷰 id - {}, 리뷰 내용 - {}", review.getId(), review.getContent());
 
+    // when
     ReviewResponse updated = reviewApplicationService.updateReview(userId, reviewId, "수정한 내용", 4);
 
+    // then
     assertThat(review.getContent()).isEqualTo("수정한 내용");
     assertThat(updated.content()).isEqualTo("수정한 내용");
     assertThat(updated.rating()).isEqualTo(4);
-    verify(reviewRepositoryPort).getByIdOrThrow(reviewId);
+    verify(reviewRepositoryPort).getByIdForUpdateOrThrow(reviewId);
     verify(bookReviewStatsCommand).changeReviewRating(book, 5, 4);
   }
 
   @Test
   void 리뷰_주인작성자_아니면실패() {
+    // given
     UUID reviewId = UUID.randomUUID();
-    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
 
+    // when
     BusinessException exception =
         assertThrows(
             BusinessException.class,
             () -> reviewApplicationService.updateReview(UUID.randomUUID(), reviewId, "수정한 내용", 4));
 
+    // then
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.FORBIDDEN);
     assertThat(review.getContent()).isEqualTo("굳");
     assertThat(review.getRating()).isEqualTo(5);
@@ -145,12 +161,15 @@ class ReviewCommandServiceTest {
 
   @Test
   void 도서_물리삭제_리뷰정리_좋아요_댓글_리뷰순서로지운다() {
+    // given
     List<UUID> reviewIds = List.of(UUID.randomUUID(), UUID.randomUUID());
     when(reviewRepositoryPort.getIdsByBookId(bookId)).thenReturn(reviewIds);
     when(reviewRepositoryPort.deleteAllByIds(reviewIds)).thenReturn(2L);
 
+    // when
     long deleted = reviewCleanupService.deleteReviewsWithRelatedDataByBook(book);
 
+    // then
     assertThat(deleted).isEqualTo(2L);
     InOrder inOrder =
         inOrder(reviewLikeRepositoryPort, commentCommandService, reviewRepositoryPort);
@@ -161,13 +180,68 @@ class ReviewCommandServiceTest {
 
   @Test
   void 도서_물리삭제_리뷰가없으면_아무것도지우지않는다() {
+    // given
     when(reviewRepositoryPort.getIdsByBookId(bookId)).thenReturn(List.of());
 
+    // when
     long deleted = reviewCleanupService.deleteReviewsWithRelatedDataByBook(book);
 
+    // then
     assertThat(deleted).isZero();
     verify(reviewLikeRepositoryPort, never()).deleteAllByReviewIds(List.of());
     verify(commentCommandService, never()).deleteAllByReviewIds(List.of());
     verify(reviewRepositoryPort, never()).deleteAllByIds(List.of());
+  }
+
+  @Test
+  void 탈퇴_사용자의_리뷰는_관련_데이터부터_삭제한다() {
+    // given
+    List<UUID> reviewIds = List.of(UUID.randomUUID());
+    when(reviewRepositoryPort.getIdsByUserIdIncludingDeleted(userId)).thenReturn(reviewIds);
+    when(reviewRepositoryPort.deleteAllByIds(reviewIds)).thenReturn(1L);
+
+    // when
+    long deleted = reviewCleanupService.deleteReviewsWithRelatedDataByUserId(userId);
+
+    // then
+    assertThat(deleted).isEqualTo(1L);
+    InOrder order = inOrder(commentCommandService, reviewLikeRepositoryPort, reviewRepositoryPort);
+    order.verify(commentCommandService).deleteAllByReviewIds(reviewIds);
+    order.verify(reviewLikeRepositoryPort).deleteAllByReviewIds(reviewIds);
+    order.verify(reviewRepositoryPort).deleteAllByIds(reviewIds);
+  }
+
+  @Test
+  void 탈퇴_사용자의_리뷰가_없으면_관련_데이터를_삭제하지_않는다() {
+    // given
+    when(reviewRepositoryPort.getIdsByUserIdIncludingDeleted(userId)).thenReturn(List.of());
+
+    // when
+    long deleted = reviewCleanupService.deleteReviewsWithRelatedDataByUserId(userId);
+
+    // then
+    assertThat(deleted).isZero();
+    verifyNoInteractions(commentCommandService, reviewLikeRepositoryPort);
+    verify(reviewRepositoryPort, never()).deleteAllByIds(any());
+  }
+
+  @Test
+  void 탈퇴_사용자_댓글_정리가_실패하면_후속_삭제를_중단하고_예외를_전달한다() {
+    // given
+    List<UUID> reviewIds = List.of(UUID.randomUUID());
+    RuntimeException failure = new IllegalStateException("댓글 정리 실패");
+    when(reviewRepositoryPort.getIdsByUserIdIncludingDeleted(userId)).thenReturn(reviewIds);
+    doThrow(failure).when(commentCommandService).deleteAllByReviewIds(reviewIds);
+
+    // when
+    RuntimeException exception =
+        assertThrows(
+            RuntimeException.class,
+            () -> reviewCleanupService.deleteReviewsWithRelatedDataByUserId(userId));
+
+    // then
+    assertThat(exception).isSameAs(failure);
+    verifyNoInteractions(reviewLikeRepositoryPort);
+    verify(reviewRepositoryPort, never()).deleteAllByIds(any());
   }
 }
