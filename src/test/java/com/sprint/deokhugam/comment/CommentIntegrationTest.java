@@ -57,6 +57,7 @@ public class CommentIntegrationTest {
   static void configureProperties(DynamicPropertyRegistry registry) {
     // repository test와 달리 특별히 지시하지 않는 이상 메인 DB 설정을 임의로 바꾸지 않기 때문에 URL을 H2로 강제 덮어쓰기
     registry.add("spring.datasource.url", () -> "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1");
+    registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.H2Dialect");
     registry.add("spring.jpa.properties.hibernate.globally_quoted_identifiers", () -> "false");
   }
 

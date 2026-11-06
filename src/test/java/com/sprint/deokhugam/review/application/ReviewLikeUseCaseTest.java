@@ -5,16 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.notification.domain.NotifyEvent;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
 import com.sprint.deokhugam.review.application.required.ReviewLikeRepositoryPort;
 import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.review.domain.ReviewLike;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
@@ -63,7 +65,7 @@ class ReviewLikeUseCaseTest {
   void 리뷰좋아요_새로_생성될경우() {
     // given
     when(userFinder.findByIdOrThrow(userId)).thenReturn(user);
-    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
     when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
         .thenReturn(Optional.empty());
 
@@ -76,6 +78,7 @@ class ReviewLikeUseCaseTest {
     assertThat(response.userId()).isEqualTo(userId);
     assertThat(review.getLikeCount()).isEqualTo(1);
     verify(reviewLikeRepositoryPort).save(any(ReviewLike.class));
+    verify(eventPublisher).publishEvent(NotifyEvent.like(reviewId, userId, user.getNickname()));
   }
 
   @Test
@@ -85,7 +88,7 @@ class ReviewLikeUseCaseTest {
     review.increaseLikeCount();
 
     when(userFinder.findByIdOrThrow(userId)).thenReturn(user);
-    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
     when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
         .thenReturn(Optional.of(existing));
 
@@ -97,12 +100,57 @@ class ReviewLikeUseCaseTest {
     assertThat(existing.isLiked()).isFalse();
     assertThat(review.getLikeCount()).isZero();
     verify(reviewLikeRepositoryPort, never()).save(any(ReviewLike.class));
+    verifyNoInteractions(eventPublisher);
+  }
+
+  @Test
+  void 취소한_좋아요를_다시_누르면_기존_기록을_활성화한다() {
+    // given
+    ReviewLike existing = ReviewLike.init(review, user);
+    existing.toggle();
+    when(userFinder.findByIdOrThrow(userId)).thenReturn(user);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
+    when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
+        .thenReturn(Optional.of(existing));
+
+    // when
+    ReviewLikeResponse response = reviewApplicationService.toggleLike(reviewId, userId);
+
+    // then
+    assertThat(response.liked()).isTrue();
+    assertThat(existing.isLiked()).isTrue();
+    assertThat(review.getLikeCount()).isEqualTo(1);
+    verify(reviewLikeRepositoryPort, never()).save(any(ReviewLike.class));
+    verify(eventPublisher).publishEvent(NotifyEvent.like(reviewId, userId, user.getNickname()));
+  }
+
+  @Test
+  void 리뷰가_없으면_좋아요를_저장하거나_이벤트를_발행하지_않는다() {
+    // given
+    when(userFinder.findByIdOrThrow(userId)).thenReturn(user);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId))
+        .thenThrow(new BusinessException(ReviewErrorCode.NOT_FOUND));
+
+    // when
+    BusinessException exception =
+        assertThrows(
+            BusinessException.class, () -> reviewApplicationService.toggleLike(reviewId, userId));
+
+    // then
+    assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.NOT_FOUND);
+    assertThat(review.getLikeCount()).isZero();
+    verifyNoInteractions(reviewLikeRepositoryPort, eventPublisher);
   }
 
   @Test
   void 리뷰좋아요_감소_음수실퍠() {
+    // given
+    assertThat(review.getLikeCount()).isZero();
+
+    // when
     BusinessException exception = assertThrows(BusinessException.class, review::decreaseLikeCount);
 
+    // then
     assertThat(exception.getErrorCode()).isEqualTo(ReviewErrorCode.LIKE_COUNT_UNDERFLOW);
     assertThat(review.getLikeCount()).isZero();
   }

@@ -22,6 +22,8 @@ public class CommentQuerydslSearchAdapter implements CommentSearchPort {
   public List<Comment> search(CommentSearchCondition condition) {
     return queryFactory
         .selectFrom(comment)
+        .join(comment.user)
+        .join(comment.review)
         .where(
             comment.deletedAt.isNull(),
             reviewIdCondition(condition.reviewId()),
