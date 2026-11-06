@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,6 +66,11 @@ class GlobalExceptionHandlerTest {
     void params(
         @RequestParam(defaultValue = "DESC") Sort.Direction direction,
         @RequestParam(defaultValue = "50") @Min(1) int limit) {}
+
+    @GetMapping("/conflict")
+    void conflict() {
+      throw new ObjectOptimisticLockingFailureException("Book", UUID.randomUUID());
+    }
 
     @GetMapping("/unknown")
     void unknown() {
@@ -160,6 +166,15 @@ class GlobalExceptionHandlerTest {
         .perform(post("/business"))
         .andExpect(status().isMethodNotAllowed())
         .andExpect(jsonPath("$.code").value("COMMON_METHOD_NOT_ALLOWED"));
+  }
+
+  @Test
+  @DisplayName("낙관적 락 충돌이면 409 COMMON_CONFLICT")
+  void optimisticLockConflict() throws Exception {
+    mockMvc
+        .perform(get("/conflict"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("COMMON_CONFLICT"));
   }
 
   @Test

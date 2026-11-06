@@ -5,6 +5,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -94,6 +95,14 @@ public class GlobalExceptionHandler {
       HttpRequestMethodNotSupportedException e) {
     log.info("지원하지 않는 메서드: {}", e.getMethod());
     return toResponse(CommonErrorCode.METHOD_NOT_ALLOWED, Map.of());
+  }
+
+  // @Version 값이 달라 UPDATE가 실패한 경우. 다른 요청이 먼저 같은 행을 고쳤다
+  @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+  public ResponseEntity<ErrorResponse> handleOptimisticLock(
+      ObjectOptimisticLockingFailureException e) {
+    log.info("동시 수정 충돌: {}", e.getMessage());
+    return toResponse(CommonErrorCode.CONFLICT, Map.of());
   }
 
   // 위에서 잡지 못한 모든 예외
