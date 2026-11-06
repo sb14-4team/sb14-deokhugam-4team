@@ -66,7 +66,10 @@ public class PopularReview extends BaseEntity {
         reviewId, period, rank, calculateScore(likeCount, commentCount), likeCount, commentCount);
   }
 
+  // 소수 계산 오차를 없애려고 소수 첫째 자리로 맞춘다
+  // 가중치가 소수 첫째 자리까지라 실제 점수도 항상 소수 첫째 자리까지다
   public static double calculateScore(long likeCount, long commentCount) {
-    return (likeCount * LIKE_WEIGHT) + (commentCount * COMMENT_WEIGHT);
+    double score = (likeCount * LIKE_WEIGHT) + (commentCount * COMMENT_WEIGHT);
+    return Math.round(score * 10) / 10.0;
   }
 }
