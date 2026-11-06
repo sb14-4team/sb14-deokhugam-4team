@@ -6,7 +6,6 @@ import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.provided.CommentUseCase;
 import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.notification.domain.NotifyEvent;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.req.ReviewSearchCondition;
@@ -18,6 +17,7 @@ import com.sprint.deokhugam.review.application.required.ReviewQueryPort;
 import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.review.domain.ReviewLike;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import com.sprint.deokhugam.user.domain.ranking.ActivityEvent;
@@ -123,7 +123,7 @@ public class ReviewApplicationService implements ReviewUseCase {
   @Transactional
   public ReviewLikeResponse toggleLike(UUID reviewId, UUID requestUserId) {
     User user = userFinder.findByIdOrThrow(requestUserId);
-    Review review = reviewRepositoryPort.getByIdOrThrow(reviewId);
+    Review review = reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId);
 
     Optional<ReviewLike> foundReviewLike =
         reviewLikeRepositoryPort.getByUserIdAndReviewId(requestUserId, reviewId);

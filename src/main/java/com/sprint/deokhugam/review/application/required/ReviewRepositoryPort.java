@@ -10,6 +10,8 @@ public interface ReviewRepositoryPort {
 
   Review getByIdOrThrow(UUID reviewId);
 
+  Review getByIdForUpdateOrThrow(UUID reviewId);
+
   Optional<Review> getByIdIncludingDeleted(UUID reviewId);
 
   void requireActiveById(UUID reviewId);

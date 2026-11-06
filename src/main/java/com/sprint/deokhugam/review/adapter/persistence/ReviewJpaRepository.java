@@ -1,11 +1,13 @@
 package com.sprint.deokhugam.review.adapter.persistence;
 
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,10 @@ public interface ReviewJpaRepository extends JpaRepository<Review, UUID> {
   boolean existsByIdAndDeletedAtIsNull(UUID reviewId);
 
   Optional<Review> findByIdAndDeletedAtIsNull(UUID reviewId);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select r from Review r where r.id = :reviewId and r.deletedAt is null")
+  Optional<Review> findByIdForUpdate(@Param("reviewId") UUID reviewId);
 
   @Query(
       """
@@ -49,6 +55,11 @@ public interface ReviewJpaRepository extends JpaRepository<Review, UUID> {
 
   default Review getByIdOrThrow(UUID reviewId) {
     return findByIdAndDeletedAtIsNull(reviewId)
+        .orElseThrow(() -> new BusinessException(ReviewErrorCode.NOT_FOUND));
+  }
+
+  default Review getByIdForUpdateOrThrow(UUID reviewId) {
+    return findByIdForUpdate(reviewId)
         .orElseThrow(() -> new BusinessException(ReviewErrorCode.NOT_FOUND));
   }
 

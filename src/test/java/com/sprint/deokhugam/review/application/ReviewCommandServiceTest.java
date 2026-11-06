@@ -14,7 +14,6 @@ import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.comment.application.CommentCommandService;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.required.ReviewLikeQueryPort;
@@ -22,6 +21,7 @@ import com.sprint.deokhugam.review.application.required.ReviewLikeRepositoryPort
 import com.sprint.deokhugam.review.application.required.ReviewQueryPort;
 import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.User;
 import java.util.List;

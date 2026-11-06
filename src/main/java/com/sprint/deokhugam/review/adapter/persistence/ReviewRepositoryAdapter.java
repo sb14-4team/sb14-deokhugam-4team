@@ -34,6 +34,11 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   }
 
   @Override
+  public Review getByIdForUpdateOrThrow(UUID reviewId) {
+    return reviewJpaRepository.getByIdForUpdateOrThrow(reviewId);
+  }
+
+  @Override
   public Optional<Review> getByIdIncludingDeleted(UUID reviewId) {
     return reviewJpaRepository.findById(reviewId);
   }

@@ -9,12 +9,12 @@ import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.dto.res.ReviewLikeResponse;
 import com.sprint.deokhugam.review.application.required.ReviewLikeRepositoryPort;
 import com.sprint.deokhugam.review.application.required.ReviewRepositoryPort;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.review.domain.ReviewLike;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
@@ -63,7 +63,7 @@ class ReviewLikeUseCaseTest {
   void 리뷰좋아요_새로_생성될경우() {
     // given
     when(userFinder.findByIdOrThrow(userId)).thenReturn(user);
-    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
     when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
         .thenReturn(Optional.empty());
 
@@ -85,7 +85,7 @@ class ReviewLikeUseCaseTest {
     review.increaseLikeCount();
 
     when(userFinder.findByIdOrThrow(userId)).thenReturn(user);
-    when(reviewRepositoryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId)).thenReturn(review);
     when(reviewLikeRepositoryPort.getByUserIdAndReviewId(userId, reviewId))
         .thenReturn(Optional.of(existing));
 
