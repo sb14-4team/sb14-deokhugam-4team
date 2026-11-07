@@ -8,6 +8,8 @@ import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.application.provided.command.BookCommand;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
+import com.sprint.deokhugam.book.application.provided.query.BookInfoFinder;
+import com.sprint.deokhugam.book.application.provided.query.IsbnRecognizer;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -37,6 +39,8 @@ public class BookController {
 
   private final BookCommand bookCommand;
   private final BookFinder bookFinder;
+  private final BookInfoFinder bookInfoFinder;
+  private final IsbnRecognizer isbnRecognizer;
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<BookDto> create(
@@ -63,13 +67,13 @@ public class BookController {
   // 글자 경로 /info 가 /{bookId} 보다 먼저 매칭된다
   @GetMapping("/info")
   public ResponseEntity<BookInfoDto> getInfo(@RequestParam String isbn) {
-    return ResponseEntity.ok(bookFinder.getBookInfo(isbn));
+    return ResponseEntity.ok(bookInfoFinder.getBookInfo(isbn));
   }
 
   // 응답은 JSON이 아니라 ISBN 문자열 하나다. FE가 본문을 그대로 isbn 칸에 넣는다
   @PostMapping(value = "/isbn/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<String> recognizeIsbn(@RequestPart("image") MultipartFile image) {
-    return ResponseEntity.ok(bookFinder.recognizeIsbn(image));
+    return ResponseEntity.ok(isbnRecognizer.recognizeIsbn(image));
   }
 
   @GetMapping("/{bookId}")

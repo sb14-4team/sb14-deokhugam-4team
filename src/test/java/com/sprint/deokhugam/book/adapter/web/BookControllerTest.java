@@ -15,7 +15,9 @@ import com.sprint.deokhugam.book.FakeOcrTextPort;
 import com.sprint.deokhugam.book.FakeReviewCommand;
 import com.sprint.deokhugam.book.FakeThumbnailStoragePort;
 import com.sprint.deokhugam.book.application.BookCommandService;
+import com.sprint.deokhugam.book.application.BookInfoService;
 import com.sprint.deokhugam.book.application.BookQueryService;
+import com.sprint.deokhugam.book.application.IsbnRecognitionService;
 import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.book.domain.Isbn;
@@ -47,11 +49,9 @@ class BookControllerTest {
                   new BookCommandService(
                       bookRepositoryPort, thumbnailStoragePort, event -> {}, reviewCommand),
                   new BookQueryService(
-                      bookRepositoryPort,
-                      new FakeBookSearchPort(bookRepositoryPort),
-                      bookProviderPort,
-                      ocrTextPort,
-                      new IsbnExtractor())))
+                      bookRepositoryPort, new FakeBookSearchPort(bookRepositoryPort)),
+                  new BookInfoService(bookProviderPort),
+                  new IsbnRecognitionService(ocrTextPort, new IsbnExtractor())))
           .setControllerAdvice(new GlobalExceptionHandler())
           .build();
 
