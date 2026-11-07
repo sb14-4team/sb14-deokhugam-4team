@@ -28,14 +28,12 @@ public class CommentQuerydslRepository {
   }
 
   public void deleteCommentsByUser(UUID userId) {
-    queryFactory.delete(comment).where(comment.user.id.eq(userId)).execute();
     entityManager.flush();
-    entityManager.clear();
+    queryFactory.delete(comment).where(comment.user.id.eq(userId)).execute();
   }
 
   public void deleteCommentsByReview(List<UUID> reviewIds) {
-    queryFactory.delete(comment).where(comment.review.id.in(reviewIds)).execute();
     entityManager.flush();
-    entityManager.clear();
+    queryFactory.delete(comment).where(comment.review.id.in(reviewIds)).execute();
   }
 }

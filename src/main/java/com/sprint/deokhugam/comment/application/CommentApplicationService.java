@@ -13,8 +13,8 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import com.sprint.deokhugam.common.pagination.CursorPageResponse;
 import com.sprint.deokhugam.domain.comment.exception.CommentErrorCode;
-import com.sprint.deokhugam.notification.application.provided.command.NotificationCommand;
 import com.sprint.deokhugam.notification.domain.NotifyEvent;
+import com.sprint.deokhugam.review.application.provided.command.ReviewCommand;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
 import com.sprint.deokhugam.user.application.provided.query.UserFinder;
@@ -38,20 +38,20 @@ public class CommentApplicationService implements CommentUseCase {
   private final ReviewFinder reviewFinder;
   private final UserFinder userFinder;
 
-  private final CommentSearchPort commentSearchPort;
+  private final ReviewCommand reviewCommand;
 
-  private final NotificationCommand notificationCommand;
+  private final CommentSearchPort commentSearchPort;
   private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
   public CommentDto create(CommentCreateRequest createRequest) {
-    Review review = reviewFinder.getByIdOrThrow(createRequest.reviewId());
+    Review review = reviewFinder.getByIdForUpdateOrThrow(createRequest.reviewId());
     User user = userFinder.findByIdOrThrow(createRequest.userId());
 
     Comment comment = Comment.create(review, user, createRequest.content());
     Comment savedComment = commentCommand.createComment(comment);
-    review.increaseCommentCount();
+    reviewCommand.increaseReviewCommentCount(review.getId());
 
     eventPublisher.publishEvent(
         NotifyEvent.comment(
@@ -115,7 +115,7 @@ public class CommentApplicationService implements CommentUseCase {
 
   private void decreaseCommentCount(Review review) {
     if (review.getCommentCount() > 0) {
-      review.decreaseCommentCount();
+      reviewCommand.decreaseReviewCommentCount(review.getId());
     }
   }
 

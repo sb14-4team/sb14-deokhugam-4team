@@ -1,5 +1,7 @@
 package com.sprint.deokhugam.comment;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -48,7 +50,6 @@ public class CommentIntegrationTest {
   @Autowired private EntityManager entityManager;
 
   private Review savedReview;
-  private Book savedBook;
   private User savedUser;
   private Comment savedComment;
 
@@ -56,6 +57,7 @@ public class CommentIntegrationTest {
   static void configureProperties(DynamicPropertyRegistry registry) {
     // repository test와 달리 특별히 지시하지 않는 이상 메인 DB 설정을 임의로 바꾸지 않기 때문에 URL을 H2로 강제 덮어쓰기
     registry.add("spring.datasource.url", () -> "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1");
+    registry.add("spring.jpa.database-platform", () -> "org.hibernate.dialect.H2Dialect");
     registry.add("spring.jpa.properties.hibernate.globally_quoted_identifiers", () -> "false");
   }
 
@@ -73,13 +75,24 @@ public class CommentIntegrationTest {
             LocalDate.of(2011, 1, 1),
             null,
             "https://example.com/thumbnails/testTitle.jpg");
-    savedBook = bookJpaRepository.save(book);
+    Book savedBook = bookJpaRepository.save(book);
 
     Review review = Review.create(1, "testReview", savedUser, savedBook);
     savedReview = reviewJpaRepository.save(review);
 
     Comment comment = Comment.create(savedReview, savedUser, "testCreateContent");
     savedComment = commentJpaRepository.save(comment);
+    savedReview.increaseCommentCount();
+  }
+
+  // 요청 결과를 DB에 반영한 뒤 JPA가 기억하던 객체를 비운다. 이후 조회가 실제 DB에서 읽도록 만든다
+  private void flushAndClear() {
+    entityManager.flush();
+    entityManager.clear();
+  }
+
+  private int findCommentCount() {
+    return reviewJpaRepository.findById(savedReview.getId()).orElseThrow().getCommentCount();
   }
 
   @Test
@@ -87,16 +100,23 @@ public class CommentIntegrationTest {
   void createCommentIntegration() throws Exception {
     // Given
     CommentCreateRequest request =
-        new CommentCreateRequest(savedReview.getId(), savedUser.getId(), "testCreateContent");
+        new CommentCreateRequest(savedReview.getId(), savedUser.getId(), "testNewContent");
 
-    // When & Then
+    // When
     mockMvc
         .perform(
             post("/api/comments")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(request)))
         .andExpect(status().isCreated())
-        .andExpect(jsonPath("$.content").value("testCreateContent"));
+        .andExpect(jsonPath("$.content").value("testNewContent"));
+
+    // Then
+    flushAndClear();
+    assertThat(commentJpaRepository.findAll())
+        .extracting(Comment::getContent)
+        .containsExactlyInAnyOrder("testCreateContent", "testNewContent");
+    assertThat(findCommentCount()).isEqualTo(2);
   }
 
   @Test
@@ -118,7 +138,7 @@ public class CommentIntegrationTest {
     // Given
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
 
-    // When & Then
+    // When
     mockMvc
         .perform(
             patch("/api/comments/{commentId}", savedComment.getId())
@@ -127,5 +147,92 @@ public class CommentIntegrationTest {
                 .content(jsonMapper.writeValueAsString(updateRequest)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value("testUpdatedContent"));
+
+    // Then
+    flushAndClear();
+    Comment updatedComment = commentJpaRepository.findByIdOrThrow(savedComment.getId());
+    assertThat(updatedComment.getContent()).isEqualTo("testUpdatedContent");
+  }
+
+  @Test
+  @DisplayName("통합 테스트: 다른 유저가 댓글 수정 요청 시 403 응답 후 내용 유지")
+  void updateCommentForbiddenIntegration() throws Exception {
+    // Given
+    User otherUser =
+        userJpaRepository.save(
+            User.create("otherNickname", Email.to("other@example.com"), Password.to("abcd1234!")));
+    CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
+
+    // When
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", savedComment.getId())
+                .header("Deokhugam-Request-User-ID", otherUser.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateRequest)))
+        .andExpect(status().isForbidden());
+
+    // Then
+    flushAndClear();
+    Comment comment = commentJpaRepository.findByIdOrThrow(savedComment.getId());
+    assertThat(comment.getContent()).isEqualTo("testCreateContent");
+  }
+
+  @Test
+  @DisplayName("통합 테스트: 댓글 논리 삭제 시 삭제 시각 저장 및 리뷰 댓글 수 감소")
+  void softDeleteCommentIntegration() throws Exception {
+    // When
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}", savedComment.getId())
+                .header("Deokhugam-Request-User-ID", savedUser.getId()))
+        .andExpect(status().isNoContent());
+
+    // Then
+    flushAndClear();
+    Comment deletedComment =
+        commentJpaRepository.findByIdIncludingDeletedOrThrow(savedComment.getId());
+    assertThat(deletedComment.getDeletedAt()).isNotNull();
+    assertThat(findCommentCount()).isZero();
+  }
+
+  @Test
+  @DisplayName("통합 테스트: 이미 논리 삭제된 댓글을 다시 삭제하면 404 응답")
+  void softDeleteTwiceIntegration() throws Exception {
+    // Given
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}", savedComment.getId())
+                .header("Deokhugam-Request-User-ID", savedUser.getId()))
+        .andExpect(status().isNoContent());
+    flushAndClear();
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}", savedComment.getId())
+                .header("Deokhugam-Request-User-ID", savedUser.getId()))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("통합 테스트: 다른 유저가 댓글 삭제 요청 시 403 응답 후 댓글 유지")
+  void softDeleteForbiddenIntegration() throws Exception {
+    // Given
+    User otherUser =
+        userJpaRepository.save(
+            User.create("otherNickname", Email.to("other@example.com"), Password.to("abcd1234!")));
+
+    // When
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}", savedComment.getId())
+                .header("Deokhugam-Request-User-ID", otherUser.getId()))
+        .andExpect(status().isForbidden());
+
+    // Then
+    flushAndClear();
+    assertThat(commentJpaRepository.findByIdOrThrow(savedComment.getId())).isNotNull();
+    assertThat(findCommentCount()).isEqualTo(1);
   }
 }

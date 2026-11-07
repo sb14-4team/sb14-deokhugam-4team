@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -45,7 +47,7 @@ public class CommentControllerTest {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private JsonMapper jsonMapper;
-  @MockitoBean private CommentUseCase commentUsecase;
+  @MockitoBean private CommentUseCase commentUseCase;
 
   private UUID reviewId;
   private UUID userId;
@@ -75,7 +77,7 @@ public class CommentControllerTest {
             Instant.now(),
             Instant.now());
 
-    given(commentUsecase.create(any(CommentCreateRequest.class))).willReturn(commentDto);
+    given(commentUseCase.create(any(CommentCreateRequest.class))).willReturn(commentDto);
 
     // When & Then
     mockMvc
@@ -100,10 +102,47 @@ public class CommentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(invalidRequest)))
         .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).create(any());
   }
 
   @Test
-  @DisplayName("댓글 수정 성공 테스트")
+  @DisplayName("댓글 등록 실패 - 공백만 입력 시 400 에러")
+  void createComment_fail_whitespaceContent() throws Exception {
+    // Given
+    CommentCreateRequest invalidRequest = new CommentCreateRequest(reviewId, userId, "   ");
+
+    // When & Then
+    mockMvc
+        .perform(
+            post("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).create(any());
+  }
+
+  @Test
+  @DisplayName("댓글 등록 실패 - 1000자 초과 입력 시 400 에러")
+  void createComment_fail_tooLongContent() throws Exception {
+    // Given
+    CommentCreateRequest invalidRequest =
+        new CommentCreateRequest(reviewId, userId, "a".repeat(1001));
+
+    // When & Then
+    mockMvc
+        .perform(
+            post("/api/comments")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).create(any());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 성공")
   void updateComment_success() throws Exception {
     // Given
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
@@ -118,7 +157,7 @@ public class CommentControllerTest {
             Instant.now(),
             Instant.now());
 
-    given(commentUsecase.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
+    given(commentUseCase.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
         .willReturn(commentDto);
 
     // When & Then
@@ -134,7 +173,7 @@ public class CommentControllerTest {
 
   @Test
   @DisplayName("댓글 수정 실패 - 빈 내용 입력 시 예외 발생")
-  void updatedComment_fail_blankContent() throws Exception {
+  void updateComment_fail_blankContent() throws Exception {
     // Given
     CommentUpdateRequest invalidRequest = new CommentUpdateRequest("");
 
@@ -146,6 +185,61 @@ public class CommentControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonMapper.writeValueAsString(invalidRequest)))
         .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).update(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 실패 - 공백만 입력 시 400 에러")
+  void updateComment_fail_whitespaceContent() throws Exception {
+    // Given
+    CommentUpdateRequest invalidRequest = new CommentUpdateRequest("   ");
+
+    // When & Then
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).update(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 실패 - 1000자 초과 입력 시 400 에러")
+  void updateComment_fail_tooLongContent() throws Exception {
+    // Given
+    CommentUpdateRequest invalidRequest = new CommentUpdateRequest("a".repeat(1001));
+
+    // When & Then
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(invalidRequest)))
+        .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).update(any(), any(), any());
+  }
+
+  @Test
+  @DisplayName("댓글 수정 실패 - 요청자 헤더가 없으면 400 에러")
+  void updateComment_fail_missingHeader() throws Exception {
+    // Given
+    CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
+
+    // When & Then
+    mockMvc
+        .perform(
+            patch("/api/comments/{commentId}", commentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonMapper.writeValueAsString(updateRequest)))
+        .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).update(any(), any(), any());
   }
 
   @Test
@@ -154,7 +248,7 @@ public class CommentControllerTest {
     // Given
     CommentUpdateRequest updateRequest = new CommentUpdateRequest("testUpdatedContent");
 
-    given(commentUsecase.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
+    given(commentUseCase.update(eq(commentId), eq(userId), any(CommentUpdateRequest.class)))
         .willThrow(new BusinessException(CommentErrorCode.FORBIDDEN));
 
     // When & Then
@@ -171,7 +265,7 @@ public class CommentControllerTest {
   @DisplayName("댓글 논리 삭제 성공")
   void softDelete_success() throws Exception {
     // Given
-    willDoNothing().given(commentUsecase).softDelete(eq(commentId), eq(userId));
+    willDoNothing().given(commentUseCase).softDelete(eq(commentId), eq(userId));
 
     // When & Then
     mockMvc
@@ -186,7 +280,7 @@ public class CommentControllerTest {
   void softDelete_fail_notFound() throws Exception {
     // Given
     willThrow(new BusinessException(CommentErrorCode.NOT_FOUND))
-        .given(commentUsecase)
+        .given(commentUseCase)
         .softDelete(commentId, userId);
 
     // When & Then
@@ -198,10 +292,37 @@ public class CommentControllerTest {
   }
 
   @Test
+  @DisplayName("댓글 논리 삭제 실패 - 작성자가 아닌 타인이 요청할 경우 예외 발생")
+  void softDelete_fail_forbidden() throws Exception {
+    // Given
+    willThrow(new BusinessException(CommentErrorCode.FORBIDDEN))
+        .given(commentUseCase)
+        .softDelete(commentId, userId);
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  @DisplayName("댓글 논리 삭제 실패 - 요청자 헤더가 없으면 400 에러")
+  void softDelete_fail_missingHeader() throws Exception {
+    // When & Then
+    mockMvc
+        .perform(delete("/api/comments/{commentId}", commentId))
+        .andExpect(status().isBadRequest());
+
+    verify(commentUseCase, never()).softDelete(any(), any());
+  }
+
+  @Test
   @DisplayName("댓글 물리 삭제 성공")
   void hardDelete_success() throws Exception {
     // Given
-    willDoNothing().given(commentUsecase).hardDelete(eq(commentId), eq(userId));
+    willDoNothing().given(commentUseCase).hardDelete(eq(commentId), eq(userId));
 
     // When & Then
     mockMvc
@@ -216,7 +337,7 @@ public class CommentControllerTest {
   void hardDelete_fail_notFound() throws Exception {
     // Given
     willThrow(new BusinessException(CommentErrorCode.NOT_FOUND))
-        .given(commentUsecase)
+        .given(commentUseCase)
         .hardDelete(commentId, userId);
 
     // When & Then
@@ -228,13 +349,29 @@ public class CommentControllerTest {
   }
 
   @Test
+  @DisplayName("댓글 물리 삭제 실패 - 작성자가 아닌 타인이 요청할 경우 예외 발생")
+  void hardDelete_fail_forbidden() throws Exception {
+    // Given
+    willThrow(new BusinessException(CommentErrorCode.FORBIDDEN))
+        .given(commentUseCase)
+        .hardDelete(commentId, userId);
+
+    // When & Then
+    mockMvc
+        .perform(
+            delete("/api/comments/{commentId}/hard", commentId)
+                .header("Deokhugam-Request-User-ID", userId.toString()))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   @DisplayName("댓글 목록 조회 성공")
   void searchComments_success() throws Exception {
     // Given
     CursorPageResponse<CommentDto> pageResponse =
         CursorPageResponse.of(List.of(), 50, CommentDto::createdAt, CommentDto::createdAt, 0L);
 
-    given(commentUsecase.searchCommentsByPagination(any())).willReturn(pageResponse);
+    given(commentUseCase.searchCommentsByPagination(any())).willReturn(pageResponse);
 
     // When & Then
     mockMvc
