@@ -4,7 +4,6 @@ import com.sprint.deokhugam.common.exception.BusinessException;
 import com.sprint.deokhugam.common.exception.CommonErrorCode;
 import java.time.Instant;
 
-// todo : 실드 이해하기
 public sealed interface ReviewAggregationRange
     permits ReviewAggregationRange.Between, ReviewAggregationRange.AllTime {
 

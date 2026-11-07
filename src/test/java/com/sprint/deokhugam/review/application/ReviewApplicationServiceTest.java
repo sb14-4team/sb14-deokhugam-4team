@@ -5,11 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
 import com.sprint.deokhugam.review.application.dto.req.CreateReviewCommand;
 import com.sprint.deokhugam.review.application.dto.res.ReviewResponse;
 import com.sprint.deokhugam.review.application.provided.query.ReviewFinder;
 import com.sprint.deokhugam.review.domain.Review;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.domain.Email;
 import com.sprint.deokhugam.user.domain.Password;
 import com.sprint.deokhugam.user.domain.User;

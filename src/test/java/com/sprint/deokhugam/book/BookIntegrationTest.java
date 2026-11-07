@@ -46,6 +46,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -372,6 +373,7 @@ class BookIntegrationTest {
     assertThat(found.getPublisher()).isEqualTo("새 출판사");
     assertThat(found.getPublishedDate()).isEqualTo(LocalDate.of(2021, 2, 2));
     assertThat(found.getIsbn()).isEqualTo(Isbn.of("9788966260959"));
+    assertThat(found.getVersion()).isEqualTo(1);
 
     mockMvc
         .perform(get("/api/books/{bookId}", saved.getId()))
@@ -447,6 +449,25 @@ class BookIntegrationTest {
 
     Book found = bookJpaRepository.findById(saved.getId()).orElseThrow();
     assertThat(found.getTitle()).isEqualTo("제목");
+  }
+
+  // (5-6)
+  @Test
+  @DisplayName("읽은 뒤 다른 요청이 먼저 수정했으면 저장할 때 낙관적 락 예외가 난다")
+  void updateConflict() {
+    Book saved = bookRepositoryPort.save(book(null));
+    flushAndClear();
+    Book book = bookJpaRepository.findById(saved.getId()).orElseThrow();
+
+    // 다른 요청이 먼저 커밋한 상황을 SQL로 만든다
+    entityManager
+        .createNativeQuery("update books set version = version + 1 where id = :id")
+        .setParameter("id", saved.getId())
+        .executeUpdate();
+    book.update("새 제목", "새 저자", "새 소개", "새 출판사", LocalDate.of(2021, 2, 2));
+
+    assertThatThrownBy(() -> bookJpaRepository.flush())
+        .isInstanceOf(ObjectOptimisticLockingFailureException.class);
   }
 
   // ===== (7) DELETE /api/books/{bookId} : BookController.delete() =====
