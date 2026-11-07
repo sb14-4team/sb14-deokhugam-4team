@@ -18,16 +18,25 @@ public class ReviewQueryService implements ReviewFinder {
   private final ReviewQueryPort reviewQueryPort;
 
   @Override
+  @Transactional
   public Review getByIdOrThrow(UUID reviewId) {
     return reviewRepositoryPort.getByIdOrThrow(reviewId);
   }
 
   @Override
+  @Transactional
+  public Review getByIdForUpdateOrThrow(UUID reviewId) {
+    return reviewRepositoryPort.getByIdForUpdateOrThrow(reviewId);
+  }
+
+  @Override
+  @Transactional
   public void requireActiveById(UUID reviewId) {
     reviewRepositoryPort.requireActiveById(reviewId);
   }
 
   @Override
+  @Transactional
   public List<BookReviewStatsResponse> aggregateByBook(ReviewAggregationRange range) {
     return reviewQueryPort.aggregateByBook(range);
   }

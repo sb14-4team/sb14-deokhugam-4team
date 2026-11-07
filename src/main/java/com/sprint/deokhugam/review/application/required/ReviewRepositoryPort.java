@@ -10,6 +10,8 @@ public interface ReviewRepositoryPort {
 
   Review getByIdOrThrow(UUID reviewId);
 
+  Review getByIdForUpdateOrThrow(UUID reviewId);
+
   Optional<Review> getByIdIncludingDeleted(UUID reviewId);
 
   void requireActiveById(UUID reviewId);
@@ -26,4 +28,8 @@ public interface ReviewRepositoryPort {
   List<UUID> getIdsByBookId(UUID bookId);
 
   List<UUID> getIdsByUserIdIncludingDeleted(UUID userId);
+
+  void increaseCommentCount(UUID reviewId);
+
+  void decreaseCommentCount(UUID reviewId);
 }

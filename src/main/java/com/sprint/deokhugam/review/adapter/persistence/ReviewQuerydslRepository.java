@@ -89,6 +89,22 @@ public class ReviewQuerydslRepository {
         .fetch();
   }
 
+  public void increaseCommentCount(UUID reviewId) {
+    queryFactory
+        .update(review)
+        .set(review.commentCount, review.commentCount.add(1))
+        .where(review.id.eq(reviewId), review.deletedAt.isNull())
+        .execute();
+  }
+
+  public void decreaseCommentCount(UUID reviewId) {
+    queryFactory
+        .update(review)
+        .set(review.commentCount, review.commentCount.subtract(1))
+        .where(review.id.eq(reviewId), review.deletedAt.isNull())
+        .execute();
+  }
+
   private BooleanExpression createdInRange(ReviewAggregationRange range) {
     return switch (range) {
       case ReviewAggregationRange.Between r ->

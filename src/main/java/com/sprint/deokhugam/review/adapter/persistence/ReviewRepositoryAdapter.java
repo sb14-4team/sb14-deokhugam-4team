@@ -34,6 +34,11 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   }
 
   @Override
+  public Review getByIdForUpdateOrThrow(UUID reviewId) {
+    return reviewJpaRepository.getByIdForUpdateOrThrow(reviewId);
+  }
+
+  @Override
   public Optional<Review> getByIdIncludingDeleted(UUID reviewId) {
     return reviewJpaRepository.findById(reviewId);
   }
@@ -86,5 +91,15 @@ public class ReviewRepositoryAdapter implements ReviewQueryPort, ReviewRepositor
   @Override
   public List<BookReviewStatsResponse> aggregateByBook(ReviewAggregationRange range) {
     return reviewQuerydslRepository.aggregateByBook(range);
+  }
+
+  @Override
+  public void increaseCommentCount(UUID reviewId) {
+    reviewQuerydslRepository.increaseCommentCount(reviewId);
+  }
+
+  @Override
+  public void decreaseCommentCount(UUID reviewId) {
+    reviewQuerydslRepository.decreaseCommentCount(reviewId);
   }
 }

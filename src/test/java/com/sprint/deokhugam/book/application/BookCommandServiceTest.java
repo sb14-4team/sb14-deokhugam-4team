@@ -14,6 +14,7 @@ import com.sprint.deokhugam.book.domain.BookDeletedEvent;
 import com.sprint.deokhugam.book.domain.Isbn;
 import com.sprint.deokhugam.book.domain.ThumbnailChangedEvent;
 import com.sprint.deokhugam.common.exception.BusinessException;
+import com.sprint.deokhugam.dashboard.book.domain.BookDeletingEvent;
 import com.sprint.deokhugam.domain.book.exception.BookErrorCode;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -364,7 +365,7 @@ class BookCommandServiceTest {
     assertThat(bookRepositoryPort.findActiveById(saved.getId())).isEmpty();
     assertThat(bookRepositoryPort.findById(saved.getId())).contains(saved);
     assertThat(thumbnailStoragePort.deletedKeys()).isEmpty();
-    assertThat(events).isEmpty();
+    assertThat(events).containsExactly(BookDeletingEvent.of(saved.getId()));
     assertThat(reviewCommand.cleanedBooks()).isEmpty();
   }
 
@@ -402,7 +403,9 @@ class BookCommandServiceTest {
 
     assertThat(reviewCommand.cleanedBooks()).containsExactly(saved);
     assertThat(bookRepositoryPort.findById(saved.getId())).isEmpty();
-    assertThat(events).containsExactly(new BookDeletedEvent("books/old.png"));
+    assertThat(events)
+        .containsExactly(
+            BookDeletingEvent.of(saved.getId()), new BookDeletedEvent("books/old.png"));
   }
 
   // (4-2)
@@ -425,7 +428,8 @@ class BookCommandServiceTest {
 
     bookCommandService.hardDelete(saved.getId());
 
-    assertThat(events).containsExactly(new BookDeletedEvent(null));
+    assertThat(events)
+        .containsExactly(BookDeletingEvent.of(saved.getId()), new BookDeletedEvent(null));
   }
 
   // (4-4)

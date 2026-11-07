@@ -3,7 +3,7 @@ package com.sprint.deokhugam.review.domain;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.common.entity.BaseSoftDeletableEntity;
 import com.sprint.deokhugam.common.exception.BusinessException;
-import com.sprint.deokhugam.domain.review.exception.ReviewErrorCode;
+import com.sprint.deokhugam.review.domain.exception.ReviewErrorCode;
 import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -73,14 +73,6 @@ public class Review extends BaseSoftDeletableEntity {
   public void decreaseLikeCount() {
     validateLikeCountCanDecrease();
     likeCount--;
-  }
-
-  public void increaseCommentCount() {
-    commentCount++;
-  }
-
-  public void decreaseCommentCount() {
-    commentCount--;
   }
 
   private static void validateRatingAndContent(Integer rating, String content) {

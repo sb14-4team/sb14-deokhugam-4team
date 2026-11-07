@@ -1,6 +1,10 @@
 package com.sprint.deokhugam.review.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyList;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.sprint.deokhugam.book.domain.Book;
@@ -19,6 +23,8 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -61,5 +67,48 @@ class ReviewSearchUseCaseTest {
     assertThat(result.content().getFirst().likedByMe()).isTrue();
     assertThat(result.totalElements()).isEqualTo(1);
     assertThat(result.hasNext()).isFalse();
+  }
+
+  @Test
+  void 리뷰_목록이_비어있으면_좋아요_목록을_조회하지_않는다() {
+    // given
+    UUID requestUserId = UUID.randomUUID();
+    ReviewSearchCondition condition =
+        new ReviewSearchCondition(null, null, null, "createdAt", "DESC", null, null, 10);
+    when(reviewQueryPort.search(condition)).thenReturn(List.of());
+    when(reviewQueryPort.count(condition)).thenReturn(0L);
+
+    // when
+    CursorPageResponse<ReviewResponse> result =
+        service.searchReviewsByPagination(condition, requestUserId);
+
+    // then
+    assertThat(result.content()).isEmpty();
+    assertThat(result.totalElements()).isZero();
+    assertThat(result.hasNext()).isFalse();
+    assertThat(result.nextCursor()).isNull();
+    verify(reviewLikeQueryPort, never()).findReviewLikeIdsByRequestId(anyList(), any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void 상세조회는_요청_사용자의_좋아요_상태를_반영한다(boolean likedByMe) {
+    // given
+    UUID reviewId = UUID.randomUUID();
+    UUID requestUserId = UUID.randomUUID();
+    User user = User.create("작성자", Email.to("author@example.com"), Password.to("password"));
+    Book book = Book.create("책", "저자", null, null, null, null, null);
+    Review review = Review.create(4, "상세 내용", user, book);
+    ReflectionTestUtils.setField(review, "id", reviewId);
+    when(reviewQueryPort.getByIdOrThrow(reviewId)).thenReturn(review);
+    when(reviewLikeQueryPort.isLikedBy(reviewId, requestUserId)).thenReturn(likedByMe);
+
+    // when
+    ReviewResponse result = service.getReviewDetail(reviewId, requestUserId);
+
+    // then
+    assertThat(result.id()).isEqualTo(reviewId);
+    assertThat(result.content()).isEqualTo("상세 내용");
+    assertThat(result.likedByMe()).isEqualTo(likedByMe);
   }
 }
