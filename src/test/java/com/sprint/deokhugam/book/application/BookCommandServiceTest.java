@@ -97,6 +97,18 @@ class BookCommandServiceTest {
     assertThat(bookRepositoryPort.count()).isEqualTo(1);
   }
 
+  // (1-2b)
+  @Test
+  @DisplayName("사전 확인을 통과했는데 저장에서 UNIQUE 위반이 나면 DUPLICATE_ISBN 예외로 바꾼다")
+  void createWithUniqueViolationOnSave() {
+    bookRepositoryPort.failNextSaveWithUniqueViolation();
+
+    assertThatThrownBy(() -> bookCommandService.create(request("9788966260959"), null))
+        .isInstanceOf(BusinessException.class)
+        .extracting("errorCode")
+        .isEqualTo(BookErrorCode.DUPLICATE_ISBN);
+  }
+
   // (1-3)
   @Test
   @DisplayName("ISBN이 없는 도서는 여러 권 등록할 수 있다")

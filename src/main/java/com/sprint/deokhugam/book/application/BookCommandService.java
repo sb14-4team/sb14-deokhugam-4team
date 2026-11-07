@@ -6,6 +6,7 @@ import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
 import com.sprint.deokhugam.book.application.provided.command.BookCommand;
 import com.sprint.deokhugam.book.application.required.BookRepositoryPort;
 import com.sprint.deokhugam.book.application.required.ThumbnailStoragePort;
+import com.sprint.deokhugam.book.application.required.UniqueConstraintViolationException;
 import com.sprint.deokhugam.book.domain.Book;
 import com.sprint.deokhugam.book.domain.BookDeletedEvent;
 import com.sprint.deokhugam.book.domain.Isbn;
@@ -57,7 +58,12 @@ public class BookCommandService implements BookCommand {
             request.publishedDate(),
             isbn,
             thumbnailUrl);
-    return BookDto.from(bookRepositoryPort.save(book));
+    try {
+      return BookDto.from(bookRepositoryPort.save(book));
+    } catch (UniqueConstraintViolationException e) {
+      // 사전 확인을 함께 통과한 같은 ISBN 동시 요청이다. 데이터는 UNIQUE가 막았고 응답만 409로 맞춘다
+      throw new BusinessException(BookErrorCode.DUPLICATE_ISBN, "isbn=" + isbn, e);
+    }
   }
 
   @Override
