@@ -6,7 +6,8 @@ import com.sprint.deokhugam.book.application.dto.BookInfoDto;
 import com.sprint.deokhugam.book.application.dto.BookSearchCondition;
 import com.sprint.deokhugam.book.application.dto.BookSortField;
 import com.sprint.deokhugam.book.application.dto.BookUpdateRequest;
-import com.sprint.deokhugam.book.application.provided.command.BookCommand;
+import com.sprint.deokhugam.book.application.provided.command.BookRemover;
+import com.sprint.deokhugam.book.application.provided.command.BookWriterUseCase;
 import com.sprint.deokhugam.book.application.provided.query.BookFinder;
 import com.sprint.deokhugam.book.application.provided.query.BookInfoFinder;
 import com.sprint.deokhugam.book.application.provided.query.IsbnRecognizer;
@@ -37,7 +38,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/books")
 public class BookController {
 
-  private final BookCommand bookCommand;
+  private final BookWriterUseCase bookWriterUseCase;
+  private final BookRemover bookRemover;
   private final BookFinder bookFinder;
   private final BookInfoFinder bookInfoFinder;
   private final IsbnRecognizer isbnRecognizer;
@@ -46,7 +48,7 @@ public class BookController {
   public ResponseEntity<BookDto> create(
       @RequestPart("bookData") @Valid BookCreateRequest bookData,
       @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage) {
-    BookDto bookDto = bookCommand.create(bookData, thumbnailImage);
+    BookDto bookDto = bookWriterUseCase.create(bookData, thumbnailImage);
     return ResponseEntity.status(HttpStatus.CREATED).body(bookDto);
   }
 
@@ -87,19 +89,19 @@ public class BookController {
       @PathVariable UUID bookId,
       @RequestPart("bookData") @Valid BookUpdateRequest bookData,
       @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage) {
-    return ResponseEntity.ok(bookCommand.update(bookId, bookData, thumbnailImage));
+    return ResponseEntity.ok(bookWriterUseCase.update(bookId, bookData, thumbnailImage));
   }
 
   @DeleteMapping("/{bookId}")
   public ResponseEntity<Void> delete(@PathVariable UUID bookId) {
-    bookCommand.delete(bookId);
+    bookRemover.delete(bookId);
     return ResponseEntity.noContent().build();
   }
 
   // UI에는 없는 기능. 리뷰, 댓글, 좋아요, 썸네일 파일까지 지운다
   @DeleteMapping("/{bookId}/hard")
   public ResponseEntity<Void> hardDelete(@PathVariable UUID bookId) {
-    bookCommand.hardDelete(bookId);
+    bookRemover.hardDelete(bookId);
     return ResponseEntity.noContent().build();
   }
 }
