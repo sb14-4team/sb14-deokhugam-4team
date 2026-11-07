@@ -8,7 +8,6 @@ import com.sprint.deokhugam.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -24,11 +23,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(
-    name = "comments",
-    // 리뷰별 댓글 조회 시
-    indexes =
-        @Index(name = "idx_comments_review_id_created_at", columnList = "review_id, created_at"))
+@Table(name = "comments")
 public class Comment extends BaseSoftDeletableEntity {
 
   @ManyToOne(fetch = FetchType.LAZY)
